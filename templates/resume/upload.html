@@ -1,2 +1,46 @@
-{% extends 'layout.html' %}
-{% block content %}<h1>Resume Upload</h1>{% endblock %}
+{% extends "layout.html" %}
+
+{% block title %}Upload Resume - NewWhale Career{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title"><i class="bi bi-file-earmark-arrow-up"></i> Upload Resume</h2>
+                <p class="text-muted">Get AI-powered analysis of your resume for AI-proof finance roles</p>
+                
+                <div class="alert alert-info">
+                    <strong>Free Tier:</strong> {{ current_user.tier|upper }} users get {{ 3 }} assessments per day.
+                    {% if current_user.tier == 'free' %}
+                    <a href="{{ url_for('web.pricing') }}" class="alert-link">Upgrade to Premium</a> for unlimited assessments.
+                    {% endif %}
+                </div>
+                
+                <form method="POST" enctype="multipart/form-data" id="upload-form">
+                    <div class="mb-3">
+                        <label for="resume_file" class="form-label">Select Resume</label>
+                        <input type="file" class="form-control" id="resume_file" name="resume_file" 
+                               accept=".pdf,.docx" required>
+                        <div class="form-text">Accepted formats: PDF, DOCX (max 10MB)</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload Resume
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h4>What You'll Get</h4>
+            <ul class="list-group">
+                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Overall competitiveness score (0-100)</li>
+                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Specific strengths and weaknesses</li>
+                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Industry compatibility ratings</li>
+                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Actionable recommendations</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
