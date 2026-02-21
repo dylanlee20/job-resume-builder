@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Preview Link - NewWhale Career</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bloomberg-black: #000000;
+            --bloomberg-dark: #0a0a0a;
+            --bloomberg-orange: #ff6600;
+            --bloomberg-orange-dark: #cc5200;
+            --bloomberg-orange-light: #ff8833;
+            --bloomberg-white: #ffffff;
+            --bloomberg-text-dim: #999999;
+            --bloomberg-border: #333333;
+        }
+        body {
+            background-color: var(--bloomberg-black);
+            color: var(--bloomberg-white);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-card {
+            background-color: var(--bloomberg-dark);
+            border: 1px solid var(--bloomberg-border);
+            border-top: 3px solid var(--bloomberg-orange);
+            border-radius: 4px;
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+        }
+        .logo {
+            color: var(--bloomberg-orange);
+            font-weight: bold;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            margin-bottom: 1.5rem;
+        }
+        .logo::before {
+            content: '\2588 ';
+            color: var(--bloomberg-orange);
+        }
+        h2 {
+            color: var(--bloomberg-orange);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        .recipient-box {
+            background-color: #111111;
+            border: 1px solid var(--bloomberg-border);
+            border-left: 3px solid var(--bloomberg-orange);
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .recipient-label {
+            color: var(--bloomberg-text-dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .recipient-value {
+            color: var(--bloomberg-orange);
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .url-box {
+            background-color: #111111;
+            border: 1px solid var(--bloomberg-border);
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            word-break: break-all;
+            color: var(--bloomberg-white);
+            border-radius: 2px;
+        }
+        .btn-orange {
+            background-color: var(--bloomberg-orange);
+            border-color: var(--bloomberg-orange);
+            color: #000000;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .btn-orange:hover {
+            background-color: var(--bloomberg-orange-dark);
+            border-color: var(--bloomberg-orange-dark);
+            color: #000000;
+        }
+        .btn-copy {
+            background-color: transparent;
+            border: 1px solid var(--bloomberg-border);
+            color: var(--bloomberg-text-dim);
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            transition: all 0.2s;
+        }
+        .btn-copy:hover {
+            border-color: var(--bloomberg-orange);
+            color: var(--bloomberg-orange);
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: var(--bloomberg-orange);
+            color: #000000;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+        .divider {
+            border-color: var(--bloomberg-border);
+            margin: 1.5rem 0;
+        }
+        .note {
+            color: var(--bloomberg-text-dim);
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+        .success-msg {
+            display: none;
+            color: #00cc00;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        a {
+            color: var(--bloomberg-orange);
+        }
+        a:hover {
+            color: var(--bloomberg-orange-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-card">
+        <div class="logo">NEWWHALE CAREER</div>
+        <div class="status-badge">PREVIEW ACCESS</div>
+        <h2>Send Preview Link</h2>
+        <p style="color: #cccccc; font-size: 0.9rem; margin-bottom: 1rem;">
+            Drop the app preview link to the recipient below.
+        </p>
+
+        <div class="recipient-box">
+            <div class="recipient-label">Recipient</div>
+            <div class="recipient-value">DylanLee20@outlook.com</div>
+        </div>
+
+        <hr class="divider">
+
+        <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--bloomberg-text-dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Preview URL</span>
+            <button class="btn btn-copy" onclick="copyUrl()" id="copyBtn">
+                <i class="bi bi-clipboard"></i> Copy
+            </button>
+        </div>
+        <div class="url-box" id="previewUrl">http://167.71.209.9:5002</div>
+        <div class="success-msg" id="copySuccess"><i class="bi bi-check-circle"></i> Copied to clipboard!</div>
+
+        <hr class="divider">
+
+        <a class="btn btn-orange btn-lg"
+           href="mailto:DylanLee20@outlook.com?subject=NewWhale%20Career%20-%20Preview%20Access&body=Hi%20Dylan%2C%0A%0AHere%27s%20your%20preview%20link%20for%20the%20NewWhale%20Career%20app%3A%0A%0Ahttp%3A%2F%2F167.71.209.9%3A5002%0A%0ADefault%20login%20credentials%3A%0AUsername%3A%20admin%0APassword%3A%20newwhale2024%0A%0AThe%20app%20features%20AI-proof%20job%20tracking%20and%20resume%20assessment%20for%20finance%20roles.%0A%0ALet%20me%20know%20if%20you%20have%20any%20questions%21">
+            <i class="bi bi-envelope-fill"></i>&nbsp; Send Preview Link via Email
+        </a>
+
+        <p class="note">
+            <i class="bi bi-info-circle"></i>
+            Clicking the button above will open your email client pre-filled with the preview link and login credentials. The preview is hosted at <strong style="color: var(--bloomberg-orange);">167.71.209.9:5002</strong>.
+        </p>
+
+        <hr class="divider">
+
+        <div style="font-size: 0.8rem; color: var(--bloomberg-text-dim);">
+            <div style="margin-bottom: 0.4rem;">
+                <i class="bi bi-person"></i> <strong style="color: #cccccc;">Username:</strong> admin
+            </div>
+            <div>
+                <i class="bi bi-key"></i> <strong style="color: #cccccc;">Password:</strong> newwhale2024
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyUrl() {
+            const url = document.getElementById('previewUrl').innerText;
+            navigator.clipboard.writeText(url).then(function() {
+                const btn = document.getElementById('copyBtn');
+                const msg = document.getElementById('copySuccess');
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                btn.style.color = '#00cc00';
+                btn.style.borderColor = '#00cc00';
+                msg.style.display = 'block';
+                setTimeout(function() {
+                    btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                    msg.style.display = 'none';
+                }, 2500);
+            }).catch(function() {
+                // Fallback for older browsers
+                const el = document.createElement('textarea');
+                el.value = url;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                document.getElementById('copySuccess').style.display = 'block';
+                setTimeout(function() {
+                    document.getElementById('copySuccess').style.display = 'none';
+                }, 2500);
+            });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"></script>
+</body>
+</html>
