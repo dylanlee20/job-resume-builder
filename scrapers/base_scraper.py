@@ -56,11 +56,14 @@ class BaseScraper(ABC):
     def _kill_zombie_chrome():
         """Kill any orphaned Chrome/Chromium processes to free memory"""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ['pkill', '-f', 'chromium.*--headless'],
                 capture_output=True, timeout=5
             )
-            # Also kill any orphaned chromedriver processes
+            subprocess.run(
+                ['pkill', '-f', 'chrome.*--headless'],
+                capture_output=True, timeout=5
+            )
             subprocess.run(
                 ['pkill', '-f', 'chromedriver'],
                 capture_output=True, timeout=5
@@ -87,12 +90,17 @@ class BaseScraper(ABC):
             chrome_options.binary_location = chrome_binary
 
             if Config.HEADLESS_MODE:
-                chrome_options.add_argument('--headless=new')
+                # Use old --headless mode (much less memory than --headless=new)
+                chrome_options.add_argument('--headless')
 
             chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-setuid-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-gpu')
-            chrome_options.add_argument('--window-size=1920,1080')
+            chrome_options.add_argument('--window-size=1280,720')
+
+            # Single process mode — saves ~100MB by combining browser + renderer
+            chrome_options.add_argument('--single-process')
 
             # Memory-saving flags for low-RAM environments
             chrome_options.add_argument('--disable-extensions')
@@ -104,6 +112,9 @@ class BaseScraper(ABC):
             chrome_options.add_argument('--disable-features=VizDisplayCompositor')
             chrome_options.add_argument('--disable-software-rasterizer')
             chrome_options.add_argument('--crash-dumps-dir=/tmp')
+            chrome_options.add_argument('--js-flags=--max-old-space-size=128')
+            chrome_options.add_argument('--renderer-process-limit=1')
+            chrome_options.add_argument('--disable-hang-monitor')
 
             # Use unique temp profile to avoid lock conflicts between runs
             self._user_data_dir = tempfile.mkdtemp(prefix='chrome_scraper_')
