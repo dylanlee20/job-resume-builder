@@ -14,6 +14,7 @@
         </div>
         <div class="col-md-4 text-end">
             <form method="POST" action="{{ url_for('admin.run_scraper') }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-primary"
                         {% if latest_run and latest_run.status == 'running' %}disabled{% endif %}
                         onclick="return confirm('Start scraper manually? This will scrape all 19 companies.');">
