@@ -116,19 +116,19 @@
                         </div>
                         <div class="col-md-2">
                             <strong style="color: #ff6600;">Jobs Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.total_jobs_scraped }}</span>
+                            <span style="color: #ffffff;">{{ latest_run.total_jobs_scraped|default(0, true) }}</span>
                         </div>
                         <div class="col-md-2">
                             <strong style="color: #ff6600;">New Jobs:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.new_jobs_added }}</span>
+                            <span style="color: #ffffff;">{{ latest_run.new_jobs_added|default(0, true) }}</span>
                         </div>
                         <div class="col-md-3">
                             <strong style="color: #ff6600;">Companies Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.companies_scraped }} / {{ latest_run.companies_scraped + latest_run.companies_failed }}</span>
+                            <span style="color: #ffffff;">{{ latest_run.companies_scraped|default(0, true) }} / {{ latest_run.companies_scraped|default(0, true) + latest_run.companies_failed|default(0, true) }}</span>
                         </div>
                         <div class="col-md-3">
                             <strong style="color: #ff6600;">Companies Failed:</strong><br>
-                            <span style="color: {{ '#ff3300' if latest_run.companies_failed > 0 else '#00cc00' }};">{{ latest_run.companies_failed }}</span>
+                            <span style="color: {{ '#ff3300' if latest_run.companies_failed|default(0, true) > 0 else '#00cc00' }};">{{ latest_run.companies_failed|default(0, true) }}</span>
                         </div>
                     </div>
                 </div>
@@ -162,7 +162,7 @@
                                 <tr>
                                     <td>{{ run.id }}</td>
                                     <td style="font-size: 0.85rem;">{{ run.started_at.strftime('%Y-%m-%d %H:%M') if run.started_at else 'N/A' }}</td>
-                                    <td style="font-size: 0.85rem;">{{ '%.1f'|format(run.duration_seconds|default(0)) }}s</td>
+                                    <td style="font-size: 0.85rem;">{{ '%.1f'|format(run.duration_seconds if run.duration_seconds is not none else 0) }}s</td>
                                     <td>
                                         {% if run.status == 'completed' %}
                                             <span style="color: #00cc00;">✓</span>
@@ -175,10 +175,10 @@
                                     </td>
                                     <td style="font-size: 0.85rem;">{{ run.trigger }}</td>
                                     <td>
-                                        <span style="color: #ff6600;">{{ run.new_jobs_added }}</span> / {{ run.total_jobs_scraped }}
+                                        <span style="color: #ff6600;">{{ run.new_jobs_added|default(0, true) }}</span> / {{ run.total_jobs_scraped|default(0, true) }}
                                     </td>
-                                    <td>{{ run.companies_scraped }}</td>
-                                    <td style="color: {{ '#ff3300' if run.companies_failed > 0 else '#999999' }};">{{ run.companies_failed }}</td>
+                                    <td>{{ run.companies_scraped|default(0, true) }}</td>
+                                    <td style="color: {{ '#ff3300' if run.companies_failed|default(0, true) > 0 else '#999999' }};">{{ run.companies_failed|default(0, true) }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
