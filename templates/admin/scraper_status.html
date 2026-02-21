@@ -112,7 +112,7 @@
                     <div class="row">
                         <div class="col-md-2">
                             <strong style="color: #ff6600;">Duration:</strong><br>
-                            <span style="color: #ffffff;">{{ '%.2f'|format(latest_run.duration_seconds|default(0)) }}s</span>
+                            <span style="color: #ffffff;">{{ '%.2f'|format(latest_run.duration_seconds if latest_run.duration_seconds is not none else 0) }}s</span>
                         </div>
                         <div class="col-md-2">
                             <strong style="color: #ff6600;">Jobs Scraped:</strong><br>
