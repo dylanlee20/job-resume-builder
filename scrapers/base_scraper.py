@@ -99,8 +99,18 @@ class BaseScraper(ABC):
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--window-size=1280,720')
 
-            # Single process mode — saves ~100MB by combining browser + renderer
-            chrome_options.add_argument('--single-process')
+            # Snap Chromium needs special handling to avoid DevToolsActivePort errors
+            is_snap = '/snap/' in (chrome_binary or '')
+            if is_snap:
+                # Use random port for DevTools — bypasses DevToolsActivePort file
+                # which snap confinement prevents Chrome from creating
+                chrome_options.add_argument('--remote-debugging-port=0')
+                # Snap has dbus restrictions
+                chrome_options.add_argument('--disable-features=VizDisplayCompositor,dbus')
+            else:
+                # Single process mode — saves ~100MB (not compatible with snap)
+                chrome_options.add_argument('--single-process')
+                chrome_options.add_argument('--disable-features=VizDisplayCompositor')
 
             # Memory-saving flags for low-RAM environments
             chrome_options.add_argument('--disable-extensions')
@@ -109,7 +119,6 @@ class BaseScraper(ABC):
             chrome_options.add_argument('--disable-translate')
             chrome_options.add_argument('--disable-sync')
             chrome_options.add_argument('--no-first-run')
-            chrome_options.add_argument('--disable-features=VizDisplayCompositor')
             chrome_options.add_argument('--disable-software-rasterizer')
             chrome_options.add_argument('--crash-dumps-dir=/tmp')
             chrome_options.add_argument('--js-flags=--max-old-space-size=128')
