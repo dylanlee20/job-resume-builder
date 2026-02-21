@@ -7,7 +7,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from bs4 import BeautifulSoup
+import shutil
+import subprocess
 import time
 import random
 import logging
@@ -33,13 +36,42 @@ class BaseScraper(ABC):
         self.driver = None
         self.logger = logging.getLogger(f"{__name__}.{company_name}")
 
+    @staticmethod
+    def _detect_chrome_binary():
+        """Detect available Chrome or Chromium binary on the system"""
+        if Config.CHROME_BINARY_PATH:
+            return Config.CHROME_BINARY_PATH, 'chrome'
+
+        # Check for Google Chrome first, then Chromium
+        chrome_names = [
+            ('google-chrome-stable', 'chrome'),
+            ('google-chrome', 'chrome'),
+            ('chromium-browser', 'chromium'),
+            ('chromium', 'chromium'),
+        ]
+        for binary_name, browser_type in chrome_names:
+            path = shutil.which(binary_name)
+            if path:
+                return path, browser_type
+
+        return None, None
+
     def init_driver(self):
-        """Initialize Selenium WebDriver"""
+        """Initialize Selenium WebDriver with Chrome or Chromium"""
         try:
+            chrome_binary, browser_type = self._detect_chrome_binary()
+            if not chrome_binary:
+                raise Exception(
+                    "No Chrome or Chromium binary found. Install google-chrome-stable "
+                    "or chromium-browser, or set CHROME_BINARY_PATH in .env"
+                )
+            self.logger.info(f"Using browser: {chrome_binary} (type: {browser_type})")
+
             chrome_options = Options()
+            chrome_options.binary_location = chrome_binary
 
             if Config.HEADLESS_MODE:
-                chrome_options.add_argument('--headless')
+                chrome_options.add_argument('--headless=new')
 
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
@@ -56,7 +88,10 @@ class BaseScraper(ABC):
             chrome_options.add_experimental_option('useAutomationExtension', False)
 
             try:
-                driver_path = ChromeDriverManager().install()
+                if browser_type == 'chromium':
+                    driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+                else:
+                    driver_path = ChromeDriverManager().install()
 
                 # Fix: webdriver-manager may return wrong file path
                 if 'THIRD_PARTY_NOTICES' in driver_path or not os.path.exists(driver_path):
@@ -77,7 +112,13 @@ class BaseScraper(ABC):
                                 continue
 
                     if not found:
-                        raise Exception("Could not find valid chromedriver executable")
+                        # Last resort: try system chromedriver
+                        system_chromedriver = shutil.which('chromedriver')
+                        if system_chromedriver:
+                            driver_path = system_chromedriver
+                            self.logger.info(f"Using system chromedriver: {driver_path}")
+                        else:
+                            raise Exception("Could not find valid chromedriver executable")
 
                 service = Service(driver_path)
             except Exception as e:

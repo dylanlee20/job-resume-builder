@@ -83,3 +83,6 @@ class Config:
     SCRAPER_DELAY_MIN = float(os.environ.get('SCRAPER_DELAY_MIN', 1.0))
     SCRAPER_DELAY_MAX = float(os.environ.get('SCRAPER_DELAY_MAX', 3.0))
     SCRAPER_RETRY_COUNT = int(os.environ.get('SCRAPER_RETRY_COUNT', 3))
+
+    # Chrome/Chromium binary path (auto-detected if not set)
+    CHROME_BINARY_PATH = os.environ.get('CHROME_BINARY_PATH', '')
