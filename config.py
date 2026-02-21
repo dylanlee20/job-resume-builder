@@ -73,3 +73,13 @@ class Config:
     # CSRF Protection
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # No time limit for CSRF tokens
+
+    # Scraper Configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    LOG_FILE = str(BASE_DIR / 'data' / 'logs' / 'scraper.log')
+    HEADLESS_MODE = os.environ.get('HEADLESS_MODE', 'True').lower() == 'true'
+    SCRAPER_TIMEOUT = int(os.environ.get('SCRAPER_TIMEOUT', 60))
+    SCRAPER_DELAY_MIN = float(os.environ.get('SCRAPER_DELAY_MIN', 1.0))
+    SCRAPER_DELAY_MAX = float(os.environ.get('SCRAPER_DELAY_MAX', 3.0))
+    SCRAPER_RETRY_COUNT = int(os.environ.get('SCRAPER_RETRY_COUNT', 3))

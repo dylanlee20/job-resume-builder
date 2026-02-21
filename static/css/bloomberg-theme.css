@@ -1,0 +1,373 @@
+/* Bloomberg Terminal Theme - Pure Black, Orange & White */
+
+:root {
+    --bloomberg-black: #000000;
+    --bloomberg-dark: #0a0a0a;
+    --bloomberg-orange: #ff6600;
+    --bloomberg-orange-dark: #cc5200;
+    --bloomberg-orange-light: #ff8833;
+    --bloomberg-white: #ffffff;
+    --bloomberg-text: #f0f0f0;
+    --bloomberg-text-dim: #999999;
+    --bloomberg-border: #333333;
+    --bloomberg-hover: #1a1a1a;
+}
+
+/* Global Styles */
+body {
+    background-color: var(--bloomberg-black) !important;
+    color: var(--bloomberg-white) !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--bloomberg-dark) !important;
+    border-bottom: 2px solid var(--bloomberg-orange);
+}
+
+.navbar-brand {
+    color: var(--bloomberg-orange) !important;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.navbar-brand:hover {
+    color: var(--bloomberg-orange-light) !important;
+}
+
+.nav-link {
+    color: var(--bloomberg-white) !important;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--bloomberg-orange) !important;
+}
+
+.badge {
+    background-color: var(--bloomberg-orange) !important;
+    color: var(--bloomberg-black) !important;
+}
+
+/* Cards */
+.card {
+    background-color: var(--bloomberg-black) !important;
+    border: 1px solid var(--bloomberg-border);
+    color: var(--bloomberg-white) !important;
+}
+
+.card-header {
+    background-color: var(--bloomberg-black) !important;
+    border-bottom: 1px solid var(--bloomberg-orange);
+    color: var(--bloomberg-orange) !important;
+    font-weight: bold;
+}
+
+.card-body {
+    background-color: var(--bloomberg-black) !important;
+}
+
+.card-title {
+    color: var(--bloomberg-orange) !important;
+}
+
+/* Tables */
+.table {
+    background-color: var(--bloomberg-black) !important;
+    color: var(--bloomberg-white) !important;
+}
+
+.table-dark {
+    background-color: var(--bloomberg-black) !important;
+    color: var(--bloomberg-white) !important;
+}
+
+.table-dark thead th {
+    background-color: var(--bloomberg-black) !important;
+    border-color: var(--bloomberg-orange);
+    color: var(--bloomberg-orange) !important;
+}
+
+.table tbody tr {
+    background-color: var(--bloomberg-black) !important;
+    border-color: var(--bloomberg-border);
+}
+
+.table tbody tr td {
+    background-color: var(--bloomberg-black) !important;
+}
+
+.table tbody tr:hover {
+    background-color: var(--bloomberg-hover) !important;
+}
+
+.table tbody tr:hover td {
+    background-color: var(--bloomberg-hover) !important;
+}
+
+.table-sm td, .table-sm th {
+    padding: 0.4rem;
+    background-color: var(--bloomberg-black) !important;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--bloomberg-orange) !important;
+    border-color: var(--bloomberg-orange) !important;
+    color: var(--bloomberg-black) !important;
+    font-weight: bold;
+}
+
+.btn-primary:hover {
+    background-color: var(--bloomberg-orange-dark) !important;
+    border-color: var(--bloomberg-orange-dark) !important;
+}
+
+.btn-outline-primary {
+    color: var(--bloomberg-orange) !important;
+    border-color: var(--bloomberg-orange) !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--bloomberg-orange) !important;
+    color: var(--bloomberg-black) !important;
+}
+
+.btn-secondary {
+    background-color: var(--bloomberg-border) !important;
+    border-color: var(--bloomberg-border) !important;
+    color: var(--bloomberg-white) !important;
+}
+
+.btn-secondary:hover {
+    background-color: #555555 !important;
+}
+
+.btn-sm {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-outline-light {
+    color: var(--bloomberg-white) !important;
+    border-color: var(--bloomberg-white) !important;
+}
+
+.btn-outline-light:hover {
+    background-color: var(--bloomberg-white) !important;
+    color: var(--bloomberg-black) !important;
+}
+
+/* Forms */
+.form-control {
+    background-color: var(--bloomberg-black) !important;
+    border: 1px solid var(--bloomberg-border);
+    color: var(--bloomberg-white) !important;
+}
+
+.form-control:focus {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-orange);
+    box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.25);
+    color: var(--bloomberg-white) !important;
+}
+
+.form-control::placeholder {
+    color: var(--bloomberg-text-dim) !important;
+}
+
+.form-select {
+    background-color: var(--bloomberg-black) !important;
+    border: 1px solid var(--bloomberg-border);
+    color: var(--bloomberg-white) !important;
+}
+
+.form-select:focus {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-orange);
+    box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.25);
+}
+
+.form-label {
+    color: var(--bloomberg-white) !important;
+    font-weight: bold;
+}
+
+/* Alerts */
+.alert-success {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-orange);
+    color: var(--bloomberg-orange) !important;
+}
+
+.alert-danger {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-orange);
+    color: var(--bloomberg-orange) !important;
+}
+
+.alert-info {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-orange);
+    color: var(--bloomberg-orange) !important;
+}
+
+.alert-warning {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-orange);
+    color: var(--bloomberg-orange) !important;
+}
+
+/* Stats Bar */
+.stats-bar {
+    background-color: var(--bloomberg-black) !important;
+    border: 1px solid var(--bloomberg-border);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--bloomberg-orange);
+}
+
+.stats-bar h6 {
+    color: var(--bloomberg-orange) !important;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.stat-item {
+    display: inline-block;
+    margin-right: 2rem;
+    color: var(--bloomberg-white);
+}
+
+.stat-number {
+    color: var(--bloomberg-orange) !important;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Badges - Simple orange on black */
+.badge {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    background-color: var(--bloomberg-orange) !important;
+    color: var(--bloomberg-black) !important;
+}
+
+/* Links */
+a {
+    color: var(--bloomberg-orange) !important;
+}
+
+a:hover {
+    color: var(--bloomberg-orange-light) !important;
+}
+
+/* Pagination */
+.pagination .page-link {
+    background-color: var(--bloomberg-dark) !important;
+    border-color: var(--bloomberg-border);
+    color: var(--bloomberg-white) !important;
+}
+
+.pagination .page-link:hover {
+    background-color: var(--bloomberg-hover) !important;
+    color: var(--bloomberg-orange) !important;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--bloomberg-orange) !important;
+    border-color: var(--bloomberg-orange);
+    color: var(--bloomberg-black) !important;
+}
+
+/* Star Icon */
+.star-icon {
+    color: var(--bloomberg-white);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-icon.starred {
+    color: var(--bloomberg-orange) !important;
+}
+
+.star-icon:hover {
+    color: var(--bloomberg-orange-light);
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+    background-color: var(--bloomberg-dark) !important;
+    border: 1px solid var(--bloomberg-border);
+}
+
+.dropdown-item {
+    color: var(--bloomberg-white) !important;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bloomberg-hover) !important;
+    color: var(--bloomberg-orange) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bloomberg-black);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bloomberg-border);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bloomberg-orange);
+}
+
+/* Text colors */
+.text-muted {
+    color: var(--bloomberg-text-dim) !important;
+}
+
+.text-primary {
+    color: var(--bloomberg-orange) !important;
+}
+
+/* Container */
+.container, .container-fluid {
+    max-width: 100%;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--bloomberg-orange) !important;
+}
+
+/* Bloomberg Terminal Logo */
+.bloomberg-logo {
+    color: var(--bloomberg-orange);
+    font-weight: bold;
+    font-size: 1.3rem;
+    letter-spacing: 2px;
+}
+
+.bloomberg-logo::before {
+    content: '█ ';
+    color: var(--bloomberg-orange);
+}
+
+/* Navbar text */
+.navbar-text {
+    color: var(--bloomberg-white) !important;
+}
+
+/* Close button for alerts */
+.btn-close {
+    filter: invert(1);
+}

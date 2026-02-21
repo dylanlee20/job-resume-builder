@@ -3,7 +3,7 @@ from models.database import db
 from models.job import Job
 from utils.job_utils import categorize_and_classify_job, normalize_location
 from datetime import datetime, timedelta
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, case
 import logging
 
 logger = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ class JobService:
         total_active = Job.query.filter_by(status='active').count()
         total_ai_proof = Job.query.filter_by(status='active', is_ai_proof=True).count()
         total_excluded = Job.query.filter_by(status='active', is_ai_proof=False).count()
-        
+
         # Category breakdown
         category_stats = db.session.query(
             Job.ai_proof_category,
@@ -144,13 +144,39 @@ class JobService:
             status='active',
             is_ai_proof=True
         ).group_by(Job.ai_proof_category).all()
-        
+
+        # Per-company statistics
+        company_stats = db.session.query(
+            Job.company,
+            func.count(Job.id).label('total'),
+            func.sum(func.cast(Job.is_ai_proof, db.Integer)).label('ai_proof'),
+            func.sum(
+                case(
+                    (Job.seniority == 'Student/Grad', 1),
+                    else_=0
+                )
+            ).label('student_grad')
+        ).filter_by(
+            status='active'
+        ).group_by(Job.company).order_by(func.count(Job.id).desc()).all()
+
+        company_list = [
+            {
+                'company': company,
+                'total': total,
+                'ai_proof': ai_proof or 0,
+                'student_grad': student_grad or 0
+            }
+            for company, total, ai_proof, student_grad in company_stats
+        ]
+
         return {
             'total_active_jobs': total_active,
             'total_ai_proof_jobs': total_ai_proof,
             'total_excluded_jobs': total_excluded,
             'ai_proof_percentage': round((total_ai_proof / total_active * 100) if total_active > 0 else 0, 1),
             'category_breakdown': {cat: count for cat, count in category_stats},
+            'companies': company_list,
         }
     
     @staticmethod

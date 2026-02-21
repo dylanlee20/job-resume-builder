@@ -28,6 +28,9 @@ class Job(db.Model):
     ai_proof_category = db.Column(db.String(50), nullable=True, index=True)
     is_ai_proof = db.Column(db.Boolean, default=True, nullable=False, index=True)
 
+    # Seniority level (NEW)
+    seniority = db.Column(db.String(20), nullable=True, index=True)  # 'Student/Grad' or 'Professional'
+
     # Date information
     post_date = db.Column(db.DateTime, nullable=True)
     deadline = db.Column(db.DateTime, nullable=True)

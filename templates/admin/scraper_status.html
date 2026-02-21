@@ -1,0 +1,253 @@
+{% extends "layout.html" %}
+
+{% block title %}Scraper Status - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding-top: 20px;">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2 style="color: #ff6600; font-weight: bold;">
+                <span style="color: #ff6600;">█</span> SCRAPER MONITORING DASHBOARD
+            </h2>
+            <p style="color: #999999;">Track scraper execution history and error logs</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <form method="POST" action="{{ url_for('admin.run_scraper') }}" style="display: inline;">
+                <button type="submit" class="btn btn-primary"
+                        {% if latest_run and latest_run.status == 'running' %}disabled{% endif %}
+                        onclick="return confirm('Start scraper manually? This will scrape all 19 companies.');">
+                    <i class="bi bi-play-circle"></i> Run Scraper Now
+                </button>
+            </form>
+            {% if latest_run and latest_run.status == 'running' %}
+                <div style="color: #ffcc00; font-size: 0.85rem; margin-top: 0.5rem;">
+                    <i class="bi bi-info-circle"></i> Scraper is currently running...
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <!-- Latest Run Status -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Latest Run Status</h6>
+                    {% if latest_run %}
+                        <div class="stat-number" style="font-size: 1.2rem;">
+                            {% if latest_run.status == 'completed' %}
+                                <span style="color: #00cc00;">✓ COMPLETED</span>
+                            {% elif latest_run.status == 'running' %}
+                                <span style="color: #ffcc00;">⟳ RUNNING</span>
+                            {% else %}
+                                <span style="color: #ff3300;">✗ FAILED</span>
+                            {% endif %}
+                        </div>
+                        <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                            {{ latest_run.started_at.strftime('%Y-%m-%d %H:%M') if latest_run.started_at else 'N/A' }}
+                        </div>
+                    {% else %}
+                        <div style="color: #999999;">No runs yet</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Scheduled Run -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Next Scheduled Run</h6>
+                    <div class="stat-number" style="font-size: 1.2rem;">
+                        {{ next_run.strftime('%a %H:%M') if next_run else 'N/A' }}
+                    </div>
+                    <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                        {{ next_run.strftime('%Y-%m-%d') if next_run else '' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Jobs -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Total Jobs</h6>
+                    <div class="stat-number" style="font-size: 1.8rem;">
+                        {{ total_jobs }}
+                    </div>
+                    <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                        {{ ai_proof_jobs }} AI-proof
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jobs Last 7 Days -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Jobs Last 7 Days</h6>
+                    <div class="stat-number" style="font-size: 1.8rem;">
+                        {{ jobs_last_7_days }}
+                    </div>
+                    <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                        New postings
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Run Details -->
+    {% if latest_run %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">Latest Run Details (ID: {{ latest_run.id }})</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <strong style="color: #ff6600;">Duration:</strong><br>
+                            <span style="color: #ffffff;">{{ '%.2f'|format(latest_run.duration_seconds|default(0)) }}s</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong style="color: #ff6600;">Jobs Scraped:</strong><br>
+                            <span style="color: #ffffff;">{{ latest_run.total_jobs_scraped }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong style="color: #ff6600;">New Jobs:</strong><br>
+                            <span style="color: #ffffff;">{{ latest_run.new_jobs_added }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong style="color: #ff6600;">Companies Scraped:</strong><br>
+                            <span style="color: #ffffff;">{{ latest_run.companies_scraped }} / {{ latest_run.companies_scraped + latest_run.companies_failed }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong style="color: #ff6600;">Companies Failed:</strong><br>
+                            <span style="color: {{ '#ff3300' if latest_run.companies_failed > 0 else '#00cc00' }};">{{ latest_run.companies_failed }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Scraper Runs -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">Recent Scraper Runs (Last 20)</div>
+                <div class="card-body" style="padding: 0;">
+                    <table class="table table-dark table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th style="width: 150px;">Started</th>
+                                <th style="width: 80px;">Duration</th>
+                                <th style="width: 100px;">Status</th>
+                                <th style="width: 80px;">Trigger</th>
+                                <th>Jobs</th>
+                                <th>Companies</th>
+                                <th>Failed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_runs %}
+                                {% for run in recent_runs %}
+                                <tr>
+                                    <td>{{ run.id }}</td>
+                                    <td style="font-size: 0.85rem;">{{ run.started_at.strftime('%Y-%m-%d %H:%M') if run.started_at else 'N/A' }}</td>
+                                    <td style="font-size: 0.85rem;">{{ '%.1f'|format(run.duration_seconds|default(0)) }}s</td>
+                                    <td>
+                                        {% if run.status == 'completed' %}
+                                            <span style="color: #00cc00;">✓</span>
+                                        {% elif run.status == 'running' %}
+                                            <span style="color: #ffcc00;">⟳</span>
+                                        {% else %}
+                                            <span style="color: #ff3300;">✗</span>
+                                        {% endif %}
+                                        {{ run.status }}
+                                    </td>
+                                    <td style="font-size: 0.85rem;">{{ run.trigger }}</td>
+                                    <td>
+                                        <span style="color: #ff6600;">{{ run.new_jobs_added }}</span> / {{ run.total_jobs_scraped }}
+                                    </td>
+                                    <td>{{ run.companies_scraped }}</td>
+                                    <td style="color: {{ '#ff3300' if run.companies_failed > 0 else '#999999' }};">{{ run.companies_failed }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" style="text-align: center; color: #999999;">No scraper runs yet</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Logs -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">Recent Error Logs (Last 100 lines)</div>
+                <div class="card-body">
+                    <div style="background-color: #0a0a0a; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
+                        {% if recent_logs %}
+                            {% for log_line in recent_logs %}
+                                <div style="color: {{ '#ff3300' if 'ERROR' in log_line else ('#ffcc00' if 'WARNING' in log_line else '#999999') }}; white-space: pre-wrap; word-wrap: break-word;">{{ log_line|trim }}</div>
+                            {% endfor %}
+                        {% else %}
+                            <div style="color: #999999;">No logs available</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-Company Statistics -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">Job Statistics by Company</div>
+                <div class="card-body" style="padding: 0;">
+                    <table class="table table-dark table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th style="width: 120px;">Total Jobs</th>
+                                <th style="width: 120px;">AI-Proof</th>
+                                <th style="width: 120px;">Student/Grad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if stats and stats.companies %}
+                                {% for company_stat in stats.companies %}
+                                <tr>
+                                    <td style="font-weight: bold;">{{ company_stat.company }}</td>
+                                    <td><span style="color: #ff6600;">{{ company_stat.total }}</span></td>
+                                    <td>{{ company_stat.ai_proof }}</td>
+                                    <td>{{ company_stat.student_grad }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: #999999;">No statistics available</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

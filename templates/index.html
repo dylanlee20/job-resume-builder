@@ -1,138 +1,210 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="row">
+
+<!-- Stats Bar -->
+<div class="row mb-2">
     <div class="col-md-12">
-        <div class="card bg-primary text-white mb-4">
-            <div class="card-body">
-                <h1 class="card-title"><i class="bi bi-stars"></i> Welcome to NewWhale Career v2</h1>
-                <p class="card-text lead">Find AI-proof finance roles and get your resume assessed by AI</p>
+        <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+            <div>
+                <span class="badge bg-primary me-2">{{ stats.total_ai_proof_jobs }} AI-Proof Jobs</span>
+                <span class="badge bg-secondary me-2">{{ stats.total_excluded_jobs }} Excluded</span>
+                <span class="badge bg-info">{{ stats.ai_proof_percentage }}% AI-Resistant</span>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-file-earmark-arrow-up display-4 text-primary"></i>
-                <h5 class="card-title mt-3">Upload Resume</h5>
-                <p class="card-text">Get AI-powered analysis of your resume with scores and recommendations</p>
-                <a href="{{ url_for('resume.upload') }}" class="btn btn-primary">
-                    <i class="bi bi-upload"></i> Upload Now
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-clock-history display-4 text-info"></i>
-                <h5 class="card-title mt-3">Assessment History</h5>
-                <p class="card-text">View all your previous resume assessments and track improvements</p>
-                <a href="{{ url_for('resume.history') }}" class="btn btn-info">
-                    <i class="bi bi-list"></i> View History
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card h-100 border-warning">
-            <div class="card-body text-center">
-                <i class="bi bi-star-fill display-4 text-warning"></i>
-                <h5 class="card-title mt-3">Upgrade to Premium</h5>
-                <p class="card-text">Unlimited assessments + AI-powered resume revision service</p>
-                <a href="{{ url_for('web.pricing') }}" class="btn btn-warning">
-                    <i class="bi bi-arrow-up-circle"></i> See Plans
+            <div>
+                <a href="{{ url_for('resume.upload') }}" class="btn btn-sm btn-warning">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Upload Resume
                 </a>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Compact Filters -->
+<div class="row mb-2">
+    <div class="col-md-12">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Company</label>
+                <select name="company" class="form-select form-select-sm">
+                    <option value="">All Companies</option>
+                    {% for company in companies %}
+                    <option value="{{ company }}" {% if filters.company == company %}selected{% endif %}>{{ company }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Location</label>
+                <select name="location" class="form-select form-select-sm">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location }}" {% if filters.location == location %}selected{% endif %}>{{ location }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Category</label>
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}" {% if filters.ai_proof_category == category %}selected{% endif %}>{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-0">Show</label>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="starred" value="1" id="starredFilter" {% if filters.is_important %}checked{% endif %}>
+                    <label class="form-check-label small" for="starredFilter">
+                        <i class="bi bi-star-fill text-warning"></i> Starred Only
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Compact Job Table -->
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> AI-Proof Industries We Focus On</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-success"><i class="bi bi-check-circle-fill"></i> AI-Resistant Roles:</h6>
-                        <ul class="list-unstyled ms-3">
-                            <li><i class="bi bi-briefcase"></i> Investment Banking</li>
-                            <li><i class="bi bi-graph-up"></i> Sales & Trading</li>
-                            <li><i class="bi bi-pie-chart"></i> Portfolio Management</li>
-                            <li><i class="bi bi-shield-check"></i> Risk Management</li>
-                            <li><i class="bi bi-building"></i> M&A Advisory</li>
-                            <li><i class="bi bi-currency-dollar"></i> Private Equity</li>
-                            <li><i class="bi bi-diagram-3"></i> Structuring</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-danger"><i class="bi bi-x-circle-fill"></i> Excluded (High Automation Risk):</h6>
-                        <ul class="list-unstyled ms-3 text-muted">
-                            <li><i class="bi bi-calculator"></i> Accounting & Audit</li>
-                            <li><i class="bi bi-file-text"></i> Back Office Operations</li>
-                            <li><i class="bi bi-bar-chart"></i> Basic Data Science</li>
-                            <li><i class="bi bi-clipboard-check"></i> Compliance Reporting</li>
-                            <li><i class="bi bi-person-workspace"></i> Administrative Support</li>
-                        </ul>
-                    </div>
+            <div class="card-body p-0">
+                {% if jobs %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th style="width: 120px;">Company</th>
+                                <th>Title</th>
+                                <th style="width: 150px;">Category</th>
+                                <th style="width: 120px;">Seniority</th>
+                                <th style="width: 150px;">Location</th>
+                                <th style="width: 80px;">Posted</th>
+                                <th style="width: 100px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                            <tr>
+                                <td class="text-center">
+                                    <a href="#" class="star-toggle star-icon{% if job.is_important %} starred{% endif %}" data-job-id="{{ job.id }}" style="text-decoration: none;">
+                                        <i class="bi bi-star{% if job.is_important %}-fill{% endif %}"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    <strong style="color: #ff6600;">{{ job.company }}</strong>
+                                </td>
+                                <td>
+                                    <a href="{{ job.job_url }}" target="_blank" style="color: #ffffff; text-decoration: none;" title="{{ job.description[:200] if job.description else '' }}">
+                                        {{ job.title }}
+                                        {% if job.is_new %}
+                                        <span class="badge" style="font-size: 0.65rem;">NEW</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge" style="font-size: 0.7rem;">
+                                        {{ job.ai_proof_category }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge" style="font-size: 0.7rem;">
+                                        {{ job.seniority }}
+                                    </span>
+                                </td>
+                                <td style="color: #ffffff; font-size: 0.85rem;">
+                                    <i class="bi bi-geo-alt"></i> {{ job.location }}
+                                </td>
+                                <td style="color: #ffffff; font-size: 0.85rem;">
+                                    {{ job.first_seen[:10] if job.first_seen else '-' }}
+                                </td>
+                                <td>
+                                    <a href="{{ job.job_url }}" target="_blank" class="btn btn-sm btn-outline-primary" style="font-size: 0.7rem; padding: 2px 6px;">
+                                        <i class="bi bi-box-arrow-up-right"></i> Apply
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+                
+                <!-- Compact Pagination -->
+                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top">
+                    <div class="small text-muted">
+                        Showing {{ jobs|length }} of {{ total }} jobs
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page - 1 }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                            
+                            {% if has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page + 1 }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <h5 class="mt-3">No jobs found</h5>
+                    <p class="text-muted">Try adjusting your filters or check back later for new postings.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Your Account Status</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <strong>Tier:</strong> 
-                        <span class="badge bg-{% if current_user.tier == 'premium' %}warning text-dark{% else %}secondary{% endif %}">
-                            {{ current_user.tier|upper }}
-                        </span>
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Daily Assessments:</strong> 
-                        {% if current_user.tier == 'free' %}
-                        <span class="badge bg-info">3 per day</span>
-                        {% else %}
-                        <span class="badge bg-success">Unlimited</span>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Resume Revision:</strong> 
-                        {% if current_user.tier == 'premium' %}
-                        <span class="badge bg-success">Available</span>
-                        {% else %}
-                        <span class="badge bg-secondary">Premium Only</span>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-3">
-                        {% if current_user.tier == 'free' %}
-                        <a href="{{ url_for('web.pricing') }}" class="btn btn-sm btn-warning">
-                            <i class="bi bi-arrow-up-circle"></i> Upgrade Now
-                        </a>
-                        {% else %}
-                        <span class="badge bg-success">
-                            <i class="bi bi-check-circle"></i> Premium Member
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+// Category colors
+const categoryColors = {
+    'Investment Banking': '#1e40af',
+    'Sales & Trading': '#16a34a',
+    'Portfolio Management': '#9333ea',
+    'Risk Management': '#f59e0b',
+    'M&A Advisory': '#ef4444',
+    'Private Equity': '#06b6d4',
+    'Structuring': '#ec4899'
+};
+
+// Star toggle
+$(document).on('click', '.star-toggle', function(e) {
+    e.preventDefault();
+    const jobId = $(this).data('job-id');
+    const icon = $(this).find('i');
+    
+    $.ajax({
+        url: `/api/jobs/${jobId}/star`,
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                if (response.is_important) {
+                    icon.removeClass('bi-star').addClass('bi-star-fill text-warning');
+                } else {
+                    icon.removeClass('bi-star-fill text-warning').addClass('bi-star');
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
