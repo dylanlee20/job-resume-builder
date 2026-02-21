@@ -1,5 +1,157 @@
 {% extends "layout.html" %}
+{% block title %}Pricing - NewWhale Career{% endblock %}
 {% block content %}
-<h1>Pricing</h1>
-<p>Pricing plans coming soon</p>
+<div class="row mb-4">
+    <div class="col-md-12 text-center">
+        <h1>Choose Your Plan</h1>
+        <p class="lead">Unlock the full power of AI-assisted career development</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card h-100 {% if current_user.tier == 'free' %}border-primary{% endif %}">
+            <div class="card-header text-center bg-light">
+                <h3>Free</h3>
+                <h2 class="display-4">$0</h2>
+                <p class="text-muted">Perfect for getting started</p>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Job listings access</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> 3 resume assessments/day</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Basic AI analysis</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Industry compatibility scores</li>
+                    <li class="mb-2"><i class="bi bi-x-circle-fill text-muted"></i> Resume revision</li>
+                    <li class="mb-2"><i class="bi bi-x-circle-fill text-muted"></i> Unlimited assessments</li>
+                    <li class="mb-2"><i class="bi bi-x-circle-fill text-muted"></i> Priority support</li>
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                {% if current_user.tier == 'free' %}
+                <button class="btn btn-secondary" disabled>Current Plan</button>
+                {% else %}
+                <button class="btn btn-outline-secondary" disabled>Your Tier: Premium</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 border-warning shadow-lg">
+            <div class="card-header text-center bg-warning">
+                <span class="badge bg-danger mb-2">MOST POPULAR</span>
+                <h3>Premium Monthly</h3>
+                <h2 class="display-4">$19</h2>
+                <p class="text-muted">per month</p>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Everything in Free</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Unlimited assessments</strong></li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>AI-powered resume revision</strong></li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Template-based suggestions</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Before/after comparisons</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Priority support</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Advanced analytics</li>
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                {% if current_user.tier == 'premium' %}
+                <button class="btn btn-success" disabled>
+                    <i class="bi bi-check-circle"></i> Current Plan
+                </button>
+                {% else %}
+                <button class="btn btn-warning btn-lg" disabled>
+                    <i class="bi bi-lock"></i> Coming Soon (Stripe Integration)
+                </button>
+                <small class="d-block mt-2 text-muted">Available in Phase 4</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header text-center bg-dark text-white">
+                <span class="badge bg-success mb-2">BEST VALUE</span>
+                <h3>Premium Annual</h3>
+                <h2 class="display-4">$149</h2>
+                <p class="text-muted">per year</p>
+                <small class="text-success">Save $79 (35% off)</small>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Everything in Premium Monthly</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>2 months FREE</strong></li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Priority email support</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Early access to features</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Career coaching (coming)</li>
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                {% if current_user.tier == 'premium' %}
+                <button class="btn btn-success" disabled>
+                    <i class="bi bi-check-circle"></i> Premium Member
+                </button>
+                {% else %}
+                <button class="btn btn-dark btn-lg" disabled>
+                    <i class="bi bi-lock"></i> Coming Soon (Stripe Integration)
+                </button>
+                <small class="d-block mt-2 text-muted">Available in Phase 4</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h4><i class="bi bi-question-circle"></i> Frequently Asked Questions</h4>
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                What's included in the resume assessment?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Our AI analyzes your resume and provides: overall competitiveness score (0-100), specific strengths and weaknesses, industry compatibility ratings for 5 AI-proof finance sectors, and actionable recommendations for improvement.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                What's the difference between assessment and revision?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <strong>Assessment (Free):</strong> Analyzes your current resume and gives you scores and feedback.<br>
+                                <strong>Revision (Premium):</strong> Compares your resume against successful templates from top finance firms and provides specific section-by-section rewrite suggestions.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                Can I cancel anytime?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Yes! You can cancel your subscription at any time. You'll retain access until the end of your billing period.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

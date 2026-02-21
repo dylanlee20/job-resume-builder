@@ -1,7 +1,5 @@
 {% extends "layout.html" %}
-
 {% block title %}Upload Resume - NewWhale Career{% endblock %}
-
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
@@ -11,13 +9,14 @@
                 <p class="text-muted">Get AI-powered analysis of your resume for AI-proof finance roles</p>
                 
                 <div class="alert alert-info">
-                    <strong>Free Tier:</strong> {{ current_user.tier|upper }} users get {{ 3 }} assessments per day.
+                    <strong>Free Tier:</strong> You get 3 assessments per day.
                     {% if current_user.tier == 'free' %}
                     <a href="{{ url_for('web.pricing') }}" class="alert-link">Upgrade to Premium</a> for unlimited assessments.
                     {% endif %}
                 </div>
                 
                 <form method="POST" enctype="multipart/form-data" id="upload-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label for="resume_file" class="form-label">Select Resume</label>
                         <input type="file" class="form-control" id="resume_file" name="resume_file" 

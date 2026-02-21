@@ -1,5 +1,138 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>AI-Proof Jobs</h1>
-<p>Welcome to NewWhale Career - Finding AI-resistant finance roles</p>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card bg-primary text-white mb-4">
+            <div class="card-body">
+                <h1 class="card-title"><i class="bi bi-stars"></i> Welcome to NewWhale Career v2</h1>
+                <p class="card-text lead">Find AI-proof finance roles and get your resume assessed by AI</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-arrow-up display-4 text-primary"></i>
+                <h5 class="card-title mt-3">Upload Resume</h5>
+                <p class="card-text">Get AI-powered analysis of your resume with scores and recommendations</p>
+                <a href="{{ url_for('resume.upload') }}" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Upload Now
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history display-4 text-info"></i>
+                <h5 class="card-title mt-3">Assessment History</h5>
+                <p class="card-text">View all your previous resume assessments and track improvements</p>
+                <a href="{{ url_for('resume.history') }}" class="btn btn-info">
+                    <i class="bi bi-list"></i> View History
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 border-warning">
+            <div class="card-body text-center">
+                <i class="bi bi-star-fill display-4 text-warning"></i>
+                <h5 class="card-title mt-3">Upgrade to Premium</h5>
+                <p class="card-text">Unlimited assessments + AI-powered resume revision service</p>
+                <a href="{{ url_for('web.pricing') }}" class="btn btn-warning">
+                    <i class="bi bi-arrow-up-circle"></i> See Plans
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> AI-Proof Industries We Focus On</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-success"><i class="bi bi-check-circle-fill"></i> AI-Resistant Roles:</h6>
+                        <ul class="list-unstyled ms-3">
+                            <li><i class="bi bi-briefcase"></i> Investment Banking</li>
+                            <li><i class="bi bi-graph-up"></i> Sales & Trading</li>
+                            <li><i class="bi bi-pie-chart"></i> Portfolio Management</li>
+                            <li><i class="bi bi-shield-check"></i> Risk Management</li>
+                            <li><i class="bi bi-building"></i> M&A Advisory</li>
+                            <li><i class="bi bi-currency-dollar"></i> Private Equity</li>
+                            <li><i class="bi bi-diagram-3"></i> Structuring</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-danger"><i class="bi bi-x-circle-fill"></i> Excluded (High Automation Risk):</h6>
+                        <ul class="list-unstyled ms-3 text-muted">
+                            <li><i class="bi bi-calculator"></i> Accounting & Audit</li>
+                            <li><i class="bi bi-file-text"></i> Back Office Operations</li>
+                            <li><i class="bi bi-bar-chart"></i> Basic Data Science</li>
+                            <li><i class="bi bi-clipboard-check"></i> Compliance Reporting</li>
+                            <li><i class="bi bi-person-workspace"></i> Administrative Support</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Your Account Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Tier:</strong> 
+                        <span class="badge bg-{% if current_user.tier == 'premium' %}warning text-dark{% else %}secondary{% endif %}">
+                            {{ current_user.tier|upper }}
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Daily Assessments:</strong> 
+                        {% if current_user.tier == 'free' %}
+                        <span class="badge bg-info">3 per day</span>
+                        {% else %}
+                        <span class="badge bg-success">Unlimited</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Resume Revision:</strong> 
+                        {% if current_user.tier == 'premium' %}
+                        <span class="badge bg-success">Available</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Premium Only</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        {% if current_user.tier == 'free' %}
+                        <a href="{{ url_for('web.pricing') }}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-arrow-up-circle"></i> Upgrade Now
+                        </a>
+                        {% else %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Premium Member
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
