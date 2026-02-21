@@ -2,7 +2,6 @@
 import logging
 import json
 from datetime import datetime, timedelta
-from openai import OpenAI
 from config import Config
 from models.database import db
 from models.resume_assessment import ResumeAssessment
@@ -70,6 +69,7 @@ class ResumeAssessmentService:
             }
         
         try:
+            from openai import OpenAI
             client = OpenAI(api_key=Config.OPENAI_API_KEY)
             
             # Prepare system prompt

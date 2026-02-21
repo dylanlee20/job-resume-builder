@@ -1,0 +1,127 @@
+{% extends "layout.html" %}
+
+{% block title %}Scraper Run #{{ run.id }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding-top: 20px;">
+    <div class="row mb-3">
+        <div class="col">
+            <a href="{{ url_for('admin.scraper_status') }}" style="color: #ff6600;">&larr; Back to Dashboard</a>
+            <h2 style="color: #ff6600; font-weight: bold; margin-top: 0.5rem;">
+                Scraper Run #{{ run.id }}
+            </h2>
+        </div>
+    </div>
+
+    <!-- Run Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Status</h6>
+                    <div style="font-size: 1.2rem;">
+                        {% if run.status == 'completed' %}
+                            <span style="color: #00cc00;">✓ COMPLETED</span>
+                        {% elif run.status == 'running' %}
+                            <span style="color: #ffcc00;">⟳ RUNNING</span>
+                        {% else %}
+                            <span style="color: #ff3300;">✗ FAILED</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Trigger</h6>
+                    <div style="font-size: 1.2rem; color: #ffffff;">{{ run.trigger }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Duration</h6>
+                    <div style="font-size: 1.2rem; color: #ffffff;">{{ '%.2f'|format(run.duration_seconds|default(0)) }}s</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #ff6600; font-size: 0.9rem;">Started</h6>
+                    <div style="font-size: 1rem; color: #ffffff;">{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">Results</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <strong style="color: #ff6600;">Jobs Scraped:</strong><br>
+                            <span style="color: #ffffff;">{{ run.total_jobs_scraped }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong style="color: #ff6600;">New Jobs:</strong><br>
+                            <span style="color: #ffffff;">{{ run.new_jobs_added }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong style="color: #ff6600;">Updated:</strong><br>
+                            <span style="color: #ffffff;">{{ run.jobs_updated }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong style="color: #ff6600;">Companies Scraped:</strong><br>
+                            <span style="color: #ffffff;">{{ run.companies_scraped }} / {{ run.companies_scraped + run.companies_failed }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong style="color: #ff6600;">Companies Failed:</strong><br>
+                            <span style="color: {{ '#ff3300' if run.companies_failed > 0 else '#00cc00' }};">{{ run.companies_failed }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Log -->
+    {% if run.error_log %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header" style="color: #ff3300;">Error Log</div>
+                <div class="card-body">
+                    <div style="background-color: #0a0a0a; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
+                        {% for line in run.error_log.split('\n') %}
+                            <div style="color: #ff3300; white-space: pre-wrap;">{{ line }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Company Results -->
+    {% if run.company_results %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">Per-Company Results</div>
+                <div class="card-body">
+                    <div style="background-color: #0a0a0a; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
+                        <pre style="color: #cccccc; margin: 0;">{{ run.company_results }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
