@@ -7,6 +7,7 @@ from models.job import Job
 from services.job_service import JobService
 from datetime import datetime, timedelta
 import os
+import sys
 import subprocess
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -110,7 +111,7 @@ def run_scraper():
         # This prevents the HTTP request from timing out
         # Pass 'manual' as the trigger argument
         subprocess.Popen(
-            ['venv/bin/python3', 'scraper_runner.py', 'manual'],
+            [sys.executable, 'scraper_runner.py', 'manual'],
             stdout=open('data/logs/scraper.log', 'a'),
             stderr=subprocess.STDOUT,
             cwd=os.getcwd()
