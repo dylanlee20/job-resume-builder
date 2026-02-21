@@ -11,20 +11,15 @@ from webdriver_manager.core.os_manager import ChromeType
 from bs4 import BeautifulSoup
 import shutil
 import subprocess
+import tempfile
 import time
 import random
 import logging
 import os
 from config import Config
 
-logging.basicConfig(
-    level=getattr(logging, Config.LOG_LEVEL),
-    format=Config.LOG_FORMAT,
-    handlers=[
-        logging.FileHandler(Config.LOG_FILE, encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
+# Logging is configured by scraper_runner.py (the entry point).
+# Do NOT call logging.basicConfig() here to avoid duplicate log lines.
 
 
 class BaseScraper(ABC):
@@ -34,6 +29,7 @@ class BaseScraper(ABC):
         self.company_name = company_name
         self.source_url = source_url
         self.driver = None
+        self._user_data_dir = None
         self.logger = logging.getLogger(f"{__name__}.{company_name}")
 
     @staticmethod
@@ -56,9 +52,29 @@ class BaseScraper(ABC):
 
         return None, None
 
+    @staticmethod
+    def _kill_zombie_chrome():
+        """Kill any orphaned Chrome/Chromium processes to free memory"""
+        try:
+            result = subprocess.run(
+                ['pkill', '-f', 'chromium.*--headless'],
+                capture_output=True, timeout=5
+            )
+            # Also kill any orphaned chromedriver processes
+            subprocess.run(
+                ['pkill', '-f', 'chromedriver'],
+                capture_output=True, timeout=5
+            )
+            time.sleep(1)  # Let OS reclaim memory
+        except Exception:
+            pass
+
     def init_driver(self):
         """Initialize Selenium WebDriver with Chrome or Chromium"""
         try:
+            # Kill zombie Chrome processes before starting a new one
+            self._kill_zombie_chrome()
+
             chrome_binary, browser_type = self._detect_chrome_binary()
             if not chrome_binary:
                 raise Exception(
@@ -77,6 +93,21 @@ class BaseScraper(ABC):
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--window-size=1920,1080')
+
+            # Memory-saving flags for low-RAM environments
+            chrome_options.add_argument('--disable-extensions')
+            chrome_options.add_argument('--disable-background-networking')
+            chrome_options.add_argument('--disable-default-apps')
+            chrome_options.add_argument('--disable-translate')
+            chrome_options.add_argument('--disable-sync')
+            chrome_options.add_argument('--no-first-run')
+            chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+            chrome_options.add_argument('--disable-software-rasterizer')
+            chrome_options.add_argument('--crash-dumps-dir=/tmp')
+
+            # Use unique temp profile to avoid lock conflicts between runs
+            self._user_data_dir = tempfile.mkdtemp(prefix='chrome_scraper_')
+            chrome_options.add_argument(f'--user-data-dir={self._user_data_dir}')
 
             chrome_options.add_argument(
                 'user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
@@ -136,13 +167,23 @@ class BaseScraper(ABC):
             return False
 
     def close_driver(self):
-        """Close the browser"""
+        """Close the browser and clean up temp profile"""
         if self.driver:
             try:
                 self.driver.quit()
                 self.logger.info(f"WebDriver closed for {self.company_name}")
             except Exception as e:
                 self.logger.error(f"Error closing WebDriver for {self.company_name}: {e}")
+            finally:
+                self.driver = None
+
+        # Clean up temp user-data-dir
+        if self._user_data_dir and os.path.exists(self._user_data_dir):
+            try:
+                shutil.rmtree(self._user_data_dir, ignore_errors=True)
+            except Exception:
+                pass
+            self._user_data_dir = None
 
     def random_delay(self):
         """Random delay to avoid detection"""
