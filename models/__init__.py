@@ -8,6 +8,7 @@ from .resume_assessment import ResumeAssessment
 from .resume_template import ResumeTemplate
 from .resume_revision import ResumeRevision
 from .subscription import Subscription, Payment
+from .scraper_run import ScraperRun
 
 __all__ = [
     'db',
@@ -23,4 +24,5 @@ __all__ = [
     'ResumeRevision',
     'Subscription',
     'Payment',
+    'ScraperRun',
 ]
