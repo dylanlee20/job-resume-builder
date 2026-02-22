@@ -39,6 +39,8 @@ def run_migration():
                 skipped += 1
                 continue
 
+            print(f"  {old_location!r} → {new_location!r}")
+
             # Recompute job hash with the new normalized location
             new_hash = Job.generate_job_hash(job.company, job.title, new_location)
 
@@ -48,6 +50,7 @@ def run_migration():
                 # This job is a duplicate after normalization — delete it
                 db.session.delete(job)
                 merged += 1
+                print(f"    ^ duplicate, removed")
                 continue
 
             job.location = new_location
@@ -55,7 +58,7 @@ def run_migration():
             updated += 1
 
         db.session.commit()
-        print(f"Migration complete: {updated} updated, {merged} duplicates removed, {skipped} unchanged")
+        print(f"\nMigration complete: {updated} updated, {merged} duplicates removed, {skipped} unchanged")
 
 if __name__ == '__main__':
     run_migration()
