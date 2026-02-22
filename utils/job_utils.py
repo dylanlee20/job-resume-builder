@@ -43,6 +43,13 @@ def normalize_location(location):
     # Remove HTML tags if any leaked through
     location = re.sub(r'<[^>]+>', '', location)
 
+    # Strip trailing "+N locations" or "+N more" patterns (e.g. "New York +2 locations")
+    location = re.sub(r'\s*\+?\s*\d+\s*(?:more\s+)?locations?\s*$', '', location, flags=re.IGNORECASE).strip()
+
+    # If the entire string is just "N locations" or "N+ locations" with nothing useful, treat as Global
+    if re.match(r'^\d+\s*\+?\s*(?:more\s+)?locations?\s*$', location, flags=re.IGNORECASE):
+        return "Global"
+
     # If multi-location (pipes, semicolons, " and ", " or "), take the first
     for sep in ['|', ';', ' and ', ' or ', ' & ']:
         if sep in location:
@@ -51,7 +58,8 @@ def normalize_location(location):
     # Strip trailing commas or dots
     location = location.strip(' ,.')
 
-    if not location or location.lower() in ('unknown', 'n/a', 'global', 'multiple locations', 'various'):
+    if not location or location.lower() in ('unknown', 'n/a', 'global', 'multiple locations', 'various',
+                                              'multiple', 'worldwide', 'anywhere', 'tbd', 'remote'):
         return "Global"
 
     # Exact match lookup (case-insensitive)
