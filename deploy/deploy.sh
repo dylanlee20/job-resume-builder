@@ -19,6 +19,8 @@ git reset --hard "origin/$BRANCH"
 # Ensure virtual environment exists
 if [ ! -d "$APP_DIR/venv" ]; then
     echo "$(date): Creating virtual environment" >> "$LOG_FILE"
+    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    apt-get install -y -qq "python${PYTHON_VERSION}-venv" > /dev/null 2>&1 || true
     python3 -m venv "$APP_DIR/venv"
 fi
 

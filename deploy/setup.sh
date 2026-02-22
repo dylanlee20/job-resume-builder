@@ -8,6 +8,13 @@ echo "=== NewWhale Auto-Deploy Setup ==="
 
 APP_DIR="/root/job-resume-builder"
 
+# Install system prerequisites for Python venv
+echo "Checking system prerequisites..."
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+apt-get update -qq
+apt-get install -y -qq "python${PYTHON_VERSION}-venv" > /dev/null 2>&1
+echo "System prerequisites OK (python${PYTHON_VERSION}-venv installed)"
+
 # Make deploy script executable
 chmod +x "$APP_DIR/deploy/deploy.sh"
 
