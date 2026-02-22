@@ -1,20 +1,20 @@
 {% extends "layout.html" %}
 {% block title %}Pricing - NewWhale Career{% endblock %}
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-4 mt-2">
     <div class="col-md-12 text-center">
         <h1>Choose Your Plan</h1>
-        <p class="lead">Unlock the full power of AI-assisted career development</p>
+        <p class="lead text-muted">Unlock the full power of AI-assisted career development</p>
     </div>
 </div>
 
-<div class="row justify-content-center">
+<div class="row justify-content-center g-4">
     <div class="col-md-4">
         <div class="card h-100 {% if current_user.tier == 'free' %}border-primary{% endif %}">
-            <div class="card-header text-center bg-light">
-                <h3>Free</h3>
+            <div class="card-header text-center">
+                <h3 style="margin-bottom: 0.25rem;">Free</h3>
                 <h2 class="display-4">$0</h2>
-                <p class="text-muted">Perfect for getting started</p>
+                <p class="text-muted mb-0">Perfect for getting started</p>
             </div>
             <div class="card-body">
                 <ul class="list-unstyled">
@@ -22,9 +22,9 @@
                     <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> 3 resume assessments/day</li>
                     <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Basic AI analysis</li>
                     <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Industry compatibility scores</li>
-                    <li class="mb-2"><i class="bi bi-x-circle-fill text-muted"></i> Resume revision</li>
-                    <li class="mb-2"><i class="bi bi-x-circle-fill text-muted"></i> Unlimited assessments</li>
-                    <li class="mb-2"><i class="bi bi-x-circle-fill text-muted"></i> Priority support</li>
+                    <li class="mb-2 text-muted"><i class="bi bi-x-circle"></i> Resume revision</li>
+                    <li class="mb-2 text-muted"><i class="bi bi-x-circle"></i> Unlimited assessments</li>
+                    <li class="mb-2 text-muted"><i class="bi bi-x-circle"></i> Priority support</li>
                 </ul>
             </div>
             <div class="card-footer text-center">
@@ -38,12 +38,12 @@
     </div>
 
     <div class="col-md-4">
-        <div class="card h-100 border-warning shadow-lg">
-            <div class="card-header text-center bg-warning">
-                <span class="badge bg-danger mb-2">MOST POPULAR</span>
-                <h3>Premium Monthly</h3>
-                <h2 class="display-4">$19</h2>
-                <p class="text-muted">per month</p>
+        <div class="card h-100 shadow-lg" style="border: 2px solid var(--nw-blue); transform: scale(1.02);">
+            <div class="card-header text-center" style="background: var(--nw-blue) !important; color: white !important;">
+                <span class="badge" style="background-color: var(--nw-accent) !important; color: var(--nw-navy) !important; margin-bottom: 0.5rem;">MOST POPULAR</span>
+                <h3 style="color: white !important; margin-bottom: 0.25rem;">Premium Monthly</h3>
+                <h2 class="display-4" style="color: white !important;">$19</h2>
+                <p style="color: rgba(255,255,255,0.8); margin-bottom: 0;">per month</p>
             </div>
             <div class="card-body">
                 <ul class="list-unstyled">
@@ -58,14 +58,10 @@
             </div>
             <div class="card-footer text-center">
                 {% if current_user.tier == 'premium' %}
-                <button class="btn btn-success" disabled>
-                    <i class="bi bi-check-circle"></i> Current Plan
-                </button>
+                <button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Current Plan</button>
                 {% else %}
-                <button class="btn btn-warning btn-lg" disabled>
-                    <i class="bi bi-lock"></i> Coming Soon (Stripe Integration)
-                </button>
-                <small class="d-block mt-2 text-muted">Available in Phase 4</small>
+                <button class="btn btn-primary btn-lg" disabled><i class="bi bi-lock"></i> Coming Soon</button>
+                <small class="d-block mt-2 text-muted">Stripe Integration - Phase 4</small>
                 {% endif %}
             </div>
         </div>
@@ -73,12 +69,12 @@
 
     <div class="col-md-4">
         <div class="card h-100">
-            <div class="card-header text-center bg-dark text-white">
-                <span class="badge bg-success mb-2">BEST VALUE</span>
-                <h3>Premium Annual</h3>
-                <h2 class="display-4">$149</h2>
-                <p class="text-muted">per year</p>
-                <small class="text-success">Save $79 (35% off)</small>
+            <div class="card-header text-center" style="background: var(--nw-navy) !important; color: white !important;">
+                <span class="badge" style="background-color: #27ae60 !important; color: white !important; margin-bottom: 0.5rem;">BEST VALUE</span>
+                <h3 style="color: white !important; margin-bottom: 0.25rem;">Premium Annual</h3>
+                <h2 class="display-4" style="color: white !important;">$149</h2>
+                <p style="color: rgba(255,255,255,0.8); margin-bottom: 0;">per year</p>
+                <small style="color: #27ae60;">Save $79 (35% off)</small>
             </div>
             <div class="card-body">
                 <ul class="list-unstyled">
@@ -91,14 +87,10 @@
             </div>
             <div class="card-footer text-center">
                 {% if current_user.tier == 'premium' %}
-                <button class="btn btn-success" disabled>
-                    <i class="bi bi-check-circle"></i> Premium Member
-                </button>
+                <button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Premium Member</button>
                 {% else %}
-                <button class="btn btn-dark btn-lg" disabled>
-                    <i class="bi bi-lock"></i> Coming Soon (Stripe Integration)
-                </button>
-                <small class="d-block mt-2 text-muted">Available in Phase 4</small>
+                <button class="btn btn-primary btn-lg" disabled><i class="bi bi-lock"></i> Coming Soon</button>
+                <small class="d-block mt-2 text-muted">Stripe Integration - Phase 4</small>
                 {% endif %}
             </div>
         </div>
@@ -106,7 +98,7 @@
 </div>
 
 <div class="row mt-5">
-    <div class="col-md-12">
+    <div class="col-md-8 mx-auto">
         <div class="card">
             <div class="card-body">
                 <h4><i class="bi bi-question-circle"></i> Frequently Asked Questions</h4>
@@ -153,5 +145,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
