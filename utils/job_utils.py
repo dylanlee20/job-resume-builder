@@ -24,13 +24,13 @@ def categorize_and_classify_job(title, description=''):
 
 def normalize_location(location):
     """
-    Normalize location string to consistent 'Country, City' format.
+    Normalize location string to consistent 'Country - City' format.
 
     Args:
         location: Raw location string from scrapers
 
     Returns:
-        Normalized location string
+        Normalized location string (e.g. 'US - New York City', 'China - Hong Kong')
     """
     import re
 
@@ -75,129 +75,129 @@ def normalize_location(location):
     # Exact match lookup (case-insensitive)
     loc_lower = location.lower()
 
-    # City -> "Country, City" mapping (comprehensive)
+    # City -> "Country - City" mapping (comprehensive)
     city_to_country = {
         # === United States ===
         # New York variants
-        'new york': 'United States, New York',
-        'new york, ny': 'United States, New York',
-        'new york, new york': 'United States, New York',
-        'new york city': 'United States, New York',
-        'new york city, ny': 'United States, New York',
-        'nyc': 'United States, New York',
-        'ny': 'United States, New York',
-        'manhattan': 'United States, New York',
-        'manhattan, ny': 'United States, New York',
-        'brooklyn': 'United States, New York',
-        'brooklyn, ny': 'United States, New York',
-        'new york, united states': 'United States, New York',
-        'new york, us': 'United States, New York',
-        'new york, usa': 'United States, New York',
+        'new york': 'US - New York',
+        'new york, ny': 'US - New York',
+        'new york, new york': 'US - New York',
+        'new york city': 'US - New York',
+        'new york city, ny': 'US - New York',
+        'nyc': 'US - New York',
+        'ny': 'US - New York',
+        'manhattan': 'US - New York',
+        'manhattan, ny': 'US - New York',
+        'brooklyn': 'US - New York',
+        'brooklyn, ny': 'US - New York',
+        'new york, united states': 'US - New York',
+        'new york, us': 'US - New York',
+        'new york, usa': 'US - New York',
         # Jersey City
-        'jersey city': 'United States, Jersey City',
-        'jersey city, nj': 'United States, Jersey City',
-        'jersey city, new jersey': 'United States, Jersey City',
+        'jersey city': 'US - Jersey City',
+        'jersey city, nj': 'US - Jersey City',
+        'jersey city, new jersey': 'US - Jersey City',
         # Other US cities
-        'albany': 'United States, Albany',
-        'albany, ny': 'United States, Albany',
-        'atlanta': 'United States, Atlanta',
-        'atlanta, ga': 'United States, Atlanta',
-        'atlanta, georgia': 'United States, Atlanta',
-        'boston': 'United States, Boston',
-        'boston, ma': 'United States, Boston',
-        'boston, massachusetts': 'United States, Boston',
-        'charlotte': 'United States, Charlotte',
-        'charlotte, nc': 'United States, Charlotte',
-        'charlotte, north carolina': 'United States, Charlotte',
-        'chicago': 'United States, Chicago',
-        'chicago, il': 'United States, Chicago',
-        'chicago, illinois': 'United States, Chicago',
-        'dallas': 'United States, Dallas',
-        'dallas, tx': 'United States, Dallas',
-        'dallas, texas': 'United States, Dallas',
-        'denver': 'United States, Denver',
-        'denver, co': 'United States, Denver',
-        'denver, colorado': 'United States, Denver',
-        'detroit': 'United States, Detroit',
-        'detroit, mi': 'United States, Detroit',
-        'detroit, michigan': 'United States, Detroit',
-        'houston': 'United States, Houston',
-        'houston, tx': 'United States, Houston',
-        'houston, texas': 'United States, Houston',
-        'los angeles': 'United States, Los Angeles',
-        'los angeles, ca': 'United States, Los Angeles',
-        'los angeles, california': 'United States, Los Angeles',
-        'la': 'United States, Los Angeles',
-        'menlo park': 'United States, Menlo Park',
-        'menlo park, ca': 'United States, Menlo Park',
-        'miami': 'United States, Miami',
-        'miami, fl': 'United States, Miami',
-        'miami, florida': 'United States, Miami',
-        'minneapolis': 'United States, Minneapolis',
-        'minneapolis, mn': 'United States, Minneapolis',
-        'minneapolis, minnesota': 'United States, Minneapolis',
-        'newport beach': 'United States, Newport Beach',
-        'newport beach, ca': 'United States, Newport Beach',
-        'philadelphia': 'United States, Philadelphia',
-        'philadelphia, pa': 'United States, Philadelphia',
-        'philadelphia, pennsylvania': 'United States, Philadelphia',
-        'pittsburgh': 'United States, Pittsburgh',
-        'pittsburgh, pa': 'United States, Pittsburgh',
-        'pittsburgh, pennsylvania': 'United States, Pittsburgh',
-        'richardson': 'United States, Richardson',
-        'richardson, tx': 'United States, Richardson',
-        'salt lake city': 'United States, Salt Lake City',
-        'salt lake city, ut': 'United States, Salt Lake City',
-        'salt lake city, utah': 'United States, Salt Lake City',
-        'san francisco': 'United States, San Francisco',
-        'san francisco, ca': 'United States, San Francisco',
-        'san francisco, california': 'United States, San Francisco',
-        'sf': 'United States, San Francisco',
-        'seattle': 'United States, Seattle',
-        'seattle, wa': 'United States, Seattle',
-        'seattle, washington': 'United States, Seattle',
-        'stamford': 'United States, Stamford',
-        'stamford, ct': 'United States, Stamford',
-        'stamford, connecticut': 'United States, Stamford',
-        'washington': 'United States, Washington D.C.',
-        'washington, dc': 'United States, Washington D.C.',
-        'washington, d.c.': 'United States, Washington D.C.',
-        'washington d.c.': 'United States, Washington D.C.',
-        'washington dc': 'United States, Washington D.C.',
-        'dc': 'United States, Washington D.C.',
-        'd.c.': 'United States, Washington D.C.',
-        'west palm beach': 'United States, West Palm Beach',
-        'west palm beach, fl': 'United States, West Palm Beach',
-        'wilmington': 'United States, Wilmington',
-        'wilmington, de': 'United States, Wilmington',
-        'wilmington, delaware': 'United States, Wilmington',
+        'albany': 'US - Albany',
+        'albany, ny': 'US - Albany',
+        'atlanta': 'US - Atlanta',
+        'atlanta, ga': 'US - Atlanta',
+        'atlanta, georgia': 'US - Atlanta',
+        'boston': 'US - Boston',
+        'boston, ma': 'US - Boston',
+        'boston, massachusetts': 'US - Boston',
+        'charlotte': 'US - Charlotte',
+        'charlotte, nc': 'US - Charlotte',
+        'charlotte, north carolina': 'US - Charlotte',
+        'chicago': 'US - Chicago',
+        'chicago, il': 'US - Chicago',
+        'chicago, illinois': 'US - Chicago',
+        'dallas': 'US - Dallas',
+        'dallas, tx': 'US - Dallas',
+        'dallas, texas': 'US - Dallas',
+        'denver': 'US - Denver',
+        'denver, co': 'US - Denver',
+        'denver, colorado': 'US - Denver',
+        'detroit': 'US - Detroit',
+        'detroit, mi': 'US - Detroit',
+        'detroit, michigan': 'US - Detroit',
+        'houston': 'US - Houston',
+        'houston, tx': 'US - Houston',
+        'houston, texas': 'US - Houston',
+        'los angeles': 'US - Los Angeles',
+        'los angeles, ca': 'US - Los Angeles',
+        'los angeles, california': 'US - Los Angeles',
+        'la': 'US - Los Angeles',
+        'menlo park': 'US - Menlo Park',
+        'menlo park, ca': 'US - Menlo Park',
+        'miami': 'US - Miami',
+        'miami, fl': 'US - Miami',
+        'miami, florida': 'US - Miami',
+        'minneapolis': 'US - Minneapolis',
+        'minneapolis, mn': 'US - Minneapolis',
+        'minneapolis, minnesota': 'US - Minneapolis',
+        'newport beach': 'US - Newport Beach',
+        'newport beach, ca': 'US - Newport Beach',
+        'philadelphia': 'US - Philadelphia',
+        'philadelphia, pa': 'US - Philadelphia',
+        'philadelphia, pennsylvania': 'US - Philadelphia',
+        'pittsburgh': 'US - Pittsburgh',
+        'pittsburgh, pa': 'US - Pittsburgh',
+        'pittsburgh, pennsylvania': 'US - Pittsburgh',
+        'richardson': 'US - Richardson',
+        'richardson, tx': 'US - Richardson',
+        'salt lake city': 'US - Salt Lake City',
+        'salt lake city, ut': 'US - Salt Lake City',
+        'salt lake city, utah': 'US - Salt Lake City',
+        'san francisco': 'US - San Francisco',
+        'san francisco, ca': 'US - San Francisco',
+        'san francisco, california': 'US - San Francisco',
+        'sf': 'US - San Francisco',
+        'seattle': 'US - Seattle',
+        'seattle, wa': 'US - Seattle',
+        'seattle, washington': 'US - Seattle',
+        'stamford': 'US - Stamford',
+        'stamford, ct': 'US - Stamford',
+        'stamford, connecticut': 'US - Stamford',
+        'washington': 'US - Washington D.C.',
+        'washington, dc': 'US - Washington D.C.',
+        'washington, d.c.': 'US - Washington D.C.',
+        'washington d.c.': 'US - Washington D.C.',
+        'washington dc': 'US - Washington D.C.',
+        'dc': 'US - Washington D.C.',
+        'd.c.': 'US - Washington D.C.',
+        'west palm beach': 'US - West Palm Beach',
+        'west palm beach, fl': 'US - West Palm Beach',
+        'wilmington': 'US - Wilmington',
+        'wilmington, de': 'US - Wilmington',
+        'wilmington, delaware': 'US - Wilmington',
         # Country-level US
-        'united states': 'United States',
-        'united states of america': 'United States',
-        'usa': 'United States',
-        'us': 'United States',
+        'united states': 'US',
+        'united states of america': 'US',
+        'usa': 'US',
+        'us': 'US',
 
         # === Hong Kong ===
-        'hong kong': 'Hong Kong',
-        'hong kong sar': 'Hong Kong',
-        'hong kong, china': 'Hong Kong',
-        'hong kong sar, china': 'Hong Kong',
-        'hk': 'Hong Kong',
-        'hkg': 'Hong Kong',
-        'central': 'Hong Kong',
-        'central, hong kong': 'Hong Kong',
-        'wan chai': 'Hong Kong',
-        'kowloon': 'Hong Kong',
-        'admiralty': 'Hong Kong',
-        'quarry bay': 'Hong Kong',
+        'hong kong': 'China - Hong Kong',
+        'hong kong sar': 'China - Hong Kong',
+        'hong kong, china': 'China - Hong Kong',
+        'hong kong sar, china': 'China - Hong Kong',
+        'hk': 'China - Hong Kong',
+        'hkg': 'China - Hong Kong',
+        'central': 'China - Hong Kong',
+        'central, hong kong': 'China - Hong Kong',
+        'wan chai': 'China - Hong Kong',
+        'kowloon': 'China - Hong Kong',
+        'admiralty': 'China - Hong Kong',
+        'quarry bay': 'China - Hong Kong',
 
         # === China ===
-        'beijing': 'China, Beijing',
-        'beijing, china': 'China, Beijing',
-        'shanghai': 'China, Shanghai',
-        'shanghai, china': 'China, Shanghai',
-        'shenzhen': 'China, Shenzhen',
-        'shenzhen, china': 'China, Shenzhen',
+        'beijing': 'China - Beijing',
+        'beijing, china': 'China - Beijing',
+        'shanghai': 'China - Shanghai',
+        'shanghai, china': 'China - Shanghai',
+        'shenzhen': 'China - Shenzhen',
+        'shenzhen, china': 'China - Shenzhen',
         'mainland china': 'China',
         'china': 'China',
 
@@ -206,123 +206,123 @@ def normalize_location(location):
         'sg': 'Singapore',
 
         # === Japan ===
-        'tokyo': 'Japan, Tokyo',
-        'tokyo, japan': 'Japan, Tokyo',
-        'minato-ku': 'Japan, Tokyo',
-        'minato': 'Japan, Tokyo',
+        'tokyo': 'Japan - Tokyo',
+        'tokyo, japan': 'Japan - Tokyo',
+        'minato-ku': 'Japan - Tokyo',
+        'minato': 'Japan - Tokyo',
         'japan': 'Japan',
 
         # === South Korea ===
-        'seoul': 'South Korea, Seoul',
-        'seoul, south korea': 'South Korea, Seoul',
+        'seoul': 'South Korea - Seoul',
+        'seoul, south korea': 'South Korea - Seoul',
         'south korea': 'South Korea',
         'korea': 'South Korea',
 
         # === Australia ===
-        'sydney': 'Australia, Sydney',
-        'sydney, nsw': 'Australia, Sydney',
-        'sydney, nsw, australia': 'Australia, Sydney',
-        'sydney, australia': 'Australia, Sydney',
-        'melbourne': 'Australia, Melbourne',
-        'melbourne, vic': 'Australia, Melbourne',
-        'melbourne, australia': 'Australia, Melbourne',
-        'perth': 'Australia, Perth',
-        'brisbane': 'Australia, Brisbane',
+        'sydney': 'Australia - Sydney',
+        'sydney, nsw': 'Australia - Sydney',
+        'sydney, nsw, australia': 'Australia - Sydney',
+        'sydney, australia': 'Australia - Sydney',
+        'melbourne': 'Australia - Melbourne',
+        'melbourne, vic': 'Australia - Melbourne',
+        'melbourne, australia': 'Australia - Melbourne',
+        'perth': 'Australia - Perth',
+        'brisbane': 'Australia - Brisbane',
         'australia': 'Australia',
 
         # === New Zealand ===
-        'auckland': 'New Zealand, Auckland',
+        'auckland': 'New Zealand - Auckland',
         'new zealand': 'New Zealand',
 
         # === India ===
-        'mumbai': 'India, Mumbai',
-        'mumbai, india': 'India, Mumbai',
-        'bangalore': 'India, Bangalore',
-        'bengaluru': 'India, Bangalore',
-        'pune': 'India, Pune',
+        'mumbai': 'India - Mumbai',
+        'mumbai, india': 'India - Mumbai',
+        'bangalore': 'India - Bangalore',
+        'bengaluru': 'India - Bangalore',
+        'pune': 'India - Pune',
         'india': 'India',
 
         # === United Kingdom ===
-        'london': 'United Kingdom, London',
-        'london, uk': 'United Kingdom, London',
-        'london, united kingdom': 'United Kingdom, London',
-        'london, england': 'United Kingdom, London',
-        'birmingham': 'United Kingdom, Birmingham',
-        'birmingham, uk': 'United Kingdom, Birmingham',
-        'edinburgh': 'United Kingdom, Edinburgh',
-        'edinburgh, uk': 'United Kingdom, Edinburgh',
-        'glasgow': 'United Kingdom, Glasgow',
-        'manchester': 'United Kingdom, Manchester',
-        'united kingdom': 'United Kingdom',
-        'uk': 'United Kingdom',
-        'england': 'United Kingdom',
+        'london': 'UK - London',
+        'london, uk': 'UK - London',
+        'london, united kingdom': 'UK - London',
+        'london, england': 'UK - London',
+        'birmingham': 'UK - Birmingham',
+        'birmingham, uk': 'UK - Birmingham',
+        'edinburgh': 'UK - Edinburgh',
+        'edinburgh, uk': 'UK - Edinburgh',
+        'glasgow': 'UK - Glasgow',
+        'manchester': 'UK - Manchester',
+        'united kingdom': 'UK',
+        'uk': 'UK',
+        'england': 'UK',
 
         # === Europe ===
-        'paris': 'France, Paris',
-        'paris, france': 'France, Paris',
+        'paris': 'France - Paris',
+        'paris, france': 'France - Paris',
         'france': 'France',
-        'frankfurt': 'Germany, Frankfurt',
-        'frankfurt, germany': 'Germany, Frankfurt',
-        'frankfurt am main': 'Germany, Frankfurt',
-        'munich': 'Germany, Munich',
-        'berlin': 'Germany, Berlin',
+        'frankfurt': 'Germany - Frankfurt',
+        'frankfurt, germany': 'Germany - Frankfurt',
+        'frankfurt am main': 'Germany - Frankfurt',
+        'munich': 'Germany - Munich',
+        'berlin': 'Germany - Berlin',
         'germany': 'Germany',
-        'zurich': 'Switzerland, Zurich',
-        'zürich': 'Switzerland, Zurich',
-        'zurich, switzerland': 'Switzerland, Zurich',
-        'geneva': 'Switzerland, Geneva',
+        'zurich': 'Switzerland - Zurich',
+        'zürich': 'Switzerland - Zurich',
+        'zurich, switzerland': 'Switzerland - Zurich',
+        'geneva': 'Switzerland - Geneva',
         'switzerland': 'Switzerland',
-        'amsterdam': 'Netherlands, Amsterdam',
-        'amsterdam, netherlands': 'Netherlands, Amsterdam',
+        'amsterdam': 'Netherlands - Amsterdam',
+        'amsterdam, netherlands': 'Netherlands - Amsterdam',
         'netherlands': 'Netherlands',
-        'dublin': 'Ireland, Dublin',
-        'dublin, ireland': 'Ireland, Dublin',
+        'dublin': 'Ireland - Dublin',
+        'dublin, ireland': 'Ireland - Dublin',
         'ireland': 'Ireland',
-        'madrid': 'Spain, Madrid',
+        'madrid': 'Spain - Madrid',
         'spain': 'Spain',
-        'milan': 'Italy, Milan',
-        'milano': 'Italy, Milan',
-        'rome': 'Italy, Rome',
+        'milan': 'Italy - Milan',
+        'milano': 'Italy - Milan',
+        'rome': 'Italy - Rome',
         'italy': 'Italy',
         'luxembourg': 'Luxembourg',
-        'brussels': 'Belgium, Brussels',
+        'brussels': 'Belgium - Brussels',
         'belgium': 'Belgium',
-        'lisbon': 'Portugal, Lisbon',
-        'stockholm': 'Sweden, Stockholm',
-        'oslo': 'Norway, Oslo',
-        'copenhagen': 'Denmark, Copenhagen',
-        'warsaw': 'Poland, Warsaw',
-        'prague': 'Czech Republic, Prague',
-        'vienna': 'Austria, Vienna',
+        'lisbon': 'Portugal - Lisbon',
+        'stockholm': 'Sweden - Stockholm',
+        'oslo': 'Norway - Oslo',
+        'copenhagen': 'Denmark - Copenhagen',
+        'warsaw': 'Poland - Warsaw',
+        'prague': 'Czech Republic - Prague',
+        'vienna': 'Austria - Vienna',
 
         # === Middle East ===
-        'dubai': 'UAE, Dubai',
-        'dubai, uae': 'UAE, Dubai',
-        'abu dhabi': 'UAE, Abu Dhabi',
+        'dubai': 'UAE - Dubai',
+        'dubai, uae': 'UAE - Dubai',
+        'abu dhabi': 'UAE - Abu Dhabi',
         'uae': 'UAE',
         'united arab emirates': 'UAE',
-        'riyadh': 'Saudi Arabia, Riyadh',
-        'doha': 'Qatar, Doha',
+        'riyadh': 'Saudi Arabia - Riyadh',
+        'doha': 'Qatar - Doha',
         'bahrain': 'Bahrain',
 
         # === Canada ===
-        'toronto': 'Canada, Toronto',
-        'toronto, on': 'Canada, Toronto',
-        'toronto, ontario': 'Canada, Toronto',
-        'toronto, canada': 'Canada, Toronto',
-        'calgary': 'Canada, Calgary',
-        'calgary, ab': 'Canada, Calgary',
-        'calgary, alberta': 'Canada, Calgary',
-        'montreal': 'Canada, Montreal',
-        'montreal, qc': 'Canada, Montreal',
-        'vancouver': 'Canada, Vancouver',
+        'toronto': 'Canada - Toronto',
+        'toronto, on': 'Canada - Toronto',
+        'toronto, ontario': 'Canada - Toronto',
+        'toronto, canada': 'Canada - Toronto',
+        'calgary': 'Canada - Calgary',
+        'calgary, ab': 'Canada - Calgary',
+        'calgary, alberta': 'Canada - Calgary',
+        'montreal': 'Canada - Montreal',
+        'montreal, qc': 'Canada - Montreal',
+        'vancouver': 'Canada - Vancouver',
         'canada': 'Canada',
 
         # === Latin America ===
-        'sao paulo': 'Brazil, Sao Paulo',
-        'são paulo': 'Brazil, Sao Paulo',
-        'mexico city': 'Mexico, Mexico City',
-        'buenos aires': 'Argentina, Buenos Aires',
+        'sao paulo': 'Brazil - Sao Paulo',
+        'são paulo': 'Brazil - Sao Paulo',
+        'mexico city': 'Mexico - Mexico City',
+        'buenos aires': 'Argentina - Buenos Aires',
     }
 
     if loc_lower in city_to_country:
@@ -358,25 +358,26 @@ def normalize_location(location):
         'south korea', 'hong kong', 'new zealand', 'brazil', 'mexico',
         'uae', 'united arab emirates', 'qatar', 'bahrain', 'saudi arabia',
         'luxembourg', 'belgium', 'portugal', 'sweden', 'norway', 'denmark',
-        'poland', 'czech republic', 'austria',
+        'poland', 'czech republic', 'austria', 'argentina',
     }
 
     country_display = {
-        'united states': 'United States', 'united states of america': 'United States',
-        'usa': 'United States', 'us': 'United States',
+        'united states': 'US', 'united states of america': 'US',
+        'usa': 'US', 'us': 'US',
         'australia': 'Australia', 'canada': 'Canada',
-        'united kingdom': 'United Kingdom', 'uk': 'United Kingdom', 'england': 'United Kingdom',
+        'united kingdom': 'UK', 'uk': 'UK', 'england': 'UK',
         'france': 'France', 'germany': 'Germany', 'switzerland': 'Switzerland',
         'netherlands': 'Netherlands', 'ireland': 'Ireland', 'spain': 'Spain',
         'italy': 'Italy', 'japan': 'Japan', 'china': 'China', 'india': 'India',
         'singapore': 'Singapore', 'south korea': 'South Korea',
-        'hong kong': 'Hong Kong', 'new zealand': 'New Zealand',
+        'hong kong': 'China', 'new zealand': 'New Zealand',
         'brazil': 'Brazil', 'mexico': 'Mexico',
         'uae': 'UAE', 'united arab emirates': 'UAE',
         'qatar': 'Qatar', 'bahrain': 'Bahrain', 'saudi arabia': 'Saudi Arabia',
         'luxembourg': 'Luxembourg', 'belgium': 'Belgium', 'portugal': 'Portugal',
         'sweden': 'Sweden', 'norway': 'Norway', 'denmark': 'Denmark',
         'poland': 'Poland', 'czech republic': 'Czech Republic', 'austria': 'Austria',
+        'argentina': 'Argentina',
     }
 
     # Split on commas for multi-part patterns
@@ -396,7 +397,7 @@ def normalize_location(location):
             city_key = city.lower()
             if city_key in city_to_country:
                 return city_to_country[city_key]
-            return f"{display_country}, {city}"
+            return f"{display_country} - {city}"
 
     # Handle 2-part patterns
     if len(parts) == 2:
@@ -411,14 +412,14 @@ def normalize_location(location):
             city_key = part0_lower
             if city_key in city_to_country:
                 return city_to_country[city_key]
-            return f"United States, {part0}"
+            return f"US - {part0}"
 
         # "City, Full State Name" (e.g. "Chicago, Illinois")
         if part1_lower in us_state_names:
             city_key = part0_lower
             if city_key in city_to_country:
                 return city_to_country[city_key]
-            return f"United States, {part0}"
+            return f"US - {part0}"
 
         # "City, Country" (e.g. "London, UK" or "Sydney, Australia")
         if part1_lower in country_display:
@@ -426,7 +427,7 @@ def normalize_location(location):
             city_key = part0_lower
             if city_key in city_to_country:
                 return city_to_country[city_key]
-            return f"{display_country}, {part0}"
+            return f"{display_country} - {part0}"
 
         # "Country, City" (already in our format — just normalize the country)
         if part0_lower in country_display:
@@ -434,11 +435,11 @@ def normalize_location(location):
             city_key = part1_lower
             if city_key in city_to_country:
                 return city_to_country[city_key]
-            return f"{display_country}, {part1}"
+            return f"{display_country} - {part1}"
 
     # Single part: check if it's just a state name (e.g. "New York" the state vs city)
     if len(parts) == 1 and loc_lower in us_state_names and loc_lower not in city_to_country:
-        return "United States"
+        return "US"
 
     # If nothing matched, return cleaned-up original
     return location
