@@ -1,0 +1,16 @@
+[Unit]
+Description=NewWhale Career Flask App
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/job-resume-builder
+Environment=PATH=/root/job-resume-builder/venv/bin:/usr/bin:/bin
+EnvironmentFile=/root/job-resume-builder/.env
+ExecStart=/root/job-resume-builder/venv/bin/python app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

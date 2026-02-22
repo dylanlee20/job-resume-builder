@@ -11,24 +11,26 @@ web_bp = Blueprint('web', __name__)
 def index():
     """Main job listings page with compact table view"""
     # Get filter parameters
+    show_all = request.args.get('show_all') == '1'
     filters = {
         'company': request.args.get('company', ''),
         'location': request.args.get('location', ''),
         'ai_proof_category': request.args.get('category', ''),
         'is_important': request.args.get('starred') == '1',
+        'include_excluded': show_all,
     }
-    
+
     # Get pagination
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)  # More items for compact view
-    
+
     # Get jobs
     result = JobService.get_jobs(filters=filters, page=page, per_page=per_page)
-    
-    # Get filter options
-    companies = JobService.get_all_companies()
-    locations = JobService.get_all_locations()
-    categories = JobService.get_all_categories()
+
+    # Get filter options (include all when showing all jobs)
+    companies = JobService.get_all_companies(include_excluded=show_all)
+    locations = JobService.get_all_locations(include_excluded=show_all)
+    categories = JobService.get_all_categories(include_excluded=show_all)
     stats = JobService.get_statistics()
 
     return render_template(
