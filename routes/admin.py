@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, redirect, url_for, jsonify, flash
 from flask_login import login_required, current_user
 from functools import wraps
+from models.database import db
 from models.scraper_run import ScraperRun
 from models.job import Job
 from services.job_service import JobService
@@ -35,6 +36,9 @@ def users():
 @admin_required
 def scraper_status():
     """Admin dashboard showing scraper status and logs"""
+
+    # Expire cached objects so we see writes from the scraper subprocess
+    db.session.expire_all()
 
     # Get latest scraper runs (last 20)
     recent_runs = ScraperRun.query.order_by(ScraperRun.started_at.desc()).limit(20).all()
@@ -101,8 +105,12 @@ def scraper_run_detail(run_id):
 def run_scraper():
     """Manually trigger scraper run in background"""
     try:
-        # Check if a scraper is already running
-        running = ScraperRun.query.filter_by(status='running').first()
+        # Check if a scraper is genuinely running (started within last 4 hours)
+        cutoff = datetime.utcnow() - timedelta(hours=4)
+        running = ScraperRun.query.filter(
+            ScraperRun.status == 'running',
+            ScraperRun.started_at > cutoff
+        ).first()
         if running:
             flash('Scraper is already running! Please wait for it to complete.', 'warning')
             return redirect(url_for('admin.scraper_status'))
@@ -129,6 +137,10 @@ def run_scraper():
 @admin_required
 def api_scraper_status():
     """API endpoint for scraper status (for AJAX updates)"""
+    # Expire all cached objects so we read fresh data from DB
+    # (the scraper subprocess writes to the same DB from a separate process)
+    db.session.expire_all()
+
     latest_run = ScraperRun.query.order_by(ScraperRun.started_at.desc()).first()
 
     # Calculate next Sunday at 2 AM
@@ -138,8 +150,19 @@ def api_scraper_status():
         days_until_sunday = 7
     next_run = (now + timedelta(days=days_until_sunday)).replace(hour=2, minute=0, second=0, microsecond=0)
 
-    return jsonify({
+    # Total companies for progress calculation
+    total_companies = 19
+
+    response = {
         'latest_run': latest_run.to_dict() if latest_run else None,
         'next_run': next_run.isoformat() if next_run else None,
-        'is_running': latest_run.is_running if latest_run else False
-    })
+        'is_running': latest_run.is_running if latest_run else False,
+        'total_companies': total_companies,
+    }
+
+    if latest_run and latest_run.is_running:
+        done = (latest_run.companies_scraped or 0) + (latest_run.companies_failed or 0)
+        response['progress_pct'] = int((done / total_companies) * 100) if total_companies > 0 else 0
+        response['companies_done'] = done
+
+    return jsonify(response)

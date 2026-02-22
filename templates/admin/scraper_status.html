@@ -29,6 +29,30 @@
         </div>
     </div>
 
+    <!-- Live Progress Bar (shown when running) -->
+    <div id="live-progress" class="row mb-3" style="display: none;">
+        <div class="col">
+            <div class="card" style="border: 1px solid #ff6600;">
+                <div class="card-body" style="padding: 0.75rem 1rem;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span style="color: #ff6600; font-weight: bold;" id="progress-label">Scraping in progress...</span>
+                        <span style="color: #ffffff;" id="progress-stats">0 / 19 companies</span>
+                    </div>
+                    <div style="background: #1a1a1a; border-radius: 4px; height: 24px; overflow: hidden;">
+                        <div id="progress-bar" style="background: linear-gradient(90deg, #ff6600, #ff9900); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; color: #000; min-width: 30px;">
+                            0%
+                        </div>
+                    </div>
+                    <div style="color: #999; font-size: 0.8rem; margin-top: 4px;" id="progress-detail">
+                        Jobs found: <span id="progress-jobs" style="color: #ff6600;">0</span> |
+                        New saved: <span id="progress-saved" style="color: #00cc00;">0</span> |
+                        Failed: <span id="progress-failed" style="color: #ff3300;">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <!-- Latest Run Status -->
@@ -37,9 +61,11 @@
                 <div class="card-body">
                     <h6 style="color: #ff6600; font-size: 0.9rem;">Latest Run Status</h6>
                     {% if latest_run %}
-                        <div class="stat-number" style="font-size: 1.2rem;">
+                        <div class="stat-number" style="font-size: 1.2rem;" id="run-status">
                             {% if latest_run.status == 'completed' %}
                                 <span style="color: #00cc00;">✓ COMPLETED</span>
+                            {% elif latest_run.status == 'partial' %}
+                                <span style="color: #ffcc00;">◐ PARTIAL</span>
                             {% elif latest_run.status == 'running' %}
                                 <span style="color: #ffcc00;">⟳ RUNNING</span>
                             {% else %}
@@ -166,6 +192,8 @@
                                     <td>
                                         {% if run.status == 'completed' %}
                                             <span style="color: #00cc00;">✓</span>
+                                        {% elif run.status == 'partial' %}
+                                            <span style="color: #ffcc00;">◐</span>
                                         {% elif run.status == 'running' %}
                                             <span style="color: #ffcc00;">⟳</span>
                                         {% else %}
@@ -251,4 +279,59 @@
     </div>
 
 </div>
+
+<script>
+(function() {
+    var refreshInterval = null;
+    var isRunning = {{ 'true' if latest_run and latest_run.status == 'running' else 'false' }};
+
+    function updateProgress(data) {
+        var progressDiv = document.getElementById('live-progress');
+        if (!data.is_running) {
+            progressDiv.style.display = 'none';
+            if (isRunning) {
+                // Was running, now finished — reload to get final state
+                isRunning = false;
+                window.location.reload();
+            }
+            return;
+        }
+        isRunning = true;
+        progressDiv.style.display = 'block';
+
+        var run = data.latest_run;
+        var pct = data.progress_pct || 0;
+        var done = data.companies_done || 0;
+        var total = data.total_companies || 19;
+
+        document.getElementById('progress-bar').style.width = pct + '%';
+        document.getElementById('progress-bar').textContent = pct + '%';
+        document.getElementById('progress-stats').textContent = done + ' / ' + total + ' companies';
+        document.getElementById('progress-jobs').textContent = run.total_jobs_scraped || 0;
+        document.getElementById('progress-saved').textContent = run.new_jobs_added || 0;
+        document.getElementById('progress-failed').textContent = run.companies_failed || 0;
+
+        // Update the status card
+        var statusEl = document.getElementById('run-status');
+        if (statusEl) {
+            statusEl.innerHTML = '<span style="color: #ffcc00;">⟳ RUNNING (' + pct + '%)</span>';
+        }
+    }
+
+    function pollStatus() {
+        fetch('{{ url_for("admin.api_scraper_status") }}')
+            .then(function(r) { return r.json(); })
+            .then(updateProgress)
+            .catch(function() {});
+    }
+
+    // Start polling every 10 seconds
+    refreshInterval = setInterval(pollStatus, 10000);
+
+    // Also run immediately if currently running
+    if (isRunning) {
+        pollStatus();
+    }
+})();
+</script>
 {% endblock %}
