@@ -150,7 +150,7 @@
                         </div>
                         <div class="col-md-3">
                             <strong style="color: #ff6600;">Companies Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.companies_scraped|default(0, true) }} / {{ latest_run.companies_scraped|default(0, true) + latest_run.companies_failed|default(0, true) }}</span>
+                            <span style="color: #ffffff;">{{ latest_run.companies_scraped|default(0, true) }} / {{ latest_run.total_companies|default(19, true) }}</span>
                         </div>
                         <div class="col-md-3">
                             <strong style="color: #ff6600;">Companies Failed:</strong><br>
@@ -310,6 +310,14 @@
         document.getElementById('progress-jobs').textContent = run.total_jobs_scraped || 0;
         document.getElementById('progress-saved').textContent = run.new_jobs_added || 0;
         document.getElementById('progress-failed').textContent = run.companies_failed || 0;
+
+        // Show which company is currently being scraped
+        var label = document.getElementById('progress-label');
+        if (data.current_company) {
+            label.textContent = 'Scraping ' + data.current_company + '...';
+        } else {
+            label.textContent = 'Scraping in progress...';
+        }
 
         // Update the status card
         var statusEl = document.getElementById('run-status');

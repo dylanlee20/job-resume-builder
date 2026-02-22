@@ -25,6 +25,8 @@ class ScraperRun(db.Model):
     jobs_updated = db.Column(db.Integer, default=0)
     companies_scraped = db.Column(db.Integer, default=0)
     companies_failed = db.Column(db.Integer, default=0)
+    total_companies = db.Column(db.Integer, default=0)
+    current_company = db.Column(db.String(100), nullable=True)
 
     # Logs
     error_log = db.Column(db.Text, nullable=True)
@@ -78,6 +80,8 @@ class ScraperRun(db.Model):
             'jobs_updated': self.jobs_updated,
             'companies_scraped': self.companies_scraped,
             'companies_failed': self.companies_failed,
+            'total_companies': self.total_companies,
+            'current_company': self.current_company,
             'error_log': self.error_log,
             'company_results': self.company_results,
         }

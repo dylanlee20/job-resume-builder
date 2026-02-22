@@ -19,6 +19,7 @@ from utils.ai_proof_filter import classify_ai_proof_role
 from utils.seniority_classifier import classify_seniority
 from utils.job_utils import normalize_location
 from config import Config
+from sqlalchemy.exc import IntegrityError
 import json
 import time
 
@@ -100,14 +101,24 @@ def save_job_to_db(job_data):
         Tuple (saved: bool, reason: str)
     """
     try:
-        # Check if job already exists (by unique URL)
-        existing_job = Job.query.filter_by(job_url=job_data['job_url']).first()
-        if existing_job:
-            return (False, 'duplicate')
-
         # Normalize location before anything else
         raw_location = job_data.get('location', 'Unknown')
         normalized_loc = normalize_location(raw_location)
+
+        # Generate job hash for deduplication (based on company+title+location)
+        job_hash = Job.generate_job_hash(
+            job_data['company'],
+            job_data['title'],
+            normalized_loc
+        )
+
+        # Check if job already exists by hash (the actual UNIQUE constraint)
+        existing_job = Job.query.filter_by(job_hash=job_hash).first()
+        if existing_job:
+            # Update last_seen timestamp for existing jobs
+            existing_job.last_seen = datetime.utcnow()
+            db.session.commit()
+            return (False, 'duplicate')
 
         # Classify job as AI-proof or excluded
         is_ai_proof, category = classify_ai_proof_role(
@@ -119,13 +130,6 @@ def save_job_to_db(job_data):
         seniority = classify_seniority(
             job_data['title'],
             job_data.get('description', '')
-        )
-
-        # Generate job hash for deduplication
-        job_hash = Job.generate_job_hash(
-            job_data['company'],
-            job_data['title'],
-            normalized_loc
         )
 
         # Create new job
@@ -150,6 +154,10 @@ def save_job_to_db(job_data):
 
         return (True, category)
 
+    except IntegrityError:
+        # Race condition: another job with same hash was inserted between our check and insert
+        db.session.rollback()
+        return (False, 'duplicate')
     except Exception as e:
         logger.error(f"Error saving job '{job_data.get('title', 'UNKNOWN')}': {e}")
         db.session.rollback()
@@ -200,7 +208,8 @@ def run_all_scrapers(trigger='scheduled'):
         scraper_run = ScraperRun(
             started_at=start_time,
             status='running',
-            trigger=trigger
+            trigger=trigger,
+            total_companies=len(SCRAPERS)
         )
         db.session.add(scraper_run)
         db.session.commit()
@@ -229,6 +238,12 @@ def run_all_scrapers(trigger='scheduled'):
             for idx, scraper_class in enumerate(SCRAPERS):
                 company_name = scraper_class.__name__.replace('Scraper', '')
                 company_jobs_saved = 0
+
+                # Update current company BEFORE scraping so dashboard shows live status
+                _update_run_progress(
+                    scraper_run,
+                    current_company=company_name,
+                )
 
                 try:
                     logger.info(f"\n{'=' * 60}")
@@ -317,6 +332,7 @@ def run_all_scrapers(trigger='scheduled'):
                 jobs_updated=0,
                 companies_scraped=companies_scraped,
                 companies_failed=companies_failed,
+                current_company=None,
                 error_log='\n'.join(error_log) if error_log else None,
                 company_results=json.dumps(company_results, indent=2),
             )
