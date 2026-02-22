@@ -191,11 +191,33 @@ def _cleanup_stale_runs():
         db.session.commit()
 
 
-def run_all_scrapers(trigger='scheduled'):
+def _get_scraped_today_companies():
+    """Get set of company names that were already successfully scraped today"""
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_runs = ScraperRun.query.filter(
+        ScraperRun.started_at >= today_start,
+        ScraperRun.status.in_(['completed', 'partial'])
+    ).all()
+
+    scraped = set()
+    for run in today_runs:
+        if run.company_results:
+            try:
+                results = json.loads(run.company_results)
+                for company, info in results.items():
+                    if info.get('status') == 'success':
+                        scraped.add(company)
+            except (json.JSONDecodeError, AttributeError):
+                pass
+    return scraped
+
+
+def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
     """Run all scrapers and save jobs to database
 
     Args:
         trigger: 'scheduled', 'manual', or 'automatic'
+        skip_scraped_today: If True, skip companies already scraped successfully today
     """
     app = create_app()
 
@@ -203,22 +225,36 @@ def run_all_scrapers(trigger='scheduled'):
         # Clean up any stale "running" records from crashed processes
         _cleanup_stale_runs()
 
+        # Determine which scrapers to run
+        scrapers_to_run = list(SCRAPERS)
+        skipped_companies = set()
+
+        if skip_scraped_today:
+            already_scraped = _get_scraped_today_companies()
+            if already_scraped:
+                scrapers_to_run = [
+                    s for s in SCRAPERS
+                    if s.__name__.replace('Scraper', '') not in already_scraped
+                ]
+                skipped_companies = already_scraped
+                logger.info(f"Skipping {len(skipped_companies)} already-scraped companies: {skipped_companies}")
+
         # Create scraper run record
         start_time = datetime.utcnow()
         scraper_run = ScraperRun(
             started_at=start_time,
             status='running',
             trigger=trigger,
-            total_companies=len(SCRAPERS)
+            total_companies=len(scrapers_to_run)
         )
         db.session.add(scraper_run)
         db.session.commit()
 
         logger.info("=" * 80)
-        logger.info("Starting weekly scraper run")
+        logger.info("Starting scraper run")
         logger.info(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"Run ID: {scraper_run.id}")
-        logger.info(f"Total companies to scrape: {len(SCRAPERS)}")
+        logger.info(f"Companies to scrape: {len(scrapers_to_run)} (skipped: {len(skipped_companies)})")
         logger.info("=" * 80)
 
         total_scraped = 0
@@ -235,7 +271,7 @@ def run_all_scrapers(trigger='scheduled'):
         error_log = []
 
         try:
-            for idx, scraper_class in enumerate(SCRAPERS):
+            for idx, scraper_class in enumerate(scrapers_to_run):
                 company_name = scraper_class.__name__.replace('Scraper', '')
                 company_jobs_saved = 0
 
@@ -247,7 +283,7 @@ def run_all_scrapers(trigger='scheduled'):
 
                 try:
                     logger.info(f"\n{'=' * 60}")
-                    logger.info(f"[{idx + 1}/{len(SCRAPERS)}] Running scraper: {scraper_class.__name__}")
+                    logger.info(f"[{idx + 1}/{len(scrapers_to_run)}] Running scraper: {scraper_class.__name__}")
                     logger.info(f"{'=' * 60}")
 
                     scraper = scraper_class()
@@ -271,7 +307,7 @@ def run_all_scrapers(trigger='scheduled'):
 
                                 # Check if AI-proof or excluded
                                 if reason in ['Investment Banking', 'Sales & Trading',
-                                             'Portfolio Management', 'Risk Management',
+                                             'Asset Management', 'Risk Management',
                                              'M&A Advisory', 'Private Equity', 'Structuring']:
                                     ai_proof_count += 1
                                 else:
@@ -365,4 +401,5 @@ if __name__ == '__main__':
     import sys
     # Check if trigger argument is provided
     trigger = sys.argv[1] if len(sys.argv) > 1 else 'scheduled'
-    run_all_scrapers(trigger=trigger)
+    skip_scraped = '--skip-scraped-today' in sys.argv
+    run_all_scrapers(trigger=trigger, skip_scraped_today=skip_scraped)
