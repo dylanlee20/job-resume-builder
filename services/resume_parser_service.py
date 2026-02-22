@@ -1,7 +1,5 @@
 """Resume parsing service for PDF and DOCX files"""
 import logging
-from pdfminer.high_level import extract_text as pdf_extract_text
-from docx import Document
 import re
 
 logger = logging.getLogger(__name__)
@@ -22,6 +20,7 @@ class ResumeParserService:
             str: Extracted text or empty string if failed
         """
         try:
+            from pdfminer.high_level import extract_text as pdf_extract_text
             text = pdf_extract_text(file_path)
             return text.strip() if text else ""
         except Exception as e:
@@ -40,6 +39,7 @@ class ResumeParserService:
             str: Extracted text or empty string if failed
         """
         try:
+            from docx import Document
             doc = Document(file_path)
             paragraphs = [para.text for para in doc.paragraphs]
             text = '\n'.join(paragraphs)

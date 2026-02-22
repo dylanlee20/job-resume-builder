@@ -180,25 +180,29 @@ class JobService:
         }
     
     @staticmethod
-    def get_all_companies():
+    def get_all_companies(include_excluded=False):
         """Get list of all companies"""
-        companies = db.session.query(Job.company).filter_by(
-            status='active',
-            is_ai_proof=True
-        ).distinct().all()
+        query = db.session.query(Job.company).filter_by(status='active')
+        if not include_excluded:
+            query = query.filter_by(is_ai_proof=True)
+        companies = query.distinct().all()
         return sorted([c[0] for c in companies if c[0]])
-    
+
     @staticmethod
-    def get_all_locations():
+    def get_all_locations(include_excluded=False):
         """Get list of all locations"""
-        locations = db.session.query(Job.location).filter_by(
-            status='active',
-            is_ai_proof=True
-        ).distinct().all()
+        query = db.session.query(Job.location).filter_by(status='active')
+        if not include_excluded:
+            query = query.filter_by(is_ai_proof=True)
+        locations = query.distinct().all()
         return sorted([l[0] for l in locations if l[0]])
-    
+
     @staticmethod
-    def get_all_categories():
-        """Get list of all AI-proof categories"""
-        from utils.ai_proof_filter import get_ai_proof_category_list
-        return sorted(get_ai_proof_category_list())
+    def get_all_categories(include_excluded=False):
+        """Get list of all categories"""
+        from utils.ai_proof_filter import get_ai_proof_category_list, get_excluded_category_list
+        categories = list(get_ai_proof_category_list())
+        if include_excluded:
+            categories.extend(get_excluded_category_list())
+            categories.append('EXCLUDED')
+        return sorted(set(categories))

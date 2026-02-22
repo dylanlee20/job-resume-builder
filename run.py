@@ -2,8 +2,8 @@
 import os
 import sys
 
-# Ensure we're in the right directory
-os.chdir('/Users/jingtaoli/Desktop/job-tracker-v2')
+# Ensure we're in the right directory (use script's own location)
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Add to path
 sys.path.insert(0, os.getcwd())

@@ -142,9 +142,9 @@ class HSBCScraper(BaseScraper):
                     elif 'singapore' in href.lower():
                         location = 'Singapore'
                     elif 'china' in href.lower() or 'mainland' in href.lower():
-                        location = 'Mainland China'
+                        location = 'China'
                     elif 'usa' in href.lower() or 'united-states' in href.lower():
-                        location = 'USA'
+                        location = 'United States'
 
                     job = {
                         'company': self.company_name,
