@@ -184,6 +184,12 @@ def normalize_location(location):
         'hong kong sar, china': 'Hong Kong',
         'hk': 'Hong Kong',
         'hkg': 'Hong Kong',
+        'central': 'Hong Kong',
+        'central, hong kong': 'Hong Kong',
+        'wan chai': 'Hong Kong',
+        'kowloon': 'Hong Kong',
+        'admiralty': 'Hong Kong',
+        'quarry bay': 'Hong Kong',
 
         # === China ===
         'beijing': 'China, Beijing',
