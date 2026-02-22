@@ -151,6 +151,33 @@ def save_job_to_db(job_data):
         return (False, f'error: {e}')
 
 
+def _update_run_progress(scraper_run, **kwargs):
+    """Update scraper run record in database (safe commit with rollback on error)"""
+    try:
+        for key, value in kwargs.items():
+            setattr(scraper_run, key, value)
+        db.session.commit()
+    except Exception as e:
+        logger.error(f"Failed to update scraper run progress: {e}")
+        db.session.rollback()
+
+
+def _cleanup_stale_runs():
+    """Mark any runs stuck as 'running' for over 4 hours as 'failed'"""
+    cutoff = datetime.utcnow() - __import__('datetime').timedelta(hours=4)
+    stale_runs = ScraperRun.query.filter(
+        ScraperRun.status == 'running',
+        ScraperRun.started_at < cutoff
+    ).all()
+    for run in stale_runs:
+        run.status = 'failed'
+        run.completed_at = datetime.utcnow()
+        run.error_log = (run.error_log or '') + '\nMarked as failed: process likely crashed or was killed (OOM)'
+        logger.warning(f"Marked stale run #{run.id} as failed (started {run.started_at})")
+    if stale_runs:
+        db.session.commit()
+
+
 def run_all_scrapers(trigger='scheduled'):
     """Run all scrapers and save jobs to database
 
@@ -160,6 +187,9 @@ def run_all_scrapers(trigger='scheduled'):
     app = create_app()
 
     with app.app_context():
+        # Clean up any stale "running" records from crashed processes
+        _cleanup_stale_runs()
+
         # Create scraper run record
         start_time = datetime.utcnow()
         scraper_run = ScraperRun(
@@ -174,6 +204,7 @@ def run_all_scrapers(trigger='scheduled'):
         logger.info("Starting weekly scraper run")
         logger.info(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"Run ID: {scraper_run.id}")
+        logger.info(f"Total companies to scrape: {len(SCRAPERS)}")
         logger.info("=" * 80)
 
         total_scraped = 0
@@ -189,86 +220,101 @@ def run_all_scrapers(trigger='scheduled'):
         company_results = {}
         error_log = []
 
-        for scraper_class in SCRAPERS:
-            company_name = scraper_class.__name__.replace('Scraper', '')
-            company_jobs_saved = 0
+        try:
+            for idx, scraper_class in enumerate(SCRAPERS):
+                company_name = scraper_class.__name__.replace('Scraper', '')
+                company_jobs_saved = 0
 
-            try:
-                logger.info(f"\n{'=' * 60}")
-                logger.info(f"Running scraper: {scraper_class.__name__}")
-                logger.info(f"{'=' * 60}")
+                try:
+                    logger.info(f"\n{'=' * 60}")
+                    logger.info(f"[{idx + 1}/{len(SCRAPERS)}] Running scraper: {scraper_class.__name__}")
+                    logger.info(f"{'=' * 60}")
 
-                scraper = scraper_class()
-                jobs = scraper.scrape_with_retry()
+                    scraper = scraper_class()
+                    jobs = scraper.scrape_with_retry()
 
-                logger.info(f"Scraped {len(jobs)} jobs from {scraper.company_name}")
-                total_scraped += len(jobs)
+                    logger.info(f"Scraped {len(jobs)} jobs from {scraper.company_name}")
+                    total_scraped += len(jobs)
 
-                # Save each job to database
-                for job_data in jobs:
-                    saved, reason = save_job_to_db(job_data)
+                    # Save each job to database
+                    for job_data in jobs:
+                        saved, reason = save_job_to_db(job_data)
 
-                    if saved:
-                        total_saved += 1
-                        company_jobs_saved += 1
-                        if reason.startswith('error'):
-                            error_count += 1
-                        else:
-                            # Track category stats
-                            stats_by_category[reason] = stats_by_category.get(reason, 0) + 1
-
-                            # Check if AI-proof or excluded
-                            if reason in ['Investment Banking', 'Sales & Trading',
-                                         'Portfolio Management', 'Risk Management',
-                                         'M&A Advisory', 'Private Equity', 'Structuring']:
-                                ai_proof_count += 1
+                        if saved:
+                            total_saved += 1
+                            company_jobs_saved += 1
+                            if reason.startswith('error'):
+                                error_count += 1
                             else:
-                                excluded_count += 1
-                    else:
-                        if reason == 'duplicate':
-                            duplicate_count += 1
+                                # Track category stats
+                                stats_by_category[reason] = stats_by_category.get(reason, 0) + 1
+
+                                # Check if AI-proof or excluded
+                                if reason in ['Investment Banking', 'Sales & Trading',
+                                             'Portfolio Management', 'Risk Management',
+                                             'M&A Advisory', 'Private Equity', 'Structuring']:
+                                    ai_proof_count += 1
+                                else:
+                                    excluded_count += 1
                         else:
-                            error_count += 1
+                            if reason == 'duplicate':
+                                duplicate_count += 1
+                            else:
+                                error_count += 1
 
-                logger.info(f"Completed {scraper.company_name}: "
-                           f"{company_jobs_saved} new jobs saved")
+                    logger.info(f"Completed {scraper.company_name}: "
+                               f"{company_jobs_saved} new jobs saved")
 
-                companies_scraped += 1
-                company_results[company_name] = {
-                    'scraped': len(jobs),
-                    'saved': company_jobs_saved,
-                    'status': 'success'
-                }
+                    companies_scraped += 1
+                    company_results[company_name] = {
+                        'scraped': len(jobs),
+                        'saved': company_jobs_saved,
+                        'status': 'success'
+                    }
 
-            except Exception as e:
-                error_msg = f"Error running {scraper_class.__name__}: {e}"
-                logger.error(error_msg)
-                error_log.append(error_msg)
-                companies_failed += 1
-                company_results[company_name] = {
-                    'scraped': 0,
-                    'saved': 0,
-                    'status': 'failed',
-                    'error': str(e)
-                }
-                continue
+                except Exception as e:
+                    error_msg = f"Error running {scraper_class.__name__}: {e}"
+                    logger.error(error_msg)
+                    error_log.append(error_msg)
+                    companies_failed += 1
+                    company_results[company_name] = {
+                        'scraped': 0,
+                        'saved': 0,
+                        'status': 'failed',
+                        'error': str(e)
+                    }
+                    continue
 
-        # Update scraper run record
-        end_time = datetime.utcnow()
-        duration = (end_time - start_time).total_seconds()
+                finally:
+                    # Update progress after EVERY company (so dashboard shows live stats)
+                    _update_run_progress(
+                        scraper_run,
+                        total_jobs_scraped=total_scraped,
+                        new_jobs_added=total_saved,
+                        companies_scraped=companies_scraped,
+                        companies_failed=companies_failed,
+                        company_results=json.dumps(company_results, indent=2),
+                        error_log='\n'.join(error_log) if error_log else None,
+                    )
 
-        scraper_run.completed_at = end_time
-        scraper_run.duration_seconds = duration
-        scraper_run.status = 'completed' if companies_failed == 0 else 'failed'
-        scraper_run.total_jobs_scraped = total_scraped
-        scraper_run.new_jobs_added = total_saved
-        scraper_run.jobs_updated = 0  # We don't update jobs in this version
-        scraper_run.companies_scraped = companies_scraped
-        scraper_run.companies_failed = companies_failed
-        scraper_run.error_log = '\n'.join(error_log) if error_log else None
-        scraper_run.company_results = json.dumps(company_results, indent=2)
+        finally:
+            # ALWAYS update the run record — even if the process crashes mid-loop
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
 
-        db.session.commit()
+            _update_run_progress(
+                scraper_run,
+                completed_at=end_time,
+                duration_seconds=duration,
+                status='completed' if companies_failed == 0 else ('partial' if companies_scraped > 0 else 'failed'),
+                total_jobs_scraped=total_scraped,
+                new_jobs_added=total_saved,
+                jobs_updated=0,
+                companies_scraped=companies_scraped,
+                companies_failed=companies_failed,
+                error_log='\n'.join(error_log) if error_log else None,
+                company_results=json.dumps(company_results, indent=2),
+            )
 
         # Print summary
         logger.info("\n" + "=" * 80)
@@ -282,7 +328,7 @@ def run_all_scrapers(trigger='scheduled'):
         logger.info(f"  - Excluded jobs: {excluded_count}")
         logger.info(f"Duplicates skipped: {duplicate_count}")
         logger.info(f"Errors: {error_count}")
-        logger.info(f"Companies scraped: {companies_scraped}")
+        logger.info(f"Companies scraped: {companies_scraped}/{len(SCRAPERS)}")
         logger.info(f"Companies failed: {companies_failed}")
         logger.info("\nBreakdown by category:")
         for category, count in sorted(stats_by_category.items(), key=lambda x: x[1], reverse=True):

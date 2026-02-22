@@ -39,8 +39,39 @@ class CitiScraper(BaseScraper):
                 country_toggle.click()
                 time.sleep(2)
 
-                us_checkbox = self.driver.find_element(By.ID, 'country-filter-56')
-                us_checkbox.click()
+                # Find United States checkbox by label text (IDs change over time)
+                us_checkbox = None
+                try:
+                    us_checkbox = self.driver.find_element(By.ID, 'country-filter-56')
+                except Exception:
+                    pass
+
+                if not us_checkbox:
+                    # Fallback: search all country filter labels for "United States"
+                    labels = self.driver.find_elements(By.CSS_SELECTOR, '#country-list label, [id^="country-filter"]')
+                    for label in labels:
+                        if 'United States' in label.text:
+                            # Click the label or its input checkbox
+                            try:
+                                checkbox = label.find_element(By.TAG_NAME, 'input')
+                                checkbox.click()
+                            except Exception:
+                                label.click()
+                            us_checkbox = label
+                            break
+
+                if not us_checkbox:
+                    # Last resort: try XPath for any element containing "United States"
+                    us_checkbox = self.driver.find_element(
+                        By.XPATH, "//label[contains(., 'United States')]"
+                    )
+                    us_checkbox.click()
+                else:
+                    try:
+                        us_checkbox.click()
+                    except Exception:
+                        pass  # Already clicked in fallback loop
+
                 time.sleep(5)
                 self.logger.info("'United States' filter applied")
             except Exception as e:
