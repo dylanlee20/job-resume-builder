@@ -1,0 +1,15 @@
+[Unit]
+Description=NewWhale GitHub Webhook Listener
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/job-resume-builder/deploy
+EnvironmentFile=/root/job-resume-builder/.env
+ExecStart=/usr/bin/python3 /root/job-resume-builder/deploy/webhook_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
