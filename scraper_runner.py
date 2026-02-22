@@ -17,6 +17,7 @@ from models.job import Job
 from models.scraper_run import ScraperRun
 from utils.ai_proof_filter import classify_ai_proof_role
 from utils.seniority_classifier import classify_seniority
+from utils.job_utils import normalize_location
 from config import Config
 import json
 import time
@@ -104,6 +105,10 @@ def save_job_to_db(job_data):
         if existing_job:
             return (False, 'duplicate')
 
+        # Normalize location before anything else
+        raw_location = job_data.get('location', 'Unknown')
+        normalized_loc = normalize_location(raw_location)
+
         # Classify job as AI-proof or excluded
         is_ai_proof, category = classify_ai_proof_role(
             job_data['title'],
@@ -120,7 +125,7 @@ def save_job_to_db(job_data):
         job_hash = Job.generate_job_hash(
             job_data['company'],
             job_data['title'],
-            job_data['location']
+            normalized_loc
         )
 
         # Create new job
@@ -128,7 +133,7 @@ def save_job_to_db(job_data):
             job_hash=job_hash,
             company=job_data['company'],
             title=job_data['title'],
-            location=job_data['location'],
+            location=normalized_loc,
             description=job_data.get('description', ''),
             post_date=job_data.get('post_date'),
             deadline=job_data.get('deadline'),

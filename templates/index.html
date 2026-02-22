@@ -50,12 +50,21 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label small mb-0">Show</label>
-                <div class="form-check form-check-inline">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="starred" value="1" id="starredFilter" {% if filters.is_important %}checked{% endif %}>
                     <label class="form-check-label small" for="starredFilter">
-                        <i class="bi bi-star-fill text-warning"></i> Starred Only
+                        <i class="bi bi-star-fill text-warning"></i> Starred
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small mb-0">&nbsp;</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="show_all" value="1" id="showAllFilter" {% if filters.include_excluded %}checked{% endif %}>
+                    <label class="form-check-label small" for="showAllFilter">
+                        <i class="bi bi-eye"></i> All Jobs
                     </label>
                 </div>
             </div>
@@ -141,15 +150,15 @@
                         <ul class="pagination pagination-sm mb-0">
                             {% if has_prev %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page - 1 }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                                <a class="page-link" href="?page={{ page - 1 }}{% if filters.company %}&company={{ filters.company }}{% endif %}{% if filters.location %}&location={{ filters.location }}{% endif %}{% if filters.ai_proof_category %}&category={{ filters.ai_proof_category }}{% endif %}{% if filters.is_important %}&starred=1{% endif %}{% if filters.include_excluded %}&show_all=1{% endif %}">Previous</a>
                             </li>
                             {% endif %}
-                            
+
                             <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
-                            
+
                             {% if has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page + 1 }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                                <a class="page-link" href="?page={{ page + 1 }}{% if filters.company %}&company={{ filters.company }}{% endif %}{% if filters.location %}&location={{ filters.location }}{% endif %}{% if filters.ai_proof_category %}&category={{ filters.ai_proof_category }}{% endif %}{% if filters.is_important %}&starred=1{% endif %}{% if filters.include_excluded %}&show_all=1{% endif %}">Next</a>
                             </li>
                             {% endif %}
                         </ul>
