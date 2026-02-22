@@ -18,7 +18,12 @@ echo "System prerequisites OK (python${PYTHON_VERSION}-venv installed)"
 # Make deploy script executable
 chmod +x "$APP_DIR/deploy/deploy.sh"
 
-# Create virtual environment if it doesn't exist
+# Create virtual environment (remove broken venv if pip is missing)
+if [ -d "$APP_DIR/venv" ] && [ ! -f "$APP_DIR/venv/bin/pip" ]; then
+    echo "Detected broken virtual environment, removing..."
+    rm -rf "$APP_DIR/venv"
+fi
+
 if [ ! -d "$APP_DIR/venv" ]; then
     echo "Creating Python virtual environment..."
     python3 -m venv "$APP_DIR/venv"

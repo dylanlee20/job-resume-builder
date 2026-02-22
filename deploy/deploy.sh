@@ -16,7 +16,11 @@ cd "$APP_DIR"
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-# Ensure virtual environment exists
+# Ensure virtual environment exists (remove broken venv if pip is missing)
+if [ -d "$APP_DIR/venv" ] && [ ! -f "$APP_DIR/venv/bin/pip" ]; then
+    echo "$(date): Removing broken virtual environment" >> "$LOG_FILE"
+    rm -rf "$APP_DIR/venv"
+fi
 if [ ! -d "$APP_DIR/venv" ]; then
     echo "$(date): Creating virtual environment" >> "$LOG_FILE"
     PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
