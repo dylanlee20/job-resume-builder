@@ -47,7 +47,7 @@ AI_PROOF_CATEGORIES = {
         'options trader', 'futures trader', 'bond trader',
     ],
 
-    'Portfolio Management': [
+    'Asset Management': [
         'portfolio management', 'portfolio manager',
         'investment management', 'investment manager',
         'fund manager', 'asset management', 'asset manager',
