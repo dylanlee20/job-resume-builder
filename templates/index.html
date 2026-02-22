@@ -1,6 +1,69 @@
 {% extends "layout.html" %}
 {% block content %}
 
+<!-- Department Summary Bar -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                <i class="bi bi-diagram-3"></i> PROJECT ARCHITECTURE — DEPARTMENT SUMMARIES
+            </div>
+            <div class="card-body" style="padding: 0.75rem 1rem;">
+                <div class="row g-2">
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Models</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">SQLAlchemy ORM definitions for User, Job, Resume, Assessment, Subscription, and Payment entities.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Routes</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">Flask blueprints handling auth, jobs API, resume upload/assessment, payments, and admin endpoints.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Services</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">Business logic layer for job filtering, AI-powered resume assessment, and Stripe payment processing.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Utils</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">AI-proof job classification logic, job categorization helpers, and location normalization utilities.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Scrapers</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">Selenium-based scrapers targeting 19 finance firms, scheduled automatically and tracked per-run.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Templates</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">Jinja2 HTML templates using Bootstrap 5 and Bloomberg dark theme for all user-facing pages.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Static</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">Bloomberg terminal CSS theme, custom badge styles, and jQuery-based JS for star-toggle interactions.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div style="border-left: 3px solid #ff6600; padding-left: 0.75rem;">
+                            <div style="color: #ff6600; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Tests</div>
+                            <div style="color: #f0f0f0; font-size: 0.8rem;">Pytest suite targeting 80%+ coverage across models, services, routes, and the resume pipeline.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Stats Bar -->
 <div class="row mb-2">
     <div class="col-md-12">
@@ -172,17 +235,6 @@
 
 {% block scripts %}
 <script>
-// Category colors
-const categoryColors = {
-    'Investment Banking': '#1e40af',
-    'Sales & Trading': '#16a34a',
-    'Portfolio Management': '#9333ea',
-    'Risk Management': '#f59e0b',
-    'M&A Advisory': '#ef4444',
-    'Private Equity': '#06b6d4',
-    'Structuring': '#ec4899'
-};
-
 // Star toggle
 $(document).on('click', '.star-toggle', function(e) {
     e.preventDefault();
