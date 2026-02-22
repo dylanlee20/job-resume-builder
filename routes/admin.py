@@ -150,8 +150,8 @@ def api_scraper_status():
         days_until_sunday = 7
     next_run = (now + timedelta(days=days_until_sunday)).replace(hour=2, minute=0, second=0, microsecond=0)
 
-    # Total companies for progress calculation
-    total_companies = 19
+    # Read total_companies from the run record (fallback to 19 for old runs)
+    total_companies = (latest_run.total_companies if latest_run and latest_run.total_companies else 19)
 
     response = {
         'latest_run': latest_run.to_dict() if latest_run else None,
@@ -164,5 +164,6 @@ def api_scraper_status():
         done = (latest_run.companies_scraped or 0) + (latest_run.companies_failed or 0)
         response['progress_pct'] = int((done / total_companies) * 100) if total_companies > 0 else 0
         response['companies_done'] = done
+        response['current_company'] = latest_run.current_company
 
     return jsonify(response)
