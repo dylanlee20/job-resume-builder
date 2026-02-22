@@ -124,11 +124,13 @@ def run_scraper():
             cmd.append('--skip-scraped-today')
 
         # Run scraper in background using subprocess
+        log_file = open('data/logs/scraper.log', 'a')
         subprocess.Popen(
             cmd,
-            stdout=open('data/logs/scraper.log', 'a'),
+            stdout=log_file,
             stderr=subprocess.STDOUT,
-            cwd=os.getcwd()
+            cwd=os.getcwd(),
+            close_fds=True
         )
 
         flash('Scraper started successfully! Check the dashboard for progress.', 'success')
