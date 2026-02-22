@@ -3,55 +3,55 @@
 {% block title %}Scraper Run #{{ run.id }} - Admin{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="padding-top: 20px;">
+<div class="container-fluid" style="padding-top: 10px;">
     <div class="row mb-3">
         <div class="col">
-            <a href="{{ url_for('admin.scraper_status') }}" style="color: #ff6600;">&larr; Back to Dashboard</a>
-            <h2 style="color: #ff6600; font-weight: bold; margin-top: 0.5rem;">
-                Scraper Run #{{ run.id }}
-            </h2>
+            <a href="{{ url_for('admin.scraper_status') }}">&larr; Back to Dashboard</a>
+            <h2 style="margin-top: 0.5rem;">Scraper Run #{{ run.id }}</h2>
         </div>
     </div>
 
     <!-- Run Summary -->
-    <div class="row mb-4">
+    <div class="row mb-4 g-3">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Status</h6>
+                    <h6>Status</h6>
                     <div style="font-size: 1.2rem;">
                         {% if run.status == 'completed' %}
-                            <span style="color: #00cc00;">✓ COMPLETED</span>
+                            <span style="color: #27ae60;">&#10003; COMPLETED</span>
                         {% elif run.status == 'running' %}
-                            <span style="color: #ffcc00;">⟳ RUNNING</span>
+                            <span style="color: #3b6bcc;">&#8635; RUNNING</span>
+                        {% elif run.status == 'partial' %}
+                            <span style="color: #f39c12;">&#9681; PARTIAL</span>
                         {% else %}
-                            <span style="color: #ff3300;">✗ FAILED</span>
+                            <span style="color: #e74c3c;">&#10007; FAILED</span>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Trigger</h6>
-                    <div style="font-size: 1.2rem; color: #ffffff;">{{ run.trigger }}</div>
+                    <h6>Trigger</h6>
+                    <div class="stat-number" style="font-size: 1.2rem;">{{ run.trigger }}</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Duration</h6>
-                    <div style="font-size: 1.2rem; color: #ffffff;">{{ '%.2f'|format(run.duration_seconds|default(0)) }}s</div>
+                    <h6>Duration</h6>
+                    <div class="stat-number" style="font-size: 1.2rem;">{{ '%.2f'|format(run.duration_seconds|default(0)) }}s</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Started</h6>
-                    <div style="font-size: 1rem; color: #ffffff;">{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'N/A' }}</div>
+                    <h6>Started</h6>
+                    <div style="font-size: 1rem;">{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'N/A' }}</div>
                 </div>
             </div>
         </div>
@@ -65,24 +65,24 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-2">
-                            <strong style="color: #ff6600;">Jobs Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ run.total_jobs_scraped }}</span>
+                            <strong>Jobs Scraped:</strong><br>
+                            {{ run.total_jobs_scraped }}
                         </div>
                         <div class="col-md-2">
-                            <strong style="color: #ff6600;">New Jobs:</strong><br>
-                            <span style="color: #ffffff;">{{ run.new_jobs_added }}</span>
+                            <strong>New Jobs:</strong><br>
+                            {{ run.new_jobs_added }}
                         </div>
                         <div class="col-md-2">
-                            <strong style="color: #ff6600;">Updated:</strong><br>
-                            <span style="color: #ffffff;">{{ run.jobs_updated }}</span>
+                            <strong>Updated:</strong><br>
+                            {{ run.jobs_updated }}
                         </div>
                         <div class="col-md-3">
-                            <strong style="color: #ff6600;">Companies Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ run.companies_scraped }} / {{ run.companies_scraped + run.companies_failed }}</span>
+                            <strong>Companies Scraped:</strong><br>
+                            {{ run.companies_scraped }} / {{ run.total_companies|default(run.companies_scraped + run.companies_failed, true) }}
                         </div>
                         <div class="col-md-3">
-                            <strong style="color: #ff6600;">Companies Failed:</strong><br>
-                            <span style="color: {{ '#ff3300' if run.companies_failed > 0 else '#00cc00' }};">{{ run.companies_failed }}</span>
+                            <strong>Companies Failed:</strong><br>
+                            <span style="color: {{ '#e74c3c' if run.companies_failed > 0 else '#27ae60' }};">{{ run.companies_failed }}</span>
                         </div>
                     </div>
                 </div>
@@ -95,11 +95,11 @@
     <div class="row mb-4">
         <div class="col">
             <div class="card">
-                <div class="card-header" style="color: #ff3300;">Error Log</div>
+                <div class="card-header" style="color: #e74c3c !important;">Error Log</div>
                 <div class="card-body">
-                    <div style="background-color: #0a0a0a; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
+                    <div style="background-color: #1a2744; padding: 1rem; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem;">
                         {% for line in run.error_log.split('\n') %}
-                            <div style="color: #ff3300; white-space: pre-wrap;">{{ line }}</div>
+                            <div style="color: #ff6b6b; white-space: pre-wrap;">{{ line }}</div>
                         {% endfor %}
                     </div>
                 </div>
@@ -115,8 +115,8 @@
             <div class="card">
                 <div class="card-header">Per-Company Results</div>
                 <div class="card-body">
-                    <div style="background-color: #0a0a0a; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
-                        <pre style="color: #cccccc; margin: 0;">{{ run.company_results }}</pre>
+                    <div style="background-color: #1a2744; padding: 1rem; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem;">
+                        <pre style="color: rgba(255,255,255,0.8); margin: 0;">{{ run.company_results }}</pre>
                     </div>
                 </div>
             </div>

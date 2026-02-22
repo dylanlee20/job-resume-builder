@@ -3,14 +3,12 @@
 {% block title %}Scraper Status - Admin{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="padding-top: 20px;">
+<div class="container-fluid" style="padding-top: 10px;">
     <!-- Header -->
     <div class="row mb-3">
         <div class="col-md-8">
-            <h2 style="color: #ff6600; font-weight: bold;">
-                <span style="color: #ff6600;">█</span> SCRAPER MONITORING DASHBOARD
-            </h2>
-            <p style="color: #999999;">Track scraper execution history and error logs</p>
+            <h2><i class="bi bi-activity"></i> Scraper Dashboard</h2>
+            <p class="text-muted">Track scraper execution history and error logs</p>
         </div>
         <div class="col-md-4 text-end">
             <form method="POST" action="{{ url_for('admin.run_scraper') }}" style="display: inline;">
@@ -22,7 +20,7 @@
                 </button>
             </form>
             {% if latest_run and latest_run.status == 'running' %}
-                <div style="color: #ffcc00; font-size: 0.85rem; margin-top: 0.5rem;">
+                <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.5rem;">
                     <i class="bi bi-info-circle"></i> Scraper is currently running...
                 </div>
             {% endif %}
@@ -32,21 +30,21 @@
     <!-- Live Progress Bar (shown when running) -->
     <div id="live-progress" class="row mb-3" style="display: none;">
         <div class="col">
-            <div class="card" style="border: 1px solid #ff6600;">
+            <div class="card" style="border: 2px solid var(--nw-blue);">
                 <div class="card-body" style="padding: 0.75rem 1rem;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span style="color: #ff6600; font-weight: bold;" id="progress-label">Scraping in progress...</span>
-                        <span style="color: #ffffff;" id="progress-stats">0 / 19 companies</span>
+                        <span style="color: var(--nw-navy); font-weight: bold;" id="progress-label">Scraping in progress...</span>
+                        <span class="text-muted" id="progress-stats">0 / 19 companies</span>
                     </div>
-                    <div style="background: #1a1a1a; border-radius: 4px; height: 24px; overflow: hidden;">
-                        <div id="progress-bar" style="background: linear-gradient(90deg, #ff6600, #ff9900); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; color: #000; min-width: 30px;">
+                    <div class="progress" style="height: 24px;">
+                        <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%; transition: width 0.5s ease; font-size: 0.75rem; font-weight: bold;">
                             0%
                         </div>
                     </div>
-                    <div style="color: #999; font-size: 0.8rem; margin-top: 4px;" id="progress-detail">
-                        Jobs found: <span id="progress-jobs" style="color: #ff6600;">0</span> |
-                        New saved: <span id="progress-saved" style="color: #00cc00;">0</span> |
-                        Failed: <span id="progress-failed" style="color: #ff3300;">0</span>
+                    <div class="text-muted" style="font-size: 0.8rem; margin-top: 4px;" id="progress-detail">
+                        Jobs found: <span id="progress-jobs" style="color: var(--nw-blue); font-weight: 600;">0</span> |
+                        New saved: <span id="progress-saved" style="color: #27ae60; font-weight: 600;">0</span> |
+                        Failed: <span id="progress-failed" style="color: #e74c3c; font-weight: 600;">0</span>
                     </div>
                 </div>
             </div>
@@ -54,73 +52,62 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <!-- Latest Run Status -->
+    <div class="row mb-4 g-3">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Latest Run Status</h6>
+                    <h6>Latest Run Status</h6>
                     {% if latest_run %}
                         <div class="stat-number" style="font-size: 1.2rem;" id="run-status">
                             {% if latest_run.status == 'completed' %}
-                                <span style="color: #00cc00;">✓ COMPLETED</span>
+                                <span style="color: #27ae60;">&#10003; COMPLETED</span>
                             {% elif latest_run.status == 'partial' %}
-                                <span style="color: #ffcc00;">◐ PARTIAL</span>
+                                <span style="color: #f39c12;">&#9681; PARTIAL</span>
                             {% elif latest_run.status == 'running' %}
-                                <span style="color: #ffcc00;">⟳ RUNNING</span>
+                                <span style="color: #3b6bcc;">&#8635; RUNNING</span>
                             {% else %}
-                                <span style="color: #ff3300;">✗ FAILED</span>
+                                <span style="color: #e74c3c;">&#10007; FAILED</span>
                             {% endif %}
                         </div>
-                        <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                        <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.3rem;">
                             {{ latest_run.started_at.strftime('%Y-%m-%d %H:%M') if latest_run.started_at else 'N/A' }}
                         </div>
                     {% else %}
-                        <div style="color: #999999;">No runs yet</div>
+                        <div class="text-muted">No runs yet</div>
                     {% endif %}
                 </div>
             </div>
         </div>
-
-        <!-- Next Scheduled Run -->
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Next Scheduled Run</h6>
+                    <h6>Next Scheduled Run</h6>
                     <div class="stat-number" style="font-size: 1.2rem;">
                         {{ next_run.strftime('%a %H:%M') if next_run else 'N/A' }}
                     </div>
-                    <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.3rem;">
                         {{ next_run.strftime('%Y-%m-%d') if next_run else '' }}
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Total Jobs -->
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Total Jobs</h6>
-                    <div class="stat-number" style="font-size: 1.8rem;">
-                        {{ total_jobs }}
-                    </div>
-                    <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                    <h6>Total Jobs</h6>
+                    <div class="stat-number">{{ total_jobs }}</div>
+                    <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.3rem;">
                         {{ ai_proof_jobs }} AI-proof
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Jobs Last 7 Days -->
         <div class="col-md-3">
-            <div class="card">
+            <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6 style="color: #ff6600; font-size: 0.9rem;">Jobs Last 7 Days</h6>
-                    <div class="stat-number" style="font-size: 1.8rem;">
-                        {{ jobs_last_7_days }}
-                    </div>
-                    <div style="color: #999999; font-size: 0.85rem; margin-top: 0.5rem;">
+                    <h6>Jobs Last 7 Days</h6>
+                    <div class="stat-number">{{ jobs_last_7_days }}</div>
+                    <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.3rem;">
                         New postings
                     </div>
                 </div>
@@ -137,24 +124,24 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-2">
-                            <strong style="color: #ff6600;">Duration:</strong><br>
-                            <span style="color: #ffffff;">{{ '%.2f'|format(latest_run.duration_seconds if latest_run.duration_seconds is not none else 0) }}s</span>
+                            <strong>Duration:</strong><br>
+                            {{ '%.2f'|format(latest_run.duration_seconds if latest_run.duration_seconds is not none else 0) }}s
                         </div>
                         <div class="col-md-2">
-                            <strong style="color: #ff6600;">Jobs Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.total_jobs_scraped|default(0, true) }}</span>
+                            <strong>Jobs Scraped:</strong><br>
+                            {{ latest_run.total_jobs_scraped|default(0, true) }}
                         </div>
                         <div class="col-md-2">
-                            <strong style="color: #ff6600;">New Jobs:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.new_jobs_added|default(0, true) }}</span>
+                            <strong>New Jobs:</strong><br>
+                            {{ latest_run.new_jobs_added|default(0, true) }}
                         </div>
                         <div class="col-md-3">
-                            <strong style="color: #ff6600;">Companies Scraped:</strong><br>
-                            <span style="color: #ffffff;">{{ latest_run.companies_scraped|default(0, true) }} / {{ latest_run.total_companies|default(19, true) }}</span>
+                            <strong>Companies Scraped:</strong><br>
+                            {{ latest_run.companies_scraped|default(0, true) }} / {{ latest_run.total_companies|default(19, true) }}
                         </div>
                         <div class="col-md-3">
-                            <strong style="color: #ff6600;">Companies Failed:</strong><br>
-                            <span style="color: {{ '#ff3300' if latest_run.companies_failed|default(0, true) > 0 else '#00cc00' }};">{{ latest_run.companies_failed|default(0, true) }}</span>
+                            <strong>Companies Failed:</strong><br>
+                            <span style="color: {{ '#e74c3c' if latest_run.companies_failed|default(0, true) > 0 else '#27ae60' }};">{{ latest_run.companies_failed|default(0, true) }}</span>
                         </div>
                     </div>
                 </div>
@@ -169,7 +156,7 @@
             <div class="card">
                 <div class="card-header">Recent Scraper Runs (Last 20)</div>
                 <div class="card-body" style="padding: 0;">
-                    <table class="table table-dark table-sm mb-0">
+                    <table class="table table-sm table-hover mb-0">
                         <thead>
                             <tr>
                                 <th style="width: 60px;">ID</th>
@@ -191,27 +178,26 @@
                                     <td style="font-size: 0.85rem;">{{ '%.1f'|format(run.duration_seconds if run.duration_seconds is not none else 0) }}s</td>
                                     <td>
                                         {% if run.status == 'completed' %}
-                                            <span style="color: #00cc00;">✓</span>
+                                            <span class="badge" style="background-color: #27ae60 !important; color: #fff !important;">completed</span>
                                         {% elif run.status == 'partial' %}
-                                            <span style="color: #ffcc00;">◐</span>
+                                            <span class="badge" style="background-color: #f39c12 !important; color: #fff !important;">partial</span>
                                         {% elif run.status == 'running' %}
-                                            <span style="color: #ffcc00;">⟳</span>
+                                            <span class="badge" style="background-color: #3b6bcc !important; color: #fff !important;">running</span>
                                         {% else %}
-                                            <span style="color: #ff3300;">✗</span>
+                                            <span class="badge" style="background-color: #e74c3c !important; color: #fff !important;">failed</span>
                                         {% endif %}
-                                        {{ run.status }}
                                     </td>
                                     <td style="font-size: 0.85rem;">{{ run.trigger }}</td>
                                     <td>
-                                        <span style="color: #ff6600;">{{ run.new_jobs_added|default(0, true) }}</span> / {{ run.total_jobs_scraped|default(0, true) }}
+                                        <strong>{{ run.new_jobs_added|default(0, true) }}</strong> / {{ run.total_jobs_scraped|default(0, true) }}
                                     </td>
                                     <td>{{ run.companies_scraped|default(0, true) }}</td>
-                                    <td style="color: {{ '#ff3300' if run.companies_failed|default(0, true) > 0 else '#999999' }};">{{ run.companies_failed|default(0, true) }}</td>
+                                    <td style="color: {{ '#e74c3c' if run.companies_failed|default(0, true) > 0 else 'inherit' }};">{{ run.companies_failed|default(0, true) }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="8" style="text-align: center; color: #999999;">No scraper runs yet</td>
+                                    <td colspan="8" class="text-center text-muted">No scraper runs yet</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -227,13 +213,13 @@
             <div class="card">
                 <div class="card-header">Recent Error Logs (Last 100 lines)</div>
                 <div class="card-body">
-                    <div style="background-color: #0a0a0a; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
+                    <div style="background-color: #1a2744; padding: 1rem; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem;">
                         {% if recent_logs %}
                             {% for log_line in recent_logs %}
-                                <div style="color: {{ '#ff3300' if 'ERROR' in log_line else ('#ffcc00' if 'WARNING' in log_line else '#999999') }}; white-space: pre-wrap; word-wrap: break-word;">{{ log_line|trim }}</div>
+                                <div style="color: {{ '#ff6b6b' if 'ERROR' in log_line else ('#ffd43b' if 'WARNING' in log_line else 'rgba(255,255,255,0.6)') }}; white-space: pre-wrap; word-wrap: break-word;">{{ log_line|trim }}</div>
                             {% endfor %}
                         {% else %}
-                            <div style="color: #999999;">No logs available</div>
+                            <div style="color: rgba(255,255,255,0.5);">No logs available</div>
                         {% endif %}
                     </div>
                 </div>
@@ -247,7 +233,7 @@
             <div class="card">
                 <div class="card-header">Job Statistics by Company</div>
                 <div class="card-body" style="padding: 0;">
-                    <table class="table table-dark table-sm mb-0">
+                    <table class="table table-sm table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>Company</th>
@@ -260,15 +246,15 @@
                             {% if stats and stats.companies %}
                                 {% for company_stat in stats.companies %}
                                 <tr>
-                                    <td style="font-weight: bold;">{{ company_stat.company }}</td>
-                                    <td><span style="color: #ff6600;">{{ company_stat.total }}</span></td>
+                                    <td><strong>{{ company_stat.company }}</strong></td>
+                                    <td><span style="color: var(--nw-blue); font-weight: 600;">{{ company_stat.total }}</span></td>
                                     <td>{{ company_stat.ai_proof }}</td>
                                     <td>{{ company_stat.student_grad }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="4" style="text-align: center; color: #999999;">No statistics available</td>
+                                    <td colspan="4" class="text-center text-muted">No statistics available</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -277,7 +263,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <script>
@@ -290,7 +275,6 @@
         if (!data.is_running) {
             progressDiv.style.display = 'none';
             if (isRunning) {
-                // Was running, now finished — reload to get final state
                 isRunning = false;
                 window.location.reload();
             }
@@ -311,7 +295,6 @@
         document.getElementById('progress-saved').textContent = run.new_jobs_added || 0;
         document.getElementById('progress-failed').textContent = run.companies_failed || 0;
 
-        // Show which company is currently being scraped
         var label = document.getElementById('progress-label');
         if (data.current_company) {
             label.textContent = 'Scraping ' + data.current_company + '...';
@@ -319,10 +302,9 @@
             label.textContent = 'Scraping in progress...';
         }
 
-        // Update the status card
         var statusEl = document.getElementById('run-status');
         if (statusEl) {
-            statusEl.innerHTML = '<span style="color: #ffcc00;">⟳ RUNNING (' + pct + '%)</span>';
+            statusEl.innerHTML = '<span style="color: #3b6bcc;">&#8635; RUNNING (' + pct + '%)</span>';
         }
     }
 
@@ -333,10 +315,8 @@
             .catch(function() {});
     }
 
-    // Start polling every 10 seconds
     refreshInterval = setInterval(pollStatus, 10000);
 
-    // Also run immediately if currently running
     if (isRunning) {
         pollStatus();
     }
