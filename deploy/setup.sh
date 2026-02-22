@@ -6,8 +6,21 @@ set -e
 
 echo "=== NewWhale Auto-Deploy Setup ==="
 
+APP_DIR="/root/job-resume-builder"
+
 # Make deploy script executable
-chmod +x /root/job-resume-builder/deploy/deploy.sh
+chmod +x "$APP_DIR/deploy/deploy.sh"
+
+# Create virtual environment if it doesn't exist
+if [ ! -d "$APP_DIR/venv" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv "$APP_DIR/venv"
+    echo "Installing dependencies..."
+    "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+else
+    echo "Virtual environment already exists, ensuring dependencies are up to date..."
+    "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt" --quiet
+fi
 
 # Install systemd services
 cp /root/job-resume-builder/deploy/newwhale-app.service /etc/systemd/system/
