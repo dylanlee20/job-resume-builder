@@ -1,36 +1,74 @@
 {% extends "layout.html" %}
-{% block title %}Register - NewWhale Career{% endblock %}
+{% block title %}Create Account - NewWhale Career{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-5">
+<div class="row justify-content-center mt-4">
     <div class="col-md-5">
         <div class="text-center mb-4">
             <h2><i class="bi bi-water"></i> NewWhale</h2>
-            <p class="text-muted">Create your account to get started</p>
+            <p class="text-muted">Create your free account in seconds</p>
         </div>
         <div class="card auth-card">
             <div class="card-body p-4">
-                <form method="POST">
+                <form method="POST" id="registerForm" novalidate>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
                     <div class="mb-3">
                         <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" placeholder="Choose a username" required autofocus>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" name="username" id="username" class="form-control"
+                                   placeholder="Choose a username" required autofocus
+                                   pattern="[a-zA-Z0-9_.\-]+" minlength="3" maxlength="30"
+                                   value="{{ request.form.get('username', '') }}">
+                        </div>
+                        <div id="username-feedback" class="form-text"></div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="you@example.com" required>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email" name="email" id="email" class="form-control"
+                                   placeholder="you@example.com" required
+                                   value="{{ request.form.get('email', '') }}">
+                        </div>
+                        <div id="email-feedback" class="form-text"></div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="Create a password" required>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password" name="password" id="password" class="form-control"
+                                   placeholder="Create a password (min 6 chars)" required minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div id="password-strength" class="form-text"></div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Confirm Password</label>
-                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your password" required>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password" name="confirm_password" id="confirm_password" class="form-control"
+                                   placeholder="Confirm your password" required>
+                        </div>
+                        <div id="confirm-feedback" class="form-text"></div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 mb-3">
-                        <i class="bi bi-person-plus"></i> Create Account
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3" id="submitBtn">
+                        <i class="bi bi-rocket-takeoff"></i> Create Account
                     </button>
+
+                    <p class="text-center small text-muted mb-0">
+                        By signing up, you agree to our Terms of Service.
+                    </p>
                 </form>
+
+                <hr>
+
                 <p class="text-center mb-0 text-muted">
                     Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
                 </p>
@@ -38,4 +76,121 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var usernameTimer, emailTimer;
+    var usernameField = document.getElementById('username');
+    var emailField = document.getElementById('email');
+    var passwordField = document.getElementById('password');
+    var confirmField = document.getElementById('confirm_password');
+    var toggleBtn = document.getElementById('togglePassword');
+
+    // Toggle password visibility
+    toggleBtn.addEventListener('click', function() {
+        var type = passwordField.type === 'password' ? 'text' : 'password';
+        passwordField.type = type;
+        confirmField.type = type;
+        this.querySelector('i').classList.toggle('bi-eye');
+        this.querySelector('i').classList.toggle('bi-eye-slash');
+    });
+
+    // Real-time username check
+    usernameField.addEventListener('input', function() {
+        clearTimeout(usernameTimer);
+        var val = this.value.trim();
+        var fb = document.getElementById('username-feedback');
+
+        if (val.length === 0) { fb.innerHTML = ''; return; }
+        if (val.length < 3) {
+            fb.innerHTML = '<span style="color: var(--nw-warning);"><i class="bi bi-exclamation-circle"></i> Min 3 characters</span>';
+            return;
+        }
+
+        fb.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split"></i> Checking...</span>';
+        usernameTimer = setTimeout(function() {
+            fetch('/api/check-username?username=' + encodeURIComponent(val))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.available) {
+                    fb.innerHTML = '<span style="color: var(--nw-success);"><i class="bi bi-check-circle"></i> ' + data.message + '</span>';
+                } else {
+                    fb.innerHTML = '<span style="color: var(--nw-danger);"><i class="bi bi-x-circle"></i> ' + data.message + '</span>';
+                }
+            });
+        }, 400);
+    });
+
+    // Real-time email check
+    emailField.addEventListener('input', function() {
+        clearTimeout(emailTimer);
+        var val = this.value.trim();
+        var fb = document.getElementById('email-feedback');
+
+        if (val.length === 0) { fb.innerHTML = ''; return; }
+        if (val.indexOf('@') === -1) {
+            fb.innerHTML = '<span style="color: var(--nw-warning);"><i class="bi bi-exclamation-circle"></i> Enter a valid email</span>';
+            return;
+        }
+
+        fb.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split"></i> Checking...</span>';
+        emailTimer = setTimeout(function() {
+            fetch('/api/check-email?email=' + encodeURIComponent(val))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.available) {
+                    fb.innerHTML = '<span style="color: var(--nw-success);"><i class="bi bi-check-circle"></i> ' + data.message + '</span>';
+                } else {
+                    fb.innerHTML = '<span style="color: var(--nw-danger);"><i class="bi bi-x-circle"></i> ' + data.message + '</span>';
+                }
+            });
+        }, 400);
+    });
+
+    // Password strength
+    passwordField.addEventListener('input', function() {
+        var val = this.value;
+        var fb = document.getElementById('password-strength');
+        if (val.length === 0) { fb.innerHTML = ''; return; }
+
+        var strength = 0;
+        if (val.length >= 6) strength++;
+        if (val.length >= 10) strength++;
+        if (/[A-Z]/.test(val) && /[a-z]/.test(val)) strength++;
+        if (/\d/.test(val)) strength++;
+        if (/[^a-zA-Z0-9]/.test(val)) strength++;
+
+        var labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+        var colors = ['var(--nw-danger)', 'var(--nw-warning)', 'var(--nw-accent)', 'var(--nw-success)', 'var(--nw-success)'];
+        var idx = Math.min(strength, 4);
+
+        if (val.length < 6) {
+            fb.innerHTML = '<span style="color: var(--nw-danger);"><i class="bi bi-exclamation-circle"></i> Min 6 characters</span>';
+        } else {
+            fb.innerHTML = '<span style="color: ' + colors[idx] + ';"><i class="bi bi-shield-check"></i> ' + labels[idx] + '</span>';
+        }
+
+        // Check confirm match
+        if (confirmField.value.length > 0) {
+            checkConfirmMatch();
+        }
+    });
+
+    // Confirm password match
+    confirmField.addEventListener('input', checkConfirmMatch);
+
+    function checkConfirmMatch() {
+        var fb = document.getElementById('confirm-feedback');
+        if (confirmField.value.length === 0) { fb.innerHTML = ''; return; }
+
+        if (confirmField.value === passwordField.value) {
+            fb.innerHTML = '<span style="color: var(--nw-success);"><i class="bi bi-check-circle"></i> Passwords match</span>';
+        } else {
+            fb.innerHTML = '<span style="color: var(--nw-danger);"><i class="bi bi-x-circle"></i> Passwords don\'t match</span>';
+        }
+    }
+})();
+</script>
 {% endblock %}

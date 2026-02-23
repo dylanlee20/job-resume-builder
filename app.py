@@ -2,8 +2,8 @@
 NewWhale Career v2 - Application Factory
 AI-Proof Industries Job Tracker with Resume Assessment
 """
-from flask import Flask
-from flask_login import LoginManager
+from flask import Flask, request as flask_request, redirect, url_for, flash
+from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from models.database import db, init_db
 from models.user import User, create_admin_user
@@ -56,7 +56,7 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-    
+
     # Create default admin account
     with app.app_context():
         create_admin_user(
@@ -71,14 +71,24 @@ def create_app():
     from routes.api import api_bp
     from routes.admin import admin_bp
     from routes.resume_routes import resume_bp
-    from routes.payment_routes import payment_bp
-    
+    from routes.payment_routes import payment_bp, stripe_webhook
+    from routes.outreach_routes import outreach_bp
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(resume_bp)
     app.register_blueprint(payment_bp)
+    app.register_blueprint(outreach_bp)
+
+    # Exempt endpoints from CSRF
+    csrf.exempt(stripe_webhook)
+    from routes.outreach_routes import track_open
+    csrf.exempt(track_open)
+
+    # Import models so they're registered with SQLAlchemy
+    from models.cold_email import EmailCampaign, EmailRecipient
     
     # Initialize job scheduler
     from scheduler.job_scheduler import JobScheduler

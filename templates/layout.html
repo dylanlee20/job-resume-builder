@@ -14,18 +14,18 @@
             <a class="navbar-brand" href="/">
                 <i class="bi bi-water"></i> NewWhale
             </a>
-            {% if current_user.is_authenticated %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                {% if current_user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="bi bi-briefcase"></i> Jobs</a>
+                        <a class="nav-link" href="{{ url_for('web.dashboard') }}"><i class="bi bi-briefcase"></i> Jobs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('resume.upload') }}">
-                            <i class="bi bi-file-earmark-arrow-up"></i> Upload Resume
+                        <a class="nav-link" href="{{ url_for('resume.hub') }}">
+                            <i class="bi bi-file-earmark-text"></i> Resume Tools
                         </a>
                     </li>
                     <li class="nav-item">
@@ -33,9 +33,21 @@
                             <i class="bi bi-clock-history"></i> My Resumes
                         </a>
                     </li>
+                    {% if current_user.tier == 'premium' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('outreach.dashboard') }}">
+                            <i class="bi bi-envelope-paper"></i> Cold Email
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('web.pricing') }}">
                             <i class="bi bi-gem"></i> Pricing
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('payment.subscription') }}">
+                            <i class="bi bi-credit-card"></i> Subscription
                         </a>
                     </li>
                 </ul>
@@ -63,8 +75,20 @@
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </a>
                 </div>
+                {% else %}
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('web.pricing') }}"><i class="bi bi-gem"></i> Pricing</a>
+                    </li>
+                </ul>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-light">Sign In</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-warning" style="color: var(--nw-navy); font-weight: 600;">
+                        Get Started Free
+                    </a>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
     </nav>
 
@@ -73,7 +97,7 @@
             {% if messages %}
                 {% for category, message in messages %}
                 <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
-                    {{ message }}
+                    {{ message|safe }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 {% endfor %}
@@ -91,9 +115,9 @@
                     &mdash; We <em>KnewWell</em> about AI-proof jobs & resumes.
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <a href="/" class="me-3">Jobs</a>
+                    <a href="{{ url_for('web.dashboard') if current_user.is_authenticated else '/' }}" class="me-3">Jobs</a>
                     <a href="{{ url_for('web.pricing') }}" class="me-3">Pricing</a>
-                    <a href="{{ url_for('resume.upload') }}">Upload Resume</a>
+                    <a href="{{ url_for('resume.hub') if current_user.is_authenticated else url_for('auth.register') }}">Resume Tools</a>
                 </div>
             </div>
         </div>

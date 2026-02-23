@@ -18,11 +18,16 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
-    
+
+    # Email verification
+    email_verified = db.Column(db.Boolean, default=False)
+    email_verification_token = db.Column(db.String(128), unique=True, nullable=True, index=True)
+    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
+
     # Subscription fields
     tier = db.Column(db.String(20), default='free', nullable=False)  # 'free' or 'premium'
     stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True, index=True)
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
@@ -62,6 +67,7 @@ class User(UserMixin, db.Model):
             'email': self.email,
             'is_admin': self.is_admin,
             'is_active': self.is_active,
+            'email_verified': self.email_verified,
             'tier': self.tier,
             'stripe_customer_id': self.stripe_customer_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -80,6 +86,7 @@ def create_admin_user(username='admin', password='admin123', email='admin@newwha
             username=username,
             email=email,
             is_admin=True,
+            email_verified=True,
             tier='premium'  # Admin gets premium by default
         )
         admin.set_password(password)
