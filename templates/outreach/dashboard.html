@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block title %}Cold Email Outreach - NewWhale Career{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-envelope-paper"></i> Cold Email Outreach</h2>
+        <p class="text-muted mb-0">Create and manage personalized outreach campaigns</p>
+    </div>
+    <a href="{{ url_for('outreach.new_campaign') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Campaign
+    </a>
+</div>
+
+{% if campaigns %}
+<div class="row g-4">
+    {% for campaign in campaigns %}
+    <div class="col-md-6">
+        <div class="card" style="border-radius: 12px; cursor: pointer; transition: transform 0.2s;"
+             onclick="window.location='{{ url_for('outreach.campaign_detail', campaign_id=campaign.id) }}'"
+             onmouseover="this.style.transform='translateY(-2px)'"
+             onmouseout="this.style.transform='none'">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="mb-0">{{ campaign.name }}</h5>
+                    <span class="badge {% if campaign.status == 'active' %}bg-success{% elif campaign.status == 'draft' %}bg-secondary{% elif campaign.status == 'completed' %}bg-primary{% else %}bg-warning{% endif %}">
+                        {{ campaign.status|capitalize }}
+                    </span>
+                </div>
+                <p class="text-muted small mb-3">
+                    Created {{ campaign.created_at.strftime('%b %d, %Y') }}
+                </p>
+
+                <div class="row text-center">
+                    <div class="col-3">
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--nw-navy);">{{ campaign.recipients.count() }}</div>
+                        <small class="text-muted">Recipients</small>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--nw-blue);">{{ campaign.total_sent }}</div>
+                        <small class="text-muted">Sent</small>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--nw-accent);">{{ campaign.total_opened }}</div>
+                        <small class="text-muted">Opened</small>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--nw-success);">{{ campaign.total_replied }}</div>
+                        <small class="text-muted">Replied</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="card" style="border-radius: 12px;">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-envelope-plus" style="font-size: 3rem; color: var(--nw-border);"></i>
+        <h4 class="mt-3">No Campaigns Yet</h4>
+        <p class="text-muted">Create your first cold email campaign to start reaching out to hiring managers.</p>
+        <a href="{{ url_for('outreach.new_campaign') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-circle"></i> Create First Campaign
+        </a>
+    </div>
+</div>
+
+<!-- How It Works -->
+<div class="card mt-4" style="border-radius: 12px;">
+    <div class="card-body p-4">
+        <h5><i class="bi bi-info-circle"></i> How Cold Email Works</h5>
+        <div class="row g-4 mt-2">
+            <div class="col-md-3 text-center">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">1</div>
+                <h6>Create Campaign</h6>
+                <small class="text-muted">Write your email template with personalization placeholders</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">2</div>
+                <h6>Add Recipients</h6>
+                <small class="text-muted">Add contacts one by one or import from CSV</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">3</div>
+                <h6>Send Emails</h6>
+                <small class="text-muted">Preview and send personalized emails</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">4</div>
+                <h6>Track Results</h6>
+                <small class="text-muted">Monitor opens, replies, and response rates</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

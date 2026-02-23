@@ -19,13 +19,16 @@ def validate_email(email):
 def login():
     """Login page"""
     if current_user.is_authenticated:
-        return redirect(url_for('web.index'))
+        return redirect(url_for('web.dashboard'))
 
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        username_or_email = request.form.get('username', '').strip()
         password = request.form.get('password', '')
 
-        user = User.query.filter_by(username=username).first()
+        # Allow login with either username or email
+        user = User.query.filter_by(username=username_or_email).first()
+        if not user:
+            user = User.query.filter_by(email=username_or_email).first()
 
         if user and user.check_password(password):
             if not user.is_active:
@@ -39,10 +42,10 @@ def login():
             next_page = request.args.get('next')
             # Prevent open redirect — only allow relative paths
             if not next_page or not next_page.startswith('/') or next_page.startswith('//'):
-                next_page = url_for('web.index')
+                next_page = url_for('web.dashboard')
             return redirect(next_page)
         else:
-            flash('Invalid username or password', 'error')
+            flash('Invalid username/email or password', 'error')
 
     return render_template('login.html')
 
@@ -51,27 +54,38 @@ def login():
 def register():
     """User registration page"""
     if current_user.is_authenticated:
-        return redirect(url_for('web.index'))
+        return redirect(url_for('web.dashboard'))
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-        email = request.form.get('email', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
 
         # Validation
+        errors = []
         if len(username) < 3:
-            flash('Username must be at least 3 characters', 'error')
+            errors.append('Username must be at least 3 characters')
+        elif len(username) > 30:
+            errors.append('Username must be 30 characters or less')
+        elif not re.match(r'^[a-zA-Z0-9_.-]+$', username):
+            errors.append('Username can only contain letters, numbers, dots, hyphens, and underscores')
         elif User.query.filter_by(username=username).first():
-            flash('Username already exists', 'error')
-        elif not validate_email(email):
-            flash('Invalid email address', 'error')
+            errors.append('Username already taken')
+
+        if not validate_email(email):
+            errors.append('Please enter a valid email address')
         elif User.query.filter_by(email=email).first():
-            flash('Email already registered', 'error')
-        elif len(password) < 6:
-            flash('Password must be at least 6 characters', 'error')
+            errors.append('This email is already registered. Try signing in instead.')
+
+        if len(password) < 6:
+            errors.append('Password must be at least 6 characters')
         elif password != confirm_password:
-            flash('Passwords do not match', 'error')
+            errors.append('Passwords do not match')
+
+        if errors:
+            for error in errors:
+                flash(error, 'error')
         else:
             # Create new user
             user = User(
@@ -82,11 +96,40 @@ def register():
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('auth.login'))
+
+            # Auto-login after registration
+            login_user(user, remember=True)
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+
+            flash(f'Welcome to NewWhale, {username}! Your account is ready.', 'success')
+            return redirect(url_for('web.dashboard'))
 
     return render_template('register.html')
+
+
+@auth_bp.route('/api/check-username')
+def check_username():
+    """AJAX endpoint for real-time username validation"""
+    username = request.args.get('username', '').strip()
+    if len(username) < 3:
+        return {'available': False, 'message': 'Too short (min 3 chars)'}
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', username):
+        return {'available': False, 'message': 'Invalid characters'}
+    if User.query.filter_by(username=username).first():
+        return {'available': False, 'message': 'Already taken'}
+    return {'available': True, 'message': 'Available'}
+
+
+@auth_bp.route('/api/check-email')
+def check_email():
+    """AJAX endpoint for real-time email validation"""
+    email = request.args.get('email', '').strip().lower()
+    if not validate_email(email):
+        return {'available': False, 'message': 'Invalid email'}
+    if User.query.filter_by(email=email).first():
+        return {'available': False, 'message': 'Already registered'}
+    return {'available': True, 'message': 'Available'}
 
 
 @auth_bp.route('/logout')
@@ -117,6 +160,6 @@ def change_password():
             current_user.set_password(new_password)
             db.session.commit()
             flash('Password changed successfully!', 'success')
-            return redirect(url_for('web.index'))
+            return redirect(url_for('web.dashboard'))
 
     return render_template('change_password.html')

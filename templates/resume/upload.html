@@ -3,42 +3,77 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="card-title"><i class="bi bi-file-earmark-arrow-up"></i> Upload Resume</h2>
-                <p class="text-muted">Get AI-powered analysis of your resume for AI-proof finance roles</p>
-                
-                <div class="alert alert-info">
-                    <strong>Free Tier:</strong> You get 3 assessments per day.
-                    {% if current_user.tier == 'free' %}
-                    <a href="{{ url_for('web.pricing') }}" class="alert-link">Upgrade to Premium</a> for unlimited assessments.
-                    {% endif %}
+        <div class="mb-3">
+            <a href="{{ url_for('resume.hub') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Resume Tools
+            </a>
+        </div>
+
+        <div class="card" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <div class="text-center mb-3">
+                    <h2><i class="bi bi-arrow-up-circle"></i> Upload & Improve Your Resume</h2>
+                    <p class="text-muted">Upload your existing resume for AI-powered analysis and improvement</p>
                 </div>
-                
+
+                <div class="alert alert-info" style="border-radius: 8px;">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle me-2" style="font-size: 1.2rem;"></i>
+                        <div>
+                            <strong>Free:</strong> AI assessment with score + recommendations
+                            {% if current_user.is_premium() %}
+                            <span class="ms-2 badge bg-success">Premium</span> Direct AI-powered resume revision with before/after
+                            {% else %}
+                            &bull; <a href="{{ url_for('web.pricing') }}" class="alert-link">Upgrade to Premium</a> for AI revision with before/after
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 <form method="POST" enctype="multipart/form-data" id="upload-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <div class="mb-3">
-                        <label for="resume_file" class="form-label">Select Resume</label>
-                        <input type="file" class="form-control" id="resume_file" name="resume_file" 
-                               accept=".pdf,.docx" required>
-                        <div class="form-text">Accepted formats: PDF, DOCX (max 10MB)</div>
+
+                    <div class="mb-4 text-center p-4" style="border: 2px dashed var(--nw-border); border-radius: 12px; background: var(--nw-bg);" id="dropZone">
+                        <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: var(--nw-blue);"></i>
+                        <h5 class="mt-2">Drag & drop your resume here</h5>
+                        <p class="text-muted mb-2">or click to browse files</p>
+                        <input type="file" class="form-control" id="resume_file" name="resume_file"
+                               accept=".pdf,.docx" required style="max-width: 300px; margin: 0 auto;">
+                        <div class="form-text mt-2">Accepted: PDF, DOCX (max 10MB)</div>
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-upload"></i> Upload Resume
-                    </button>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-upload"></i> Upload & Analyze
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
-        
-        <div class="mt-4">
-            <h4>What You'll Get</h4>
-            <ul class="list-group">
-                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Overall competitiveness score (0-100)</li>
-                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Specific strengths and weaknesses</li>
-                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Industry compatibility ratings</li>
-                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> Actionable recommendations</li>
-            </ul>
+
+        <div class="row g-3 mt-3">
+            <div class="col-md-6">
+                <div class="card p-3" style="border-radius: 8px;">
+                    <h6><i class="bi bi-check-circle-fill text-success"></i> Free Assessment</h6>
+                    <ul class="list-unstyled small text-muted mb-0">
+                        <li>Competitiveness score (0-100)</li>
+                        <li>Strengths & weaknesses</li>
+                        <li>Industry compatibility ratings</li>
+                        <li>3 assessments/day (free tier)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card p-3" style="border-radius: 8px; border-color: var(--nw-accent);">
+                    <h6><i class="bi bi-gem" style="color: var(--nw-accent);"></i> Premium Revision</h6>
+                    <ul class="list-unstyled small text-muted mb-0">
+                        <li>AI-powered resume rewrite</li>
+                        <li>Before/after comparison</li>
+                        <li>Section-by-section improvements</li>
+                        <li>Unlimited revisions</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>

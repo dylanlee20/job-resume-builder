@@ -23,7 +23,7 @@ def admin_required(f):
 
         if not current_user.is_admin:
             flash('You do not have permission to access this page.', 'danger')
-            return redirect(url_for('web.index'))
+            return redirect(url_for('web.dashboard'))
 
         return f(*args, **kwargs)
     return decorated_function

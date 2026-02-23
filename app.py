@@ -72,6 +72,7 @@ def create_app():
     from routes.admin import admin_bp
     from routes.resume_routes import resume_bp
     from routes.payment_routes import payment_bp, stripe_webhook
+    from routes.outreach_routes import outreach_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
@@ -79,9 +80,15 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(resume_bp)
     app.register_blueprint(payment_bp)
+    app.register_blueprint(outreach_bp)
 
-    # Exempt Stripe webhook from CSRF (Stripe uses its own signature verification)
+    # Exempt endpoints from CSRF
     csrf.exempt(stripe_webhook)
+    from routes.outreach_routes import track_open
+    csrf.exempt(track_open)
+
+    # Import models so they're registered with SQLAlchemy
+    from models.cold_email import EmailCampaign, EmailRecipient
     
     # Initialize job scheduler
     from scheduler.job_scheduler import JobScheduler
