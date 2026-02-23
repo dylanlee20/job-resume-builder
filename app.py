@@ -71,14 +71,17 @@ def create_app():
     from routes.api import api_bp
     from routes.admin import admin_bp
     from routes.resume_routes import resume_bp
-    from routes.payment_routes import payment_bp
-    
+    from routes.payment_routes import payment_bp, stripe_webhook
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(resume_bp)
     app.register_blueprint(payment_bp)
+
+    # Exempt Stripe webhook from CSRF (Stripe uses its own signature verification)
+    csrf.exempt(stripe_webhook)
     
     # Initialize job scheduler
     from scheduler.job_scheduler import JobScheduler
