@@ -10,8 +10,9 @@ sys.path.insert(0, os.getcwd())
 
 # Import and run
 from app import create_app
+from config import Config
 
 if __name__ == '__main__':
     app, scheduler = create_app()
     print(f"✓ Starting NewWhale Career v2 on port 5002...")
-    app.run(host='0.0.0.0', port=5002, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5002, debug=Config.DEBUG, use_reloader=False)

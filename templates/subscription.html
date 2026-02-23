@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+{% block title %}My Subscription - NewWhale Career{% endblock %}
+{% block content %}
+<div class="row mb-4 mt-2">
+    <div class="col-md-12">
+        <h1><i class="bi bi-credit-card"></i> My Subscription</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Current Plan</h5>
+            </div>
+            <div class="card-body">
+                {% if current_user.is_premium() and subscription %}
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge bg-success me-2" style="font-size: 1rem;">PREMIUM</span>
+                    <span class="text-muted">{{ subscription.plan|capitalize }} Plan</span>
+                </div>
+                <table class="table table-sm">
+                    <tr>
+                        <td class="text-muted">Status</td>
+                        <td>
+                            {% if subscription.status == 'active' %}
+                            <span class="badge bg-success">Active</span>
+                            {% elif subscription.status == 'past_due' %}
+                            <span class="badge bg-warning">Past Due</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ subscription.status|capitalize }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Started</td>
+                        <td>{{ subscription.current_period_start.strftime('%B %d, %Y') if subscription.current_period_start else 'N/A' }}</td>
+                    </tr>
+                    {% if subscription.current_period_end %}
+                    <tr>
+                        <td class="text-muted">Renews</td>
+                        <td>{{ subscription.current_period_end.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+
+                {% if subscription.status == 'active' %}
+                <button class="btn btn-outline-danger btn-sm mt-2" id="cancelBtn" onclick="cancelSubscription()">
+                    <i class="bi bi-x-circle"></i> Cancel Subscription
+                </button>
+                <small class="d-block text-muted mt-1">You'll keep access until the end of your billing period.</small>
+                {% endif %}
+
+                {% elif current_user.is_premium() %}
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge bg-success me-2" style="font-size: 1rem;">PREMIUM</span>
+                    <span class="text-muted">Admin/Granted Access</span>
+                </div>
+                <p class="text-muted">Your premium access was granted directly.</p>
+
+                {% else %}
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge bg-secondary me-2" style="font-size: 1rem;">FREE</span>
+                </div>
+                <p class="text-muted">Upgrade to Premium for unlimited assessments and resume revisions.</p>
+                <a href="{{ url_for('web.pricing') }}" class="btn btn-primary">
+                    <i class="bi bi-gem"></i> View Plans
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Payment History</h5>
+            </div>
+            <div class="card-body">
+                {% if payments %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>${{ '%.2f' % (payment.amount / 100) }}</td>
+                            <td>
+                                {% if payment.status == 'succeeded' %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif payment.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ payment.status|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">No payment history yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function cancelSubscription() {
+    if (!confirm('Are you sure you want to cancel your subscription? You will keep access until the end of your current billing period.')) {
+        return;
+    }
+
+    var btn = document.getElementById('cancelBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cancelling...';
+
+    fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            alert('Subscription cancelled. You will keep premium access until ' + (data.period_end ? new Date(data.period_end).toLocaleDateString() : 'the end of your billing period') + '.');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Could not cancel subscription'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-x-circle"></i> Cancel Subscription';
+        }
+    })
+    .catch(function(error) {
+        alert('Error: ' + error.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-x-circle"></i> Cancel Subscription';
+    });
+}
+</script>
+{% endblock %}

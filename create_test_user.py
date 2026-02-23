@@ -24,11 +24,12 @@ def create_test_user():
             print(f"  - Tier: {existing.tier}")
             return existing
 
-        # Create new regular user
+        # Create new regular user (pre-verified for test convenience)
         user = User(
             username='student',
             email='student@newwhale.com',
             is_admin=False,  # Regular user, NOT admin
+            email_verified=True,
             tier='free'
         )
         user.set_password('student123')

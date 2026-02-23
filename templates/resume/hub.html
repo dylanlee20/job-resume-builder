@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+{% block title %}Resume Tools - NewWhale Career{% endblock %}
+{% block content %}
+
+<div class="text-center mb-4">
+    <h2><i class="bi bi-file-earmark-text"></i> Resume Tools</h2>
+    <p class="text-muted">Choose how you'd like to work on your resume</p>
+</div>
+
+<div class="row g-4 justify-content-center mb-4">
+    <!-- Mode 1: Build from Scratch -->
+    <div class="col-md-4">
+        <div class="card h-100" style="border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;"
+             onclick="window.location='{{ url_for('resume.build') }}'"
+             onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+            <div class="card-body text-center p-4">
+                <div style="width: 70px; height: 70px; border-radius: 50%; background: #e8f0fe; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <i class="bi bi-pencil-square" style="font-size: 1.8rem; color: var(--nw-blue);"></i>
+                </div>
+                <h4>Build from Scratch</h4>
+                <p class="text-muted">
+                    Don't have a resume yet? Answer guided questions about your background, and our AI will generate a professional, industry-optimized resume for you.
+                </p>
+                <div class="mb-3">
+                    <span class="badge bg-success">Free</span>
+                </div>
+                <a href="{{ url_for('resume.build') }}" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle"></i> Start Building
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode 2: Format Draft -->
+    <div class="col-md-4">
+        <div class="card h-100" style="border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;"
+             onclick="window.location='{{ url_for('resume.format_draft') }}'"
+             onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+            <div class="card-body text-center p-4">
+                <div style="width: 70px; height: 70px; border-radius: 50%; background: #fef3cd; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <i class="bi bi-layout-text-window-reverse" style="font-size: 1.8rem; color: var(--nw-accent);"></i>
+                </div>
+                <h4>Format My Draft</h4>
+                <p class="text-muted">
+                    Have a rough draft or unformatted resume? Paste your text and our AI will structure it into a clean, professional format with proper sections.
+                </p>
+                <div class="mb-3">
+                    <span class="badge bg-success">Free</span>
+                </div>
+                <a href="{{ url_for('resume.format_draft') }}" class="btn btn-primary w-100">
+                    <i class="bi bi-magic"></i> Format My Resume
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode 3: Improve Existing -->
+    <div class="col-md-4">
+        <div class="card h-100" style="border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;"
+             onclick="window.location='{{ url_for('resume.upload') }}'"
+             onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+            <div class="card-body text-center p-4">
+                <div style="width: 70px; height: 70px; border-radius: 50%; background: #d4edda; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <i class="bi bi-arrow-up-circle" style="font-size: 1.8rem; color: var(--nw-success);"></i>
+                </div>
+                <h4>Improve My Resume</h4>
+                <p class="text-muted">
+                    Upload your existing resume (PDF/DOCX) for AI analysis. Get a competitiveness score, feedback, and Premium users get direct before/after revisions.
+                </p>
+                <div class="mb-3">
+                    <span class="badge bg-success me-1">Free Assessment</span>
+                    <span class="badge" style="background: var(--nw-accent); color: var(--nw-navy);">Premium Revision</span>
+                </div>
+                <a href="{{ url_for('resume.upload') }}" class="btn btn-primary w-100">
+                    <i class="bi bi-upload"></i> Upload Resume
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+{% if recent_resumes %}
+<div class="card mt-4" style="border-radius: 12px;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Resumes</h5>
+        <a href="{{ url_for('resume.history') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <tbody>
+                {% for resume in recent_resumes[:5] %}
+                <tr>
+                    <td class="ps-3">
+                        <i class="bi bi-file-earmark-{{ 'pdf' if resume.file_type == 'pdf' else 'word' }}" style="color: var(--nw-blue);"></i>
+                        {{ resume.original_filename }}
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if resume.status == 'assessed' %}success{% elif resume.status == 'error' %}danger{% elif resume.status == 'built' %}info{% else %}warning{% endif %}">
+                            {{ resume.status|title }}
+                        </span>
+                    </td>
+                    <td class="text-muted" style="font-size: 0.85rem;">{{ resume.uploaded_at.strftime('%b %d, %Y') }}</td>
+                    <td class="text-end pe-3">
+                        {% if resume.status == 'assessed' and resume.assessments.first() %}
+                        <a href="{{ url_for('resume.view_assessment', resume_id=resume.id, assessment_id=resume.assessments.first().id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                        {% elif resume.status == 'parsed' %}
+                        <a href="{{ url_for('resume.process', resume_id=resume.id) }}" class="btn btn-sm btn-outline-success">Assess</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -19,7 +19,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            return redirect(url_for('web.index'))
+            return redirect(url_for('web.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -104,6 +104,7 @@ def scraper_run_detail(run_id):
 @admin_required
 def run_scraper():
     """Manually trigger scraper run in background"""
+    from flask import request
     try:
         # Check if a scraper is genuinely running (started within last 4 hours)
         cutoff = datetime.utcnow() - timedelta(hours=4)
@@ -115,20 +116,50 @@ def run_scraper():
             flash('Scraper is already running! Please wait for it to complete.', 'warning')
             return redirect(url_for('admin.scraper_status'))
 
+        # Build command arguments
+        cmd = [sys.executable, 'scraper_runner.py', 'manual']
+
+        # Check for skip_scraped option (skip companies already scraped today)
+        if request.form.get('skip_scraped') == '1':
+            cmd.append('--skip-scraped-today')
+
         # Run scraper in background using subprocess
-        # This prevents the HTTP request from timing out
-        # Pass 'manual' as the trigger argument
+        log_file = open('data/logs/scraper.log', 'a')
         subprocess.Popen(
-            [sys.executable, 'scraper_runner.py', 'manual'],
-            stdout=open('data/logs/scraper.log', 'a'),
+            cmd,
+            stdout=log_file,
             stderr=subprocess.STDOUT,
-            cwd=os.getcwd()
+            cwd=os.getcwd(),
+            close_fds=True
         )
 
-        flash('✓ Scraper started successfully! Check the dashboard for progress.', 'success')
+        flash('Scraper started successfully! Check the dashboard for progress.', 'success')
     except Exception as e:
         flash(f'Error starting scraper: {str(e)}', 'danger')
 
+    return redirect(url_for('admin.scraper_status'))
+
+
+@admin_bp.route('/force-stop-scraper', methods=['POST'])
+@login_required
+@admin_required
+def force_stop_scraper():
+    """Force-stop a stuck scraper run by marking it as failed"""
+    stuck_runs = ScraperRun.query.filter(ScraperRun.status == 'running').all()
+    count = 0
+    for run in stuck_runs:
+        run.status = 'failed'
+        run.completed_at = datetime.utcnow()
+        run.current_company = None
+        run.error_log = (run.error_log or '') + '\nForce-stopped by admin'
+        if run.started_at:
+            run.duration_seconds = (datetime.utcnow() - run.started_at).total_seconds()
+        count += 1
+    db.session.commit()
+    if count:
+        flash(f'Force-stopped {count} stuck run(s). You can now restart the scraper.', 'warning')
+    else:
+        flash('No running scrapers found.', 'info')
     return redirect(url_for('admin.scraper_status'))
 
 
@@ -138,10 +169,20 @@ def run_scraper():
 def api_scraper_status():
     """API endpoint for scraper status (for AJAX updates)"""
     # Expire all cached objects so we read fresh data from DB
-    # (the scraper subprocess writes to the same DB from a separate process)
     db.session.expire_all()
 
     latest_run = ScraperRun.query.order_by(ScraperRun.started_at.desc()).first()
+
+    # Auto-detect stuck runs: if running for > 2 hours with no progress, mark as failed
+    if latest_run and latest_run.is_running and latest_run.started_at:
+        age = (datetime.utcnow() - latest_run.started_at).total_seconds()
+        if age > 7200:  # 2 hours
+            latest_run.status = 'failed'
+            latest_run.completed_at = datetime.utcnow()
+            latest_run.current_company = None
+            latest_run.duration_seconds = age
+            latest_run.error_log = (latest_run.error_log or '') + '\nAuto-stopped: no progress for 2+ hours'
+            db.session.commit()
 
     # Calculate next Sunday at 2 AM
     now = datetime.utcnow()

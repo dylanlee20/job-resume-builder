@@ -28,8 +28,8 @@ class JobService:
         filters = filters or {}
         query = Job.query.filter_by(status='active')
         
-        # Default: only show AI-proof jobs unless explicitly requested
-        if not filters.get('include_excluded'):
+        # Only filter to AI-proof jobs when explicitly requested via checkbox
+        if filters.get('ai_proof_only'):
             query = query.filter_by(is_ai_proof=True)
         
         # Apply filters

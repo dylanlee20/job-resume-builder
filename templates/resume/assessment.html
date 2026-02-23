@@ -5,57 +5,225 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h2>Resume Assessment Results</h2>
-                
+        <div class="mb-3">
+            <a href="{{ url_for('resume.hub') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Resume Tools
+            </a>
+        </div>
+
+        <!-- Score Card -->
+        <div class="card mb-4" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-clipboard-data"></i> Resume Assessment Results</h2>
+
                 <div class="row">
                     <div class="col-md-4 text-center">
-                        <h1 class="display-1 text-primary">{{ assessment.overall_score }}</h1>
-                        <p class="lead">Overall Score</p>
+                        <div style="width: 140px; height: 140px; border-radius: 50%; border: 6px solid {% if assessment.overall_score >= 75 %}var(--nw-success){% elif assessment.overall_score >= 50 %}var(--nw-accent){% else %}var(--nw-danger){% endif %}; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 2.5rem; font-weight: 800; color: var(--nw-navy);">{{ assessment.overall_score }}</span>
+                        </div>
+                        <p class="lead mb-0">Overall Score</p>
+                        <small class="text-muted">out of 100</small>
                     </div>
                     <div class="col-md-8">
-                        <h4 class="mt-3">Strengths</h4>
+                        <h5 class="mt-2"><i class="bi bi-check-circle-fill text-success"></i> Strengths</h5>
                         <ul class="list-group mb-3">
                             {% for strength in assessment.get_strengths() %}
-                            <li class="list-group-item"><i class="bi bi-check-circle-fill text-success"></i> {{ strength }}</li>
+                            <li class="list-group-item border-0 ps-0" style="background: transparent;">
+                                <i class="bi bi-check2 text-success"></i> {{ strength }}
+                            </li>
                             {% endfor %}
                         </ul>
-                        
-                        <h4>Areas for Improvement</h4>
+
+                        <h5><i class="bi bi-exclamation-circle-fill text-warning"></i> Areas for Improvement</h5>
                         <ul class="list-group">
                             {% for weakness in assessment.get_weaknesses() %}
-                            <li class="list-group-item"><i class="bi bi-exclamation-circle-fill text-warning"></i> {{ weakness }}</li>
+                            <li class="list-group-item border-0 ps-0" style="background: transparent;">
+                                <i class="bi bi-arrow-right text-warning"></i> {{ weakness }}
+                            </li>
                             {% endfor %}
                         </ul>
                     </div>
                 </div>
-                
+
                 <hr>
-                
-                <h4>Industry Compatibility</h4>
+
+                <h5><i class="bi bi-bar-chart"></i> Industry Compatibility</h5>
                 <div class="row">
                     {% for industry, score in assessment.get_industry_compatibility().items() %}
                     <div class="col-md-6 mb-3">
-                        <strong>{{ industry }}</strong>
-                        <div class="progress">
-                            <div class="progress-bar" role="progressbar" style="width: {{ score }}%">{{ score }}%</div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong style="font-size: 0.9rem;">{{ industry }}</strong>
+                            <span style="font-size: 0.85rem; color: var(--nw-text-light);">{{ score }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ score }}%; background: {% if score >= 75 %}var(--nw-success){% elif score >= 50 %}var(--nw-blue){% else %}var(--nw-accent){% endif %} !important;"></div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-                
-                <hr>
-                
-                <div class="text-center">
-                    <a href="{{ url_for('resume.upload') }}" class="btn btn-secondary">Upload Another Resume</a>
-                    {% if current_user.tier == 'free' %}
-                    <a href="{{ url_for('web.pricing') }}" class="btn btn-warning">Upgrade for Revision Service</a>
-                    {% endif %}
-                    <a href="{{ url_for('resume.history') }}" class="btn btn-outline-secondary">View History</a>
-                </div>
             </div>
+        </div>
+
+        <!-- Premium Revision Section -->
+        <div class="card mb-4" style="border-radius: 12px; border: 2px solid {% if current_user.is_premium() %}var(--nw-blue){% else %}var(--nw-border){% endif %};">
+            <div class="card-body p-4">
+                {% if current_user.is_premium() %}
+                <h4><i class="bi bi-magic"></i> AI Resume Revision</h4>
+                <p class="text-muted">Let our AI directly improve your resume based on the assessment findings.</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Target Industry (optional)</label>
+                    <select class="form-select" id="reviseIndustry" style="max-width: 300px;">
+                        <option value="">Auto-detect</option>
+                        <option value="Investment Banking">Investment Banking</option>
+                        <option value="Sales & Trading">Sales & Trading</option>
+                        <option value="Portfolio Management">Portfolio Management</option>
+                        <option value="Risk Management">Risk Management</option>
+                        <option value="M&A Advisory">M&A Advisory</option>
+                        <option value="Private Equity">Private Equity</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" id="reviseBtn" onclick="reviseResume()">
+                    <i class="bi bi-arrow-left-right"></i> Generate Improved Resume
+                </button>
+
+                <!-- Revision Result -->
+                <div id="revisionResult" style="display: none;" class="mt-4">
+                    <h5 class="mb-3"><i class="bi bi-check-circle-fill text-success"></i> Revised Resume Ready</h5>
+
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#revisedTab">
+                                <i class="bi bi-file-earmark-check text-success"></i> Improved Version
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#beforeTab">
+                                <i class="bi bi-file-earmark-text text-muted"></i> Original
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#changesTab">
+                                <i class="bi bi-list-check text-primary"></i> Changes Made
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-3">
+                        <div class="tab-pane fade show active" id="revisedTab">
+                            <div class="card p-4" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+                                <pre id="revisedOutput" style="white-space: pre-wrap; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.6;"></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="beforeTab">
+                            <div class="card p-4" style="background: #fff8f0; border: 1px solid #fde68a; border-radius: 8px;">
+                                <pre id="beforeOutput" style="white-space: pre-wrap; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.6; color: var(--nw-text-light);"></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="changesTab">
+                            <div class="card p-4" style="border-radius: 8px;">
+                                <div id="changesOutput" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button class="btn btn-primary me-2" onclick="copyRevised()">
+                            <i class="bi bi-clipboard"></i> Copy Revised Resume
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="downloadRevised()">
+                            <i class="bi bi-download"></i> Download
+                        </button>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="bi bi-lock" style="font-size: 2.5rem; color: var(--nw-text-light);"></i>
+                    <h4 class="mt-2">Unlock AI Resume Revision</h4>
+                    <p class="text-muted">
+                        Premium members get AI-powered resume improvements with before/after comparisons.
+                        See exactly what changed and why.
+                    </p>
+                    <a href="{{ url_for('web.pricing') }}" class="btn btn-warning btn-lg">
+                        <i class="bi bi-gem"></i> Upgrade to Premium
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mb-4">
+            <a href="{{ url_for('resume.hub') }}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Resume Tools
+            </a>
+            <a href="{{ url_for('resume.upload') }}" class="btn btn-secondary me-2">
+                <i class="bi bi-upload"></i> Upload Another Resume
+            </a>
+            <a href="{{ url_for('resume.history') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-clock-history"></i> View History
+            </a>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function reviseResume() {
+    var btn = document.getElementById('reviseBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI is revising your resume...';
+
+    fetch('/resume/{{ assessment.resume_id }}/revise', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            target_industry: document.getElementById('reviseIndustry').value
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('revisedOutput').textContent = data.revised_text;
+            document.getElementById('beforeOutput').textContent = '{{ resume.extracted_text[:2000]|replace("'", "\\'") if resume and resume.extracted_text else "Original text not available" }}';
+            document.getElementById('changesOutput').textContent = data.changes;
+            document.getElementById('revisionResult').style.display = 'block';
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Revision Complete';
+        } else {
+            alert(data.message || 'Revision failed. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Generate Improved Resume';
+        }
+    })
+    .catch(function(err) {
+        alert('Connection error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Generate Improved Resume';
+    });
+}
+
+function copyRevised() {
+    var text = document.getElementById('revisedOutput').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        var btn = event.target.closest('button');
+        btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        setTimeout(function() { btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy Revised Resume'; }, 2000);
+    });
+}
+
+function downloadRevised() {
+    var text = document.getElementById('revisedOutput').textContent;
+    var blob = new Blob([text], {type: 'text/plain'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'revised_resume.txt';
+    a.click();
+}
+</script>
 {% endblock %}
