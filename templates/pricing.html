@@ -10,7 +10,7 @@
 
 <div class="row justify-content-center g-4">
     <div class="col-md-4">
-        <div class="card h-100 {% if current_user.tier == 'free' %}border-primary{% endif %}">
+        <div class="card h-100 {% if current_user.is_authenticated and current_user.tier == 'free' %}border-primary{% endif %}">
             <div class="card-header text-center">
                 <h3 style="margin-bottom: 0.25rem;">Free</h3>
                 <h2 class="display-4">$0</h2>
@@ -28,10 +28,12 @@
                 </ul>
             </div>
             <div class="card-footer text-center">
-                {% if current_user.tier == 'free' %}
+                {% if current_user.is_authenticated and current_user.tier == 'free' %}
                 <button class="btn btn-secondary" disabled>Current Plan</button>
-                {% else %}
+                {% elif current_user.is_authenticated %}
                 <button class="btn btn-outline-secondary" disabled>Your Tier: Premium</button>
+                {% else %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">Sign Up Free</a>
                 {% endif %}
             </div>
         </div>
@@ -57,11 +59,16 @@
                 </ul>
             </div>
             <div class="card-footer text-center">
-                {% if current_user.tier == 'premium' %}
+                {% if current_user.is_authenticated and current_user.is_premium() %}
                 <button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Current Plan</button>
+                {% elif current_user.is_authenticated %}
+                <button class="btn btn-primary btn-lg subscribe-btn" onclick="subscribe('monthly')">
+                    <i class="bi bi-credit-card"></i> Subscribe Monthly
+                </button>
                 {% else %}
-                <button class="btn btn-primary btn-lg" disabled><i class="bi bi-lock"></i> Coming Soon</button>
-                <small class="d-block mt-2 text-muted">Stripe Integration - Phase 4</small>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-person-plus"></i> Sign Up to Subscribe
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -86,11 +93,16 @@
                 </ul>
             </div>
             <div class="card-footer text-center">
-                {% if current_user.tier == 'premium' %}
+                {% if current_user.is_authenticated and current_user.is_premium() %}
                 <button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Premium Member</button>
+                {% elif current_user.is_authenticated %}
+                <button class="btn btn-primary btn-lg subscribe-btn" onclick="subscribe('annual')">
+                    <i class="bi bi-credit-card"></i> Subscribe Annually
+                </button>
                 {% else %}
-                <button class="btn btn-primary btn-lg" disabled><i class="bi bi-lock"></i> Coming Soon</button>
-                <small class="d-block mt-2 text-muted">Stripe Integration - Phase 4</small>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-person-plus"></i> Sign Up to Subscribe
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -145,4 +157,52 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function subscribe(plan) {
+    var buttons = document.querySelectorAll('.subscribe-btn');
+    buttons.forEach(function(btn) {
+        btn.disabled = true;
+    });
+
+    var clickedBtn = event.target.closest('.subscribe-btn');
+    if (clickedBtn) {
+        clickedBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Redirecting to checkout...';
+    }
+
+    fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ plan: plan })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success && data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else {
+            alert(data.message || 'Error creating checkout session. Please try again.');
+            buttons.forEach(function(btn) { btn.disabled = false; });
+            if (clickedBtn) {
+                clickedBtn.innerHTML = plan === 'monthly'
+                    ? '<i class="bi bi-credit-card"></i> Subscribe Monthly'
+                    : '<i class="bi bi-credit-card"></i> Subscribe Annually';
+            }
+        }
+    })
+    .catch(function(error) {
+        alert('Connection error. Please try again.');
+        buttons.forEach(function(btn) { btn.disabled = false; });
+        if (clickedBtn) {
+            clickedBtn.innerHTML = plan === 'monthly'
+                ? '<i class="bi bi-credit-card"></i> Subscribe Monthly'
+                : '<i class="bi bi-credit-card"></i> Subscribe Annually';
+        }
+    });
+}
+</script>
 {% endblock %}

@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Payment Cancelled - NewWhale Career{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <div class="card">
+            <div class="card-body py-5">
+                <i class="bi bi-x-circle text-warning" style="font-size: 4rem;"></i>
+                <h2 class="mt-3">Payment Cancelled</h2>
+                <p class="text-muted mt-3">
+                    No worries! Your payment was not processed. You can try again whenever you're ready.
+                </p>
+                <hr>
+                <div class="d-grid gap-2 col-8 mx-auto mt-4">
+                    <a href="{{ url_for('web.pricing') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-arrow-left"></i> Back to Pricing
+                    </a>
+                    <a href="{{ url_for('web.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-briefcase"></i> Browse Jobs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
