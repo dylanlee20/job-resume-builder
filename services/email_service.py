@@ -1,4 +1,5 @@
 """Email verification service for user registration"""
+import hashlib
 import secrets
 import smtplib
 import logging
@@ -21,9 +22,15 @@ class EmailService:
         return secrets.token_urlsafe(48)
 
     @staticmethod
+    def hash_token(token):
+        """One-way hash a token for safe DB storage (SHA-256)"""
+        return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+    @staticmethod
     def send_verification_email(user):
         """
         Generate a verification token and send the verification email.
+        Stores a SHA-256 hash of the token (not the plaintext).
 
         Args:
             user: User object (must have email set)
@@ -32,9 +39,16 @@ class EmailService:
             bool: True if email sent successfully, False otherwise
         """
         token = EmailService.generate_verification_token()
-        user.email_verification_token = token
+        token_hash = EmailService.hash_token(token)
+
+        user.email_verification_token = token_hash
         user.email_verification_sent_at = datetime.utcnow()
         db.session.commit()
+
+        logger.info(
+            "verification_token_created user_id=%s email=%s",
+            user.id, user.email
+        )
 
         verify_url = f"{Config.SITE_URL}/verify-email/{token}"
 
@@ -78,24 +92,40 @@ class EmailService:
             f"If you didn't create an account, ignore this email."
         )
 
-        return EmailService._send_email(user.email, subject, html_body, plain_body)
+        sent = EmailService._send_email(user.email, subject, html_body, plain_body)
+        if sent:
+            logger.info(
+                "verification_email_sent user_id=%s email=%s",
+                user.id, user.email
+            )
+        else:
+            logger.error(
+                "verification_email_failed user_id=%s email=%s",
+                user.id, user.email
+            )
+        return sent
 
     @staticmethod
     def verify_token(token):
         """
         Verify an email verification token and activate the user.
+        Compares SHA-256 hash of the supplied token against the stored hash.
 
         Args:
-            token: The verification token from the URL
+            token: The plaintext verification token from the URL
 
         Returns:
             tuple: (success: bool, message: str, user: User|None)
         """
-        user = User.query.filter_by(email_verification_token=token).first()
+        token_hash = EmailService.hash_token(token)
+        user = User.query.filter_by(email_verification_token=token_hash).first()
+
         if not user:
+            logger.warning("verify_token_invalid token_hash=%s", token_hash[:12])
             return False, 'Invalid or expired verification link.', None
 
         if user.email_verified:
+            logger.info("verify_token_already_verified user_id=%s", user.id)
             return True, 'Your email is already verified. You can sign in.', user
 
         # Check token expiry
@@ -104,12 +134,17 @@ class EmailService:
                 hours=Config.EMAIL_VERIFICATION_EXPIRY_HOURS
             )
             if datetime.utcnow() > expiry:
+                logger.warning(
+                    "verify_token_expired user_id=%s sent_at=%s",
+                    user.id, user.email_verification_sent_at
+                )
                 return False, 'This verification link has expired. Please request a new one.', user
 
         user.email_verified = True
-        user.email_verification_token = None
+        user.email_verification_token = None  # single-use: invalidate token
         db.session.commit()
 
+        logger.info("email_verified user_id=%s email=%s", user.id, user.email)
         return True, 'Your email has been verified! You can now sign in.', user
 
     @staticmethod
@@ -125,7 +160,12 @@ class EmailService:
 
         elapsed = (datetime.utcnow() - user.email_verification_sent_at).total_seconds()
         if elapsed < 60:
-            return False, int(60 - elapsed)
+            wait = int(60 - elapsed)
+            logger.info(
+                "resend_rate_limited user_id=%s wait_seconds=%s",
+                user.id, wait
+            )
+            return False, wait
 
         return True, 0
 
@@ -138,9 +178,9 @@ class EmailService:
             bool: True if sent successfully
         """
         if not Config.MAIL_USERNAME or not Config.MAIL_PASSWORD:
-            logger.warning(
-                "SMTP credentials not configured. Verification email NOT sent to %s. "
-                "Set MAIL_USERNAME and MAIL_PASSWORD in .env",
+            logger.error(
+                "smtp_not_configured: MAIL_USERNAME and MAIL_PASSWORD must be set in .env. "
+                "Email NOT sent to %s",
                 to_email
             )
             return False
@@ -164,8 +204,18 @@ class EmailService:
             server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
             server.sendmail(Config.MAIL_DEFAULT_SENDER, [to_email], msg.as_string())
             server.quit()
-            logger.info("Verification email sent to %s", to_email)
+            logger.info("smtp_email_sent to=%s subject=%s", to_email, subject)
             return True
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(
+                "smtp_auth_failed to=%s error=%s. "
+                "Check MAIL_USERNAME/MAIL_PASSWORD in .env",
+                to_email, e
+            )
+            return False
+        except smtplib.SMTPException as e:
+            logger.error("smtp_error to=%s error=%s", to_email, e)
+            return False
         except Exception as e:
-            logger.error("Failed to send email to %s: %s", to_email, e)
+            logger.error("email_send_unexpected_error to=%s error=%s", to_email, e)
             return False

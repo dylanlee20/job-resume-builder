@@ -5,7 +5,10 @@ from models.database import db
 from models.user import User
 from services.email_service import EmailService
 from datetime import datetime
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -32,11 +35,13 @@ def login():
 
         if user and user.check_password(password):
             if not user.is_active:
+                logger.warning("login_blocked_inactive user_id=%s", user.id)
                 flash('Your account has been disabled. Contact admin.', 'error')
                 return render_template('login.html')
 
             # Block unverified users (admins bypass)
             if not user.email_verified and not user.is_admin:
+                logger.info("login_blocked_unverified user_id=%s email=%s", user.id, user.email)
                 flash(
                     'Please verify your email before signing in. '
                     'Check your inbox or <a href="'
@@ -49,12 +54,14 @@ def login():
             login_user(user, remember=True)
             user.last_login = datetime.utcnow()
             db.session.commit()
+            logger.info("login_success user_id=%s username=%s", user.id, user.username)
 
             next_page = request.args.get('next')
             if not next_page or not next_page.startswith('/') or next_page.startswith('//'):
                 next_page = url_for('web.dashboard')
             return redirect(next_page)
         else:
+            logger.info("login_failed identifier=%s", username_or_email)
             flash('Invalid username/email or password', 'error')
 
     return render_template('login.html')
@@ -107,6 +114,8 @@ def register():
             db.session.add(user)
             db.session.commit()
 
+            logger.info("user_registered user_id=%s username=%s email=%s", user.id, username, email)
+
             # Send verification email
             sent = EmailService.send_verification_email(user)
 
@@ -156,6 +165,7 @@ def resend_verification():
 
     user = User.query.filter_by(email=email).first()
     if not user:
+        # Safe messaging — don't reveal whether the email is registered
         flash('If that email is registered, we sent a new verification link.', 'info')
         return redirect(url_for('auth.verification_pending', email=email))
 
