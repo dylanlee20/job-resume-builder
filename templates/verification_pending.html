@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}Verify Your Email - NewWhale Career{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="text-center mb-4">
+            <h2><i class="bi bi-envelope-check"></i> Check Your Email</h2>
+        </div>
+        <div class="card auth-card">
+            <div class="card-body p-4 text-center">
+                <div style="font-size: 3rem; color: var(--nw-accent); margin-bottom: 1rem;">
+                    <i class="bi bi-envelope-paper"></i>
+                </div>
+
+                {% if email %}
+                <p>We sent a verification link to:</p>
+                <p><strong style="color: var(--nw-accent);">{{ email }}</strong></p>
+                {% else %}
+                <p>We sent a verification link to your email address.</p>
+                {% endif %}
+
+                <p class="text-muted">
+                    Click the link in the email to activate your account.
+                    The link expires in 24 hours.
+                </p>
+
+                <hr>
+
+                <p class="text-muted small mb-2">Didn't receive the email?</p>
+
+                <div class="d-flex flex-column gap-2 align-items-center">
+                    <a href="{{ url_for('auth.resend_verification', email=email) }}"
+                       class="btn btn-outline-primary btn-sm" id="resendBtn">
+                        <i class="bi bi-arrow-repeat"></i> Resend Verification Email
+                    </a>
+
+                    <p class="text-muted small mt-2 mb-0">
+                        Check your spam/junk folder. Make sure <strong>{{ config.MAIL_DEFAULT_SENDER if config else 'noreply@newwhaletech.com' }}</strong> is not blocked.
+                    </p>
+                </div>
+
+                <hr>
+
+                <p class="mb-0 text-muted small">
+                    Already verified? <a href="{{ url_for('auth.login') }}">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
