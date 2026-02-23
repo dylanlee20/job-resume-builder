@@ -2,8 +2,8 @@
 NewWhale Career v2 - Application Factory
 AI-Proof Industries Job Tracker with Resume Assessment
 """
-from flask import Flask
-from flask_login import LoginManager
+from flask import Flask, request as flask_request, redirect, url_for, flash
+from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from models.database import db, init_db
 from models.user import User, create_admin_user
@@ -56,7 +56,27 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-    
+
+    # Force-logout unverified users on every request
+    @app.before_request
+    def enforce_email_verification():
+        if current_user.is_authenticated and not current_user.is_admin:
+            if not current_user.email_verified:
+                # Allow access to auth/verification/static routes only
+                allowed_endpoints = {
+                    'auth.logout', 'auth.verify_email',
+                    'auth.verification_pending', 'auth.resend_verification',
+                    'static',
+                }
+                if flask_request.endpoint not in allowed_endpoints:
+                    logout_user()
+                    flash(
+                        'Please verify your email before continuing. '
+                        'Check your inbox for the verification link.',
+                        'warning'
+                    )
+                    return redirect(url_for('auth.login'))
+
     # Create default admin account
     with app.app_context():
         create_admin_user(
