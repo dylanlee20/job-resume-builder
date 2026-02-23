@@ -171,15 +171,35 @@ def update_user_tier(user, new_tier):
 ## Current Status
 ✅ Phase 1: Foundation complete
 ✅ Phase 2: AI-Proof filtering complete (core logic)
-⏳ Phase 3: Resume assessment (in progress)
-⏳ Phase 4: Payment integration
-⏳ Phase 5: Resume revision
-⏳ Phase 6: UI polish
-⏳ Phase 7: Deployment
+✅ Phase 3: Resume assessment (basic upload + parse + LLM assessment working)
+✅ Phase 4: Payment integration (Stripe checkout, webhooks, subscription management)
+⏳ Phase 5: User experience overhaul (in progress)
+⏳ Phase 6: Resume builder 3-mode system
+⏳ Phase 7: Cold email outreach (annual plan)
+⏳ Phase 8: UI polish & deployment
 
-## Next Steps
-1. Implement resume parsing (pdfminer.six, python-docx)
-2. Integrate OpenAI API for assessments
-3. Build resume upload routes
-4. Create assessment result templates
-5. Add rate limiting for free tier
+## Active Development Goals
+
+### Goal 1: Smooth Registration & Public Landing Page
+- Public landing page showing all features BEFORE requiring login
+- Smooth email-based registration with real-time validation
+- Auto-login after registration
+- Guest can browse jobs, see pricing, understand features without account
+
+### Goal 2: 3-Mode Resume System
+- **Mode 1 - Build from Scratch**: Guided form where user enters info (education, experience, skills, etc.) and AI generates a professional resume
+- **Mode 2 - Format Draft**: User pastes unformatted resume text, AI reformats it professionally
+- **Mode 3 - Improve Existing**: User uploads existing resume
+  - FREE: AI assessment with score + recommendations
+  - PAID: Direct AI-powered improvements with highlighted before/after comparisons
+
+### Goal 3: Cold Email Outreach (Annual Plan Only)
+- Input: company name, contact email, email template, preloaded resume
+- Bulk send personalized cold emails
+- Track opens and replies
+- Annual plan exclusive feature
+
+### Pricing
+- **Free**: Job listings, 3 resume assessments/day, resume builder (basic)
+- **Premium Monthly ($30/mo)**: Unlimited assessments, AI resume revision with before/after, resume builder (all modes)
+- **Premium Annual ($252/yr)**: Everything in monthly + Cold Email outreach system, career coaching (coming)

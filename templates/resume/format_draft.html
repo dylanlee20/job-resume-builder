@@ -1,0 +1,199 @@
+{% extends "layout.html" %}
+{% block title %}Format Resume - NewWhale Career{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="mb-4">
+            <a href="{{ url_for('resume.hub') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Resume Tools
+            </a>
+        </div>
+
+        <div class="card" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <h2><i class="bi bi-layout-text-window-reverse"></i> Format My Resume</h2>
+                    <p class="text-muted">Paste your unformatted resume text and our AI will transform it into a professional format</p>
+                </div>
+
+                <div id="inputSection">
+                    <div class="mb-3">
+                        <label class="form-label">Target Industry (optional)</label>
+                        <select class="form-select" id="targetIndustry">
+                            <option value="">General / Auto-detect</option>
+                            <option value="Investment Banking">Investment Banking</option>
+                            <option value="Sales & Trading">Sales & Trading</option>
+                            <option value="Portfolio Management">Portfolio Management</option>
+                            <option value="Risk Management">Risk Management</option>
+                            <option value="M&A Advisory">M&A Advisory</option>
+                            <option value="Private Equity">Private Equity</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Consulting">Consulting</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Paste Your Resume Text <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="draftText" rows="15" required
+                                  placeholder="Paste your unformatted resume content here. It can be messy - just include all your information like:
+
+John Doe
+john@email.com, 555-1234
+New York
+
+Education:
+Harvard 2018-2022 Finance degree GPA 3.8
+
+Experience:
+Goldman Sachs Analyst 2022-present
+Built financial models, did due diligence on deals worth $500M+
+Prepared pitch decks for client meetings
+
+Skills: Excel, Python, VBA, Bloomberg
+
+Our AI will restructure this into a clean, professional format."></textarea>
+                        <div class="form-text">
+                            <span id="charCount">0</span> characters
+                            <span class="text-muted ms-2">(min 50 characters recommended)</span>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button class="btn btn-primary btn-lg" id="formatBtn" onclick="formatResume()">
+                            <i class="bi bi-magic"></i> Format My Resume
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Result -->
+                <div id="resultSection" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0"><i class="bi bi-check-circle-fill text-success"></i> Formatted Resume</h4>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showInput()">
+                            <i class="bi bi-pencil"></i> Edit Input
+                        </button>
+                    </div>
+
+                    <!-- Before/After Toggle -->
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#formattedTab">
+                                <i class="bi bi-file-earmark-check"></i> Formatted
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#originalTab">
+                                <i class="bi bi-file-earmark-text"></i> Original
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="formattedTab">
+                            <div class="card p-4" style="background: var(--nw-bg); border-radius: 8px;">
+                                <pre id="formattedOutput" style="white-space: pre-wrap; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.6; color: var(--nw-text);"></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="originalTab">
+                            <div class="card p-4" style="background: #fff8f0; border-radius: 8px;">
+                                <pre id="originalOutput" style="white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: var(--nw-text-light);"></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button class="btn btn-primary me-2" onclick="copyFormatted()">
+                            <i class="bi bi-clipboard"></i> Copy to Clipboard
+                        </button>
+                        <button class="btn btn-outline-secondary me-2" onclick="downloadFormatted()">
+                            <i class="bi bi-download"></i> Download as Text
+                        </button>
+                        <a href="{{ url_for('resume.hub') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Tools
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var draftArea = document.getElementById('draftText');
+draftArea.addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+});
+
+function formatResume() {
+    var text = draftArea.value.trim();
+    if (text.length < 20) {
+        alert('Please paste your resume text (at least 20 characters).');
+        return;
+    }
+
+    var btn = document.getElementById('formatBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Formatting with AI...';
+
+    fetch('{{ url_for("resume.api_format") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            draft_text: text,
+            target_industry: document.getElementById('targetIndustry').value
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('formattedOutput').textContent = data.formatted_text;
+            document.getElementById('originalOutput').textContent = text;
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        } else {
+            alert(data.message || 'Error formatting resume. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-magic"></i> Format My Resume';
+        }
+    })
+    .catch(function(err) {
+        alert('Connection error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-magic"></i> Format My Resume';
+    });
+}
+
+function showInput() {
+    document.getElementById('inputSection').style.display = 'block';
+    document.getElementById('resultSection').style.display = 'none';
+    var btn = document.getElementById('formatBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-magic"></i> Format My Resume';
+}
+
+function copyFormatted() {
+    var text = document.getElementById('formattedOutput').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        var btn = event.target.closest('button');
+        btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        setTimeout(function() { btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy to Clipboard'; }, 2000);
+    });
+}
+
+function downloadFormatted() {
+    var text = document.getElementById('formattedOutput').textContent;
+    var blob = new Blob([text], {type: 'text/plain'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'formatted_resume.txt';
+    a.click();
+}
+</script>
+{% endblock %}

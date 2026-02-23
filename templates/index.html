@@ -30,7 +30,7 @@
     <div class="col-md-12">
         <div class="card" style="border-radius: 10px;">
             <div class="card-body py-2 px-3">
-                <form method="GET" class="row g-2 align-items-end">
+                <form method="GET" action="{{ url_for('web.dashboard') }}" class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label small mb-0">Company</label>
                         <select name="company" class="form-select form-select-sm">
@@ -76,7 +76,7 @@
                     </div>
                     <div class="col-md-2 text-end">
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filter</button>
-                        <a href="/" class="btn btn-sm btn-outline-secondary">Clear</a>
+                        <a href="{{ url_for('web.dashboard') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
                     </div>
                 </form>
             </div>

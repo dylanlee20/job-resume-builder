@@ -1,0 +1,234 @@
+{% extends "layout.html" %}
+{% block title %}{{ campaign.name }} - NewWhale Career{% endblock %}
+{% block content %}
+
+<div class="mb-3">
+    <a href="{{ url_for('outreach.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Campaigns
+    </a>
+</div>
+
+<!-- Campaign Header -->
+<div class="card mb-4" style="border-radius: 12px;">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h2 class="mb-1">{{ campaign.name }}</h2>
+                <p class="text-muted mb-0">
+                    Created {{ campaign.created_at.strftime('%B %d, %Y') }}
+                    <span class="badge ms-2 {% if campaign.status == 'active' %}bg-success{% elif campaign.status == 'draft' %}bg-secondary{% else %}bg-primary{% endif %}">
+                        {{ campaign.status|capitalize }}
+                    </span>
+                </p>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="previewEmail()">
+                <i class="bi bi-eye"></i> Preview Email
+            </button>
+        </div>
+
+        <!-- Stats -->
+        {% if stats %}
+        <div class="row mt-4 text-center">
+            <div class="col">
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--nw-navy);">{{ stats.total }}</div>
+                <small class="text-muted">Total Recipients</small>
+            </div>
+            <div class="col">
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--nw-blue);">{{ stats.sent }}</div>
+                <small class="text-muted">Sent</small>
+            </div>
+            <div class="col">
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--nw-accent);">{{ stats.opened }}</div>
+                <small class="text-muted">Opened</small>
+            </div>
+            <div class="col">
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--nw-success);">{{ stats.replied }}</div>
+                <small class="text-muted">Replied</small>
+            </div>
+            <div class="col">
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--nw-blue);">{{ stats.open_rate }}%</div>
+                <small class="text-muted">Open Rate</small>
+            </div>
+            <div class="col">
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--nw-success);">{{ stats.reply_rate }}%</div>
+                <small class="text-muted">Reply Rate</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Recipients -->
+<div class="card mb-4" style="border-radius: 12px;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-person-plus"></i> Add Recipients</h5>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#csvUpload">
+            <i class="bi bi-file-earmark-csv"></i> Import CSV
+        </button>
+    </div>
+    <div class="card-body">
+        <!-- Single recipient form -->
+        <form method="POST" action="{{ url_for('outreach.add_recipients', campaign_id=campaign.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small">Email <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control form-control-sm" name="email" required placeholder="contact@company.com">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Name</label>
+                    <input type="text" class="form-control form-control-sm" name="name" placeholder="Jane Smith">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Company</label>
+                    <input type="text" class="form-control form-control-sm" name="company" placeholder="Goldman Sachs">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Title</label>
+                    <input type="text" class="form-control form-control-sm" name="title" placeholder="VP, IB">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-plus"></i> Add
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- CSV Upload (collapsed) -->
+        <div class="collapse mt-3" id="csvUpload">
+            <div class="card p-3" style="background: var(--nw-bg);">
+                <form method="POST" action="{{ url_for('outreach.add_recipients', campaign_id=campaign.id) }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <p class="small mb-2">Upload a CSV file with columns: <code>email</code>, <code>name</code>, <code>company</code>, <code>title</code></p>
+                    <div class="d-flex gap-2">
+                        <input type="file" class="form-control form-control-sm" name="csv_file" accept=".csv" required>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-upload"></i> Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recipients List -->
+<div class="card" style="border-radius: 12px;">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-people"></i> Recipients ({{ recipients|length }})</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if recipients %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Opened</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recipients %}
+                    <tr>
+                        <td>{{ r.email }}</td>
+                        <td>{{ r.name or '-' }}</td>
+                        <td>{{ r.company or '-' }}</td>
+                        <td>{{ r.title or '-' }}</td>
+                        <td>
+                            <span class="badge {% if r.status == 'replied' %}bg-success{% elif r.status == 'opened' %}bg-info{% elif r.status == 'sent' %}bg-primary{% elif r.status == 'bounced' or r.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ r.status|capitalize }}
+                            </span>
+                        </td>
+                        <td class="small text-muted">
+                            {% if r.opened_at %}
+                            {{ r.opened_at.strftime('%b %d %H:%M') }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.status in ('sent', 'opened') %}
+                            <button class="btn btn-sm btn-outline-success" onclick="markReplied({{ r.id }})">
+                                <i class="bi bi-reply"></i> Mark Replied
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-muted mb-0">No recipients added yet. Add contacts above to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Email Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Email Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>To:</strong> <span id="previewTo" class="text-muted"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Subject:</strong> <span id="previewSubject"></span>
+                </div>
+                <hr>
+                <div id="previewBody" style="white-space: pre-wrap; font-family: -apple-system, sans-serif; line-height: 1.6;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewEmail() {
+    fetch('{{ url_for("outreach.preview_email", campaign_id=campaign.id) }}')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('previewTo').textContent = data.recipient.email;
+            document.getElementById('previewSubject').textContent = data.subject;
+            document.getElementById('previewBody').textContent = data.body;
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        } else {
+            alert(data.message || 'Add recipients first to preview.');
+        }
+    });
+}
+
+function markReplied(recipientId) {
+    if (!confirm('Mark this recipient as replied?')) return;
+
+    fetch('/outreach/campaign/{{ campaign.id }}/recipient/' + recipientId + '/mark-replied', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

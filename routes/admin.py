@@ -19,7 +19,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            return redirect(url_for('web.index'))
+            return redirect(url_for('web.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
