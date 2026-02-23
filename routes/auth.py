@@ -36,17 +36,6 @@ def login():
                 flash('Your account has been disabled. Contact admin.', 'error')
                 return render_template('login.html')
 
-            # Block unverified users (admins bypass)
-            if not user.email_verified and not user.is_admin:
-                flash(
-                    'Please verify your email before signing in. '
-                    'Check your inbox or <a href="'
-                    + url_for('auth.resend_verification', email=user.email)
-                    + '">resend the verification email</a>.',
-                    'warning'
-                )
-                return render_template('login.html')
-
             login_user(user, remember=True)
             user.last_login = datetime.utcnow()
             db.session.commit()
@@ -64,7 +53,7 @@ def login():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration page"""
+    """User registration — create account, auto-login, go to dashboard"""
     if current_user.is_authenticated:
         return redirect(url_for('web.dashboard'))
 
@@ -99,7 +88,7 @@ def register():
             for error in errors:
                 flash(error, 'error')
         else:
-            # Create new user (unverified)
+            # Create new user
             user = User(
                 username=username,
                 email=email,
@@ -110,47 +99,43 @@ def register():
             db.session.add(user)
             db.session.commit()
 
-            # Send verification email
-            sent = EmailService.send_verification_email(user)
+            # Send verification email (best-effort, don't block the user)
+            EmailService.send_verification_email(user)
 
-            if sent:
-                flash(
-                    'Account created! We sent a verification link to '
-                    f'<strong>{email}</strong>. Please check your inbox.',
-                    'success'
-                )
-            else:
-                flash(
-                    'Account created! However, we could not send the verification email. '
-                    'Please try resending it.',
-                    'warning'
-                )
+            # Auto-login and go straight to dashboard
+            login_user(user, remember=True)
+            user.last_login = datetime.utcnow()
+            db.session.commit()
 
-            return redirect(url_for('auth.verification_pending', email=email))
+            flash('Welcome to NewWhale! Check your email to verify your account.', 'success')
+            return redirect(url_for('web.dashboard'))
 
     return render_template('register.html')
 
 
 @auth_bp.route('/verify-email/<token>')
 def verify_email(token):
-    """Handle email verification link clicks"""
+    """Handle email verification link — verify, auto-login, go to dashboard"""
     success, message, user = EmailService.verify_token(token)
 
     if success:
-        flash(message, 'success')
-        return redirect(url_for('auth.login'))
+        # Auto-login if not already logged in
+        if not current_user.is_authenticated:
+            login_user(user, remember=True)
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+        flash('Email verified! You\'re all set.', 'success')
+        return redirect(url_for('web.dashboard'))
     else:
-        if user and not user.email_verified:
-            # Token expired — offer to resend
-            flash(message, 'error')
-            return redirect(url_for('auth.verification_pending', email=user.email))
         flash(message, 'error')
+        if user and not user.email_verified:
+            return redirect(url_for('auth.verification_pending', email=user.email))
         return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/verification-pending')
 def verification_pending():
-    """Page shown after registration while email is unverified"""
+    """Fallback page for expired/failed verification tokens"""
     email = request.args.get('email', '')
     return render_template('verification_pending.html', email=email)
 
@@ -158,42 +143,35 @@ def verification_pending():
 @auth_bp.route('/resend-verification')
 def resend_verification():
     """Resend verification email"""
-    email = request.args.get('email', '').strip().lower()
-    if not email:
-        flash('No email address provided.', 'error')
-        return redirect(url_for('auth.login'))
+    # If logged in, use current user's email
+    if current_user.is_authenticated and not current_user.email_verified:
+        user = current_user
+    else:
+        email = request.args.get('email', '').strip().lower()
+        if not email:
+            flash('No email address provided.', 'error')
+            return redirect(url_for('auth.login'))
+        user = User.query.filter_by(email=email).first()
 
-    user = User.query.filter_by(email=email).first()
     if not user:
-        # Don't reveal whether the email exists
-        flash(
-            'If that email is registered, we sent a new verification link.',
-            'info'
-        )
-        return redirect(url_for('auth.verification_pending', email=email))
+        flash('If that email is registered, we sent a new verification link.', 'info')
+        return redirect(request.referrer or url_for('auth.login'))
 
     if user.email_verified:
-        flash('Your email is already verified. You can sign in.', 'success')
-        return redirect(url_for('auth.login'))
+        flash('Your email is already verified.', 'success')
+        return redirect(url_for('web.dashboard'))
 
     can_send, wait_seconds = EmailService.can_resend(user)
     if not can_send:
-        flash(
-            f'Please wait {wait_seconds} seconds before requesting another email.',
-            'warning'
-        )
-        return redirect(url_for('auth.verification_pending', email=email))
-
-    sent = EmailService.send_verification_email(user)
-    if sent:
-        flash('Verification email resent! Check your inbox.', 'success')
+        flash(f'Please wait {wait_seconds} seconds before requesting another email.', 'warning')
     else:
-        flash(
-            'Could not send verification email. Please try again later or contact support.',
-            'error'
-        )
+        sent = EmailService.send_verification_email(user)
+        if sent:
+            flash('Verification email sent! Check your inbox.', 'success')
+        else:
+            flash('Could not send email. Please try again later.', 'error')
 
-    return redirect(url_for('auth.verification_pending', email=email))
+    return redirect(request.referrer or url_for('web.dashboard'))
 
 
 @auth_bp.route('/api/check-username')

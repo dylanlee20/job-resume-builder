@@ -57,25 +57,12 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Force-logout unverified users on every request
-    @app.before_request
-    def enforce_email_verification():
+    # Make email verification status available to all templates
+    @app.context_processor
+    def inject_verification_status():
         if current_user.is_authenticated and not current_user.is_admin:
-            if not current_user.email_verified:
-                # Allow access to auth/verification/static routes only
-                allowed_endpoints = {
-                    'auth.logout', 'auth.verify_email',
-                    'auth.verification_pending', 'auth.resend_verification',
-                    'static',
-                }
-                if flask_request.endpoint not in allowed_endpoints:
-                    logout_user()
-                    flash(
-                        'Please verify your email before continuing. '
-                        'Check your inbox for the verification link.',
-                        'warning'
-                    )
-                    return redirect(url_for('auth.login'))
+            return {'needs_email_verification': not current_user.email_verified}
+        return {'needs_email_verification': False}
 
     # Create default admin account
     with app.app_context():
