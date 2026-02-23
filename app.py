@@ -57,13 +57,6 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Make email verification status available to all templates
-    @app.context_processor
-    def inject_verification_status():
-        if current_user.is_authenticated and not current_user.is_admin:
-            return {'needs_email_verification': not current_user.email_verified}
-        return {'needs_email_verification': False}
-
     # Create default admin account
     with app.app_context():
         create_admin_user(

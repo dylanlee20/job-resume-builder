@@ -104,18 +104,6 @@
             {% endif %}
         {% endwith %}
 
-        {% if needs_email_verification %}
-        <div class="alert alert-warning d-flex align-items-center justify-content-between py-2 mb-3" role="alert">
-            <span>
-                <i class="bi bi-envelope-exclamation me-1"></i>
-                Please verify your email — check your inbox for the verification link.
-            </span>
-            <a href="{{ url_for('auth.resend_verification') }}" class="btn btn-sm btn-outline-warning ms-2">
-                Resend Email
-            </a>
-        </div>
-        {% endif %}
-
         {% block content %}{% endblock %}
     </div>
 
