@@ -1,0 +1,82 @@
+{% extends 'layout.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <h4 class="card-title mb-1 fw-bold">Sign in to NewWhale</h4>
+          <p class="text-muted small mb-4">AI-proof your finance career</p>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message | safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endwith %}
+
+          <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+              <label for="username" class="form-label">Username or Email</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                class="form-control"
+                value="{{ username | default('') }}"
+                placeholder="Enter username or email"
+                required
+                autofocus
+              >
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                class="form-control"
+                placeholder="Enter password"
+                required
+              >
+            </div>
+
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+              <label class="form-check-label" for="remember_me">Remember me</label>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Sign In</button>
+            </div>
+          </form>
+
+          {% if show_resend is defined and show_resend %}
+          <div class="alert alert-info mt-3 small">
+            Need a new verification link?
+            <a href="{{ url_for('auth.resend_verification') }}?email={{ resend_email | urlencode }}">Resend it here</a>.
+          </div>
+          {% endif %}
+
+          <hr class="my-3">
+          <p class="text-center small mb-0">
+            Don't have an account?
+            <a href="{{ url_for('auth.register') }}">Register for free</a>
+          </p>
+          <p class="text-center small mt-2 mb-0">
+            <a href="{{ url_for('auth.resend_verification') }}">Resend verification email</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
