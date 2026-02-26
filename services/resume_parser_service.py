@@ -71,11 +71,11 @@ class ResumeParserService:
     @staticmethod
     def extract_sections(text):
         """
-        Extract common resume sections
-        
+        Extract common resume sections by splitting on header lines.
+
         Args:
             text: Resume text
-        
+
         Returns:
             dict: Sections dict {section_name: content}
         """
@@ -86,39 +86,68 @@ class ResumeParserService:
             'summary': '',
             'other': ''
         }
-        
+
         if not text:
             return sections
-        
-        # Common section headers (case-insensitive)
-        education_keywords = ['education', 'academic background', 'qualifications']
-        experience_keywords = ['experience', 'work history', 'employment', 'professional experience']
-        skills_keywords = ['skills', 'technical skills', 'competencies']
-        summary_keywords = ['summary', 'objective', 'profile', 'about']
-        
-        # Simple section detection (can be enhanced)
-        text_lower = text.lower()
-        
-        # Find education section
-        for keyword in education_keywords:
-            if keyword in text_lower:
-                sections['education'] = text  # Simplified: return full text
-                break
-        
-        # Find experience section
-        for keyword in experience_keywords:
-            if keyword in text_lower:
-                sections['experience'] = text  # Simplified: return full text
-                break
-        
-        # Find skills section
-        for keyword in skills_keywords:
-            if keyword in text_lower:
-                sections['skills'] = text  # Simplified: return full text
-                break
-        
-        # If no sections found, put everything in 'other'
-        if not any(sections.values()):
-            sections['other'] = text
-        
+
+        # Map keywords → section keys (order matters: longer phrases first)
+        header_map = [
+            ('professional experience', 'experience'),
+            ('work experience', 'experience'),
+            ('work history', 'experience'),
+            ('employment', 'experience'),
+            ('experience', 'experience'),
+            ('academic background', 'education'),
+            ('qualifications', 'education'),
+            ('education', 'education'),
+            ('technical skills', 'skills'),
+            ('competencies', 'skills'),
+            ('skills', 'skills'),
+            ('professional summary', 'summary'),
+            ('objective', 'summary'),
+            ('profile', 'summary'),
+            ('summary', 'summary'),
+            ('about', 'summary'),
+        ]
+
+        # Build a regex that matches any header keyword on its own line
+        # e.g. "EDUCATION", "Education:", "== Experience ==", "SKILLS & TOOLS"
+        keywords_pattern = '|'.join(re.escape(kw) for kw, _ in header_map)
+        header_re = re.compile(
+            rf'^[=\-\s]*({keywords_pattern})[:\s=\-]*$',
+            re.IGNORECASE | re.MULTILINE,
+        )
+
+        # Find all header positions
+        matches = list(header_re.finditer(text))
+
+        if not matches:
+            # No recognisable headers — put everything in 'other'
+            sections['other'] = text.strip()
+            return sections
+
+        # Content before the first header → 'summary' or 'other'
+        preamble = text[:matches[0].start()].strip()
+        if preamble:
+            sections['summary'] = preamble
+
+        # Extract content between consecutive headers
+        for i, match in enumerate(matches):
+            matched_keyword = match.group(1).lower().strip()
+            section_key = 'other'
+            for kw, key in header_map:
+                if kw == matched_keyword:
+                    section_key = key
+                    break
+
+            start = match.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            content = text[start:end].strip()
+
+            # Append if the section already has content (e.g., two "Skills" headers)
+            if sections[section_key]:
+                sections[section_key] += '\n\n' + content
+            else:
+                sections[section_key] = content
+
         return sections

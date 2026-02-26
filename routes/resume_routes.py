@@ -1,7 +1,12 @@
 """Resume upload, assessment, builder, and revision routes"""
+import os
+import logging
+from datetime import datetime
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+
 from models.database import db
 from models.resume import Resume
 from models.resume_assessment import ResumeAssessment
@@ -10,8 +15,9 @@ from services.resume_assessment_service import ResumeAssessmentService
 from services.resume_builder_service import ResumeBuilderService
 from utils.validation import validate_resume_file
 from utils.resume_utils import generate_stored_filename, get_upload_path, delete_resume_file
-from datetime import datetime
-import logging
+
+# Maximum character length for text fields sent to LLM
+_MAX_TEXT_LEN = 5000
 
 logger = logging.getLogger(__name__)
 resume_bp = Blueprint('resume', __name__, url_prefix='/resume')
@@ -47,7 +53,25 @@ def api_build():
     if not data:
         return jsonify({'success': False, 'message': 'No data provided'}), 400
 
-    result = ResumeBuilderService.build_from_scratch(data)
+    # Input validation — require full_name, enforce max lengths
+    full_name = (data.get('full_name') or '').strip()
+    if not full_name:
+        return jsonify({'success': False, 'message': 'Full name is required'}), 400
+
+    # Truncate all string values to prevent oversized payloads reaching the LLM
+    sanitised = {}
+    for key, value in data.items():
+        if isinstance(value, str):
+            sanitised[key] = value[:_MAX_TEXT_LEN]
+        elif isinstance(value, list):
+            sanitised[key] = [
+                (v[:_MAX_TEXT_LEN] if isinstance(v, str) else v)
+                for v in value
+            ]
+        else:
+            sanitised[key] = value
+
+    result = ResumeBuilderService.build_from_scratch(sanitised)
 
     if result['success']:
         # Save the generated resume
@@ -88,8 +112,11 @@ def api_format():
     if not data:
         return jsonify({'success': False, 'message': 'No data provided'}), 400
 
-    draft_text = data.get('draft_text', '').strip()
-    target_industry = data.get('target_industry', '')
+    draft_text = (data.get('draft_text') or '').strip()[:_MAX_TEXT_LEN]
+    target_industry = (data.get('target_industry') or '').strip()[:200]
+
+    if len(draft_text) < 20:
+        return jsonify({'success': False, 'message': 'Please provide more resume text (at least 20 characters)'}), 400
 
     result = ResumeBuilderService.format_draft(draft_text, target_industry)
 
@@ -112,6 +139,27 @@ def api_format():
         except Exception as e:
             logger.error(f"Error saving formatted resume: {e}")
 
+    return jsonify(result)
+
+
+# ── Brainstorm API ────────────────────────────────────────────────
+
+@resume_bp.route('/api/brainstorm', methods=['POST'])
+@login_required
+def api_brainstorm():
+    """API: Generate bullet-point suggestions for a resume section"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+    section = (data.get('section') or '').strip()[:50]
+    context = (data.get('context') or '').strip()[:500]
+    target_industry = (data.get('target_industry') or '').strip()[:200]
+
+    if section not in ('experience', 'skills'):
+        return jsonify({'success': False, 'message': 'Invalid section'}), 400
+
+    result = ResumeBuilderService.brainstorm_bullets(section, context, target_industry)
     return jsonify(result)
 
 
@@ -141,7 +189,7 @@ def upload():
             file_type = 'pdf' if original_filename.lower().endswith('.pdf') else 'docx'
 
             file.save(file_path)
-            file_size = file.tell()
+            file_size = os.path.getsize(file_path)
 
             resume = Resume(
                 user_id=current_user.id,
