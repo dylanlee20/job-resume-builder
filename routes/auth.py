@@ -1,16 +1,19 @@
 """Authentication routes: register, login, logout, email verification."""
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, jsonify, current_app,
+    url_for, flash, jsonify,
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
+from config import Config
 from models.database import db
 from models.user import User
+from models.email_verification_token import EmailVerificationToken
 from services.email_service import EmailService
+from utils.rate_limiter import register_limiter, resend_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +24,33 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _send_verification(user: User) -> None:
-    """Generate a fresh token and fire the verification email.
+def _build_verify_url(raw_token: str) -> str:
+    """Build the full verification URL for an email link."""
+    base = Config.APP_BASE_URL.rstrip('/')
+    return f"{base}/auth/verify-email?token={raw_token}"
 
-    Commits the token to the DB before sending so the link is always valid
-    even if the email send fails.
+
+def _send_verification(user: User) -> None:
+    """Generate a new token and send the verification email.
+
+    Commits the token to the DB before sending so the link is valid
+    even if the email delivery fails.
     """
-    token = user.generate_verification_token()
-    db.session.commit()  # Persist token first
-    ok, err = EmailService.send_verification_email(user.email, user.username, token)
+    raw_token = EmailVerificationToken.create_for_user(user.id)
+    db.session.commit()
+
+    verify_url = _build_verify_url(raw_token)
+    ok, err = EmailService.send_verification_email(user.email, user.username, verify_url)
     if not ok:
-        logger.error("Failed to send verification email to %s: %s", user.email, err)
+        logger.error("Failed to send verification email for user_id=%s: %s", user.id, err)
+
+
+# Generic message that does not reveal whether an email is registered
+_GENERIC_REGISTER_MSG = 'If your details are valid, a verification email has been sent. Please check your inbox.'
+_GENERIC_RESEND_MSG = (
+    'If that email is registered and unverified, '
+    'we have sent a new verification link. Please check your inbox (and spam folder).'
+)
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +69,13 @@ def register():
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
 
-        # --- Basic validation ---
+        # --- IP-based rate limiting ---
+        client_ip = request.remote_addr or '0.0.0.0'
+        if not register_limiter.is_allowed(client_ip):
+            flash('Too many registration attempts. Please try again later.', 'danger')
+            return render_template('auth/register.html', username=username, email=email)
+
+        # --- Input validation ---
         errors = []
         if not username or len(username) < 3:
             errors.append('Username must be at least 3 characters.')
@@ -68,19 +93,21 @@ def register():
                                    username=username, email=email)
 
         # --- Uniqueness checks ---
+        # Username: OK to reveal taken (usernames are public identifiers)
         if User.query.filter(
             db.func.lower(User.username) == username.lower()
         ).first():
             flash('That username is already taken.', 'danger')
             return render_template('auth/register.html', email=email)
 
+        # Email: do NOT reveal whether it exists — use generic message
         if User.query.filter(
             db.func.lower(User.email) == email
         ).first():
-            flash('An account with that email already exists.', 'danger')
-            return render_template('auth/register.html', username=username)
+            flash(_GENERIC_REGISTER_MSG, 'success')
+            return redirect(url_for('auth.login'))
 
-        # --- Create user ---
+        # --- Create user (unverified) ---
         user = User(
             username=username,
             email=email,
@@ -89,21 +116,18 @@ def register():
         )
         user.set_password(password)
         db.session.add(user)
-        db.session.flush()  # Get user.id before sending email
+        db.session.flush()  # Get user.id
 
-        # Generate & persist token, then send email
-        token = user.generate_verification_token()
+        # Generate token and send email
+        raw_token = EmailVerificationToken.create_for_user(user.id)
         db.session.commit()
 
-        ok, err = EmailService.send_verification_email(user.email, user.username, token)
+        verify_url = _build_verify_url(raw_token)
+        ok, err = EmailService.send_verification_email(user.email, user.username, verify_url)
         if not ok:
-            logger.error("Verification email failed for %s: %s", email, err)
-            # Don't block registration — user can resend later
+            logger.error("Verification email failed for user_id=%s: %s", user.id, err)
 
-        flash(
-            'Account created! Please check your email to verify your address before logging in.',
-            'success',
-        )
+        flash(_GENERIC_REGISTER_MSG, 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('auth/register.html')
@@ -143,7 +167,8 @@ def login():
         if user.needs_email_verification():
             flash(
                 'Please verify your email address before logging in. '
-                '<a href="' + url_for('auth.resend_verification') + '?email=' + user.email + '">Resend verification email</a>',
+                '<a href="' + url_for('auth.resend_verification') + '?email=' + user.email + '">'
+                'Resend verification email</a>',
                 'warning',
             )
             return render_template('auth/login.html', username=identifier,
@@ -174,53 +199,48 @@ def logout():
 
 
 # ---------------------------------------------------------------------------
-# Email verification
+# Email verification — GET /auth/verify-email?token=...
 # ---------------------------------------------------------------------------
 
-@auth_bp.route('/verify-email/<token>')
-def verify_email(token: str):
-    """Handle the email verification link."""
-    # Find user by token
-    user = User.query.filter_by(email_verification_token=token).first()
+@auth_bp.route('/verify-email')
+def verify_email():
+    """Handle the email verification link (query-param based)."""
+    raw_token = request.args.get('token', '').strip()
 
-    if user is None:
-        # Could be already verified (token cleared) — give a helpful message
-        flash(
-            'This verification link is invalid or has already been used. '
-            'If you are already verified, please log in.',
-            'warning',
-        )
+    if not raw_token:
+        flash('Missing verification token.', 'warning')
         return redirect(url_for('auth.login'))
 
-    if user.email_verified:
-        # Edge case: token still present but already verified
-        user.email_verification_token = None
-        user.email_verification_sent_at = None
-        db.session.commit()
-        flash('Your email is already verified. Please log in.', 'info')
-        return redirect(url_for('auth.login'))
+    token_record = EmailVerificationToken.verify(raw_token)
 
-    success = user.verify_email_token(token)
-    if not success:
-        # Token is expired
+    if token_record is None:
         flash(
-            'This verification link has expired. '
-            '<a href="' + url_for('auth.resend_verification') + '?email=' + user.email + '">'
-            'Click here to get a new one.</a>',
+            'This verification link is invalid, expired, or has already been used. '
+            '<a href="' + url_for('auth.resend_verification') + '">Request a new one.</a>',
             'danger',
         )
         return redirect(url_for('auth.login'))
 
+    user = User.query.get(token_record.user_id)
+    if user is None:
+        flash('Account not found.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if user.email_verified:
+        flash('Your email is already verified. Please log in.', 'info')
+        return redirect(url_for('auth.login'))
+
+    # Mark token as used and user as verified
+    token_record.used_at = datetime.utcnow()
+    user.mark_email_verified()
     db.session.commit()
-    flash(
-        'Email verified successfully! You can now log in.',
-        'success',
-    )
+
+    flash('Email verified successfully! You can now log in.', 'success')
     return redirect(url_for('auth.login'))
 
 
 # ---------------------------------------------------------------------------
-# Resend verification
+# Resend verification — POST /auth/resend-verification
 # ---------------------------------------------------------------------------
 
 @auth_bp.route('/resend-verification', methods=['GET', 'POST'])
@@ -237,39 +257,35 @@ def resend_verification():
     if not email:
         return render_template('auth/resend_verification.html')
 
+    # Email-based rate limiting (60s cooldown enforced via 3 req / 5 min limiter)
+    if not resend_limiter.is_allowed(email):
+        flash('Please wait before requesting another verification email.', 'warning')
+        return redirect(url_for('auth.login'))
+
     user = User.query.filter(
         db.func.lower(User.email) == email
     ).first()
 
-    # Always show the same message to prevent email enumeration
-    generic_msg = (
-        'If that email is registered and unverified, '
-        'we have sent a new verification link. Please check your inbox (and spam folder).'
+    # Always show generic message to prevent email enumeration
+    if not user or user.email_verified:
+        flash(_GENERIC_RESEND_MSG, 'info')
+        return redirect(url_for('auth.login'))
+
+    # Check per-user cooldown: 60 seconds since last token creation
+    latest_token = (
+        EmailVerificationToken.query
+        .filter_by(user_id=user.id)
+        .order_by(EmailVerificationToken.created_at.desc())
+        .first()
     )
-
-    if not user:
-        flash(generic_msg, 'info')
-        return redirect(url_for('auth.login'))
-
-    if user.email_verified:
-        flash('Your email is already verified. Please log in.', 'info')
-        return redirect(url_for('auth.login'))
-
-    # Rate-limit resends: don't re-send if sent less than 2 minutes ago
-    from datetime import timedelta
-    if (
-        user.email_verification_sent_at
-        and (datetime.utcnow() - user.email_verification_sent_at) < timedelta(minutes=2)
-    ):
-        flash(
-            'A verification email was sent very recently. '
-            'Please wait a couple of minutes before requesting another.',
-            'warning',
-        )
-        return redirect(url_for('auth.login'))
+    if latest_token:
+        age = datetime.utcnow() - latest_token.created_at
+        if age < timedelta(seconds=60):
+            flash('A verification email was sent very recently. Please wait a minute.', 'warning')
+            return redirect(url_for('auth.login'))
 
     _send_verification(user)
-    flash(generic_msg, 'info')
+    flash(_GENERIC_RESEND_MSG, 'info')
     return redirect(url_for('auth.login'))
 
 
@@ -325,13 +341,8 @@ def check_username():
 
 @auth_bp.route('/check-email')
 def check_email():
+    """Check email format only — does NOT reveal existence to prevent enumeration."""
     email = request.args.get('email', '').strip().lower()
     if '@' not in email:
-        return jsonify({'available': False, 'message': 'Invalid email'})
-    taken = User.query.filter(
-        db.func.lower(User.email) == email
-    ).first() is not None
-    return jsonify({
-        'available': not taken,
-        'message': 'Email already registered' if taken else 'Available',
-    })
+        return jsonify({'available': False, 'message': 'Invalid email format'})
+    return jsonify({'available': True, 'message': 'Valid email format'})

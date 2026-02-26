@@ -36,6 +36,9 @@ stripe==7.8.0
 # LLM Integration
 openai==1.6.1
 
+# Email
+resend==2.23.0
+
 # Testing
 pytest==7.4.3
 pytest-cov==4.1.0

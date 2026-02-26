@@ -1,14 +1,14 @@
-"""User model with authentication and email verification support"""
-import secrets
-from datetime import datetime, timedelta
+"""User model with authentication and email verification support."""
+from datetime import datetime
+
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from models.database import db
-from config import Config
 
 
 class User(UserMixin, db.Model):
-    """User account model"""
+    """User account model."""
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -22,8 +22,7 @@ class User(UserMixin, db.Model):
 
     # Email verification
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
-    email_verification_token = db.Column(db.String(128), nullable=True, index=True)
-    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
+    email_verified_at = db.Column(db.DateTime, nullable=True)
 
     # Stripe
     stripe_customer_id = db.Column(db.String(100), nullable=True)
@@ -34,9 +33,10 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime, nullable=True)
 
     # Relationships
-    resumes = db.relationship('Resume', backref='user', lazy='dynamic', cascade='all, delete-orphan')
-    subscriptions = db.relationship('Subscription', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    resumes = db.relationship('Resume', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
+    subscriptions = db.relationship('Subscription', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
     payments = db.relationship('Payment', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    assessments = db.relationship('ResumeAssessment', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<User {self.username} ({self.tier}) verified={self.email_verified}>'
@@ -46,59 +46,21 @@ class User(UserMixin, db.Model):
     # ------------------------------------------------------------------
 
     def set_password(self, password: str) -> None:
-        """Hash and store password"""
+        """Hash and store password."""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
-        """Verify password against stored hash"""
+        """Verify password against stored hash."""
         return check_password_hash(self.password_hash, password)
 
     # ------------------------------------------------------------------
     # Email verification
     # ------------------------------------------------------------------
 
-    def generate_verification_token(self) -> str:
-        """Generate a secure URL-safe verification token and persist it.
-
-        Returns the raw token (to be embedded in the email link).
-        Callers must commit the session after calling this.
-        """
-        token = secrets.token_urlsafe(48)  # 64-char URL-safe string
-        self.email_verification_token = token
-        self.email_verification_sent_at = datetime.utcnow()
-        return token
-
-    def verify_email_token(self, token: str) -> bool:
-        """Validate a verification token.
-
-        Returns True and marks the user as verified if the token matches
-        and has not expired.  Returns False otherwise.
-        """
-        if not self.email_verification_token:
-            return False
-        if self.email_verification_token != token:
-            return False
-
-        # Check expiry
-        expiry_hours = getattr(Config, 'EMAIL_VERIFICATION_EXPIRY_HOURS', 24)
-        if self.email_verification_sent_at:
-            age = datetime.utcnow() - self.email_verification_sent_at
-            if age > timedelta(hours=expiry_hours):
-                return False
-
-        # Mark verified and clear the token
+    def mark_email_verified(self) -> None:
+        """Mark this user's email as verified. Caller must commit."""
         self.email_verified = True
-        self.email_verification_token = None
-        self.email_verification_sent_at = None
-        return True
-
-    def is_verification_token_expired(self) -> bool:
-        """Check whether the pending verification token is expired."""
-        if not self.email_verification_sent_at:
-            return True
-        expiry_hours = getattr(Config, 'EMAIL_VERIFICATION_EXPIRY_HOURS', 24)
-        age = datetime.utcnow() - self.email_verification_sent_at
-        return age > timedelta(hours=expiry_hours)
+        self.email_verified_at = datetime.utcnow()
 
     def needs_email_verification(self) -> bool:
         """Return True if this user still needs to verify their email."""
@@ -110,16 +72,14 @@ class User(UserMixin, db.Model):
 
     @property
     def is_premium(self) -> bool:
-        """Check if user has premium tier"""
         return self.tier == 'premium'
 
     @property
     def is_free(self) -> bool:
-        """Check if user has free tier"""
         return self.tier == 'free'
 
     def get_active_subscription(self):
-        """Get the user's current active subscription, if any"""
+        """Get the user's current active subscription, if any."""
         from models.subscription import Subscription
         return (
             Subscription.query
@@ -132,7 +92,7 @@ class User(UserMixin, db.Model):
         self.last_login = datetime.utcnow()
 
     def to_dict(self) -> dict:
-        """Serialize user to dict (no sensitive fields)"""
+        """Serialize user to dict (no sensitive fields)."""
         return {
             'id': self.id,
             'username': self.username,
@@ -157,9 +117,9 @@ def create_admin_user(username: str, password: str, email: str) -> User:
     """
     existing = User.query.filter_by(username=username).first()
     if existing:
-        # Ensure existing admin is always marked verified
         if not existing.email_verified:
             existing.email_verified = True
+            existing.email_verified_at = datetime.utcnow()
             db.session.commit()
         return existing
 
@@ -167,7 +127,8 @@ def create_admin_user(username: str, password: str, email: str) -> User:
         username=username,
         email=email,
         is_admin=True,
-        email_verified=True,  # Admins are always pre-verified
+        email_verified=True,
+        email_verified_at=datetime.utcnow(),
         tier='premium',
     )
     admin.set_password(password)
