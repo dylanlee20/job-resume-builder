@@ -28,7 +28,7 @@ class EmailVerificationToken(db.Model):
     used_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    user = db.relationship('User', backref=db.backref('verification_tokens', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('verification_tokens', lazy='dynamic', cascade='all, delete-orphan'))
 
     @staticmethod
     def hash_token(raw_token: str) -> str:
