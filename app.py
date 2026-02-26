@@ -39,6 +39,10 @@ def create_app():
     os.makedirs(Config.UPLOAD_FOLDER_TEMPLATES, exist_ok=True)
     os.makedirs(os.path.dirname(Config.LOG_PATH), exist_ok=True)
     
+    # Import all models BEFORE init_db so create_all() sees every table
+    from models.cold_email import EmailCampaign, EmailRecipient  # noqa: F401
+    from models.email_verification_token import EmailVerificationToken  # noqa: F401
+
     # Initialize database
     init_db(app)
     
@@ -86,10 +90,6 @@ def create_app():
     csrf.exempt(stripe_webhook)
     from routes.outreach_routes import track_open
     csrf.exempt(track_open)
-
-    # Import models so they're registered with SQLAlchemy
-    from models.cold_email import EmailCampaign, EmailRecipient
-    from models.email_verification_token import EmailVerificationToken  # noqa: F401
 
     # ------------------------------------------------------------------
     # Verification gate: block unverified users from protected routes
