@@ -21,7 +21,7 @@
                         <i class="bi bi-info-circle me-2" style="font-size: 1.2rem;"></i>
                         <div>
                             <strong>Free:</strong> AI assessment with score + recommendations
-                            {% if current_user.is_premium() %}
+                            {% if current_user.is_premium %}
                             <span class="ms-2 badge bg-success">Premium</span> Direct AI-powered resume revision with before/after
                             {% else %}
                             &bull; <a href="{{ url_for('web.pricing') }}" class="alert-link">Upgrade to Premium</a> for AI revision with before/after

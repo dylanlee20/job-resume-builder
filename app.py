@@ -153,20 +153,27 @@ def create_app():
     # Error handlers
     @app.errorhandler(404)
     def not_found(error):
-        return {'error': 'Not found'}, 404
-    
+        if flask_request.accept_mimetypes.best == 'application/json':
+            return jsonify({'error': 'Not found'}), 404
+        flash('Page not found.', 'error')
+        return redirect(url_for('web.dashboard'))
+
     @app.errorhandler(500)
     def internal_error(error):
         logger.error(f"Internal server error: {error}")
         db.session.rollback()
-        return {'error': 'Internal server error'}, 500
-    
+        if flask_request.accept_mimetypes.best == 'application/json':
+            return jsonify({'error': 'Internal server error'}), 500
+        flash('Something went wrong. Please try again.', 'error')
+        return redirect(url_for('web.dashboard'))
+
     # File upload error handler
     @app.errorhandler(413)
     def file_too_large(error):
-        return {
-            'error': f'File too large. Maximum size is {Config.UPLOAD_MAX_SIZE_MB}MB'
-        }, 413
+        if flask_request.accept_mimetypes.best == 'application/json':
+            return jsonify({'error': f'File too large. Maximum size is {Config.UPLOAD_MAX_SIZE_MB}MB'}), 413
+        flash(f'File too large. Maximum size is {Config.UPLOAD_MAX_SIZE_MB}MB.', 'error')
+        return redirect(flask_request.referrer or url_for('web.dashboard'))
     
     logger.info("Flask application created successfully")
     

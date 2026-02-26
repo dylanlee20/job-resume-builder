@@ -23,7 +23,7 @@ def create_checkout():
     if plan not in ('monthly', 'annual'):
         return jsonify({'success': False, 'message': 'Invalid plan'}), 400
 
-    if current_user.is_premium():
+    if current_user.is_premium:
         return jsonify({'success': False, 'message': 'You already have a premium subscription'}), 400
 
     try:
