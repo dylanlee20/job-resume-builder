@@ -31,7 +31,7 @@ class EmailCampaign(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
-    user = db.relationship('User', backref='campaigns')
+    user = db.relationship('User', backref=db.backref('campaigns', lazy='dynamic', cascade='all, delete-orphan'))
     resume = db.relationship('Resume', backref='campaigns')
     recipients = db.relationship('EmailRecipient', back_populates='campaign', lazy='dynamic', cascade='all, delete-orphan')
 
