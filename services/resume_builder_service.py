@@ -249,8 +249,75 @@ Output the REVISED RESUME first, then the CHANGES MADE section."""
         return {'success': False, 'message': 'AI revision failed. Please try again.'}
 
     @staticmethod
+    def brainstorm_bullets(section, context='', target_industry=''):
+        """
+        Generate suggested bullet points for a resume section.
+
+        Args:
+            section: 'experience' or 'skills'
+            context: Job title + company, or existing skills text
+            target_industry: Target industry for tailoring
+
+        Returns:
+            Dict with 'success', 'suggestions' (list of strings) or 'message'
+        """
+        if not context and not target_industry:
+            return {'success': False, 'message': 'Provide a job title or select an industry first.'}
+
+        industry_note = f" in the {target_industry} industry" if target_industry else ''
+
+        if section == 'experience':
+            prompt = f"""You are a resume bullet-point coach for finance and professional services.
+
+Given this role: {context or 'a professional role'}{industry_note}
+
+Generate exactly 8 strong resume bullet points this person might use.
+Rules:
+- Start each bullet with a powerful action verb
+- Include realistic quantified achievements (dollar amounts, percentages, team sizes)
+- Keep each bullet to one line (under 120 characters)
+- Make them specific and results-oriented
+- Do NOT number them — output one bullet per line starting with a dash (-)
+
+Output ONLY the 8 bullet lines, nothing else."""
+        else:
+            prompt = f"""You are a resume skills coach for finance and professional services.
+
+Given this context: {context or 'a professional'}{industry_note}
+
+Generate exactly 8 relevant skills or certifications this person should consider adding.
+Rules:
+- Mix of technical skills, tools, and soft skills
+- Include industry-specific tools and frameworks
+- Keep each suggestion short (2-5 words)
+- Output one suggestion per line starting with a dash (-)
+
+Output ONLY the 8 skill suggestions, nothing else."""
+
+        result = ResumeBuilderService._call_llm(prompt, max_tokens=500)
+        if not result:
+            return {'success': False, 'message': 'AI suggestion generation failed.'}
+
+        # Parse the response into a list of suggestions
+        suggestions = []
+        for line in result.strip().split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            # Strip leading dashes, bullets, numbers
+            line = line.lstrip('-•*0123456789.) ').strip()
+            if line:
+                suggestions.append(line)
+
+        return {'success': True, 'suggestions': suggestions[:8]}
+
+    @staticmethod
     def _call_llm(prompt, max_tokens=1500):
-        """Call the LLM API and return the text response"""
+        """Call the LLM API and return the text response."""
+        if not Config.OPENAI_API_KEY:
+            logger.error("OPENAI_API_KEY not configured — cannot generate resume")
+            return None
+
         try:
             from openai import OpenAI
             client = OpenAI(api_key=Config.OPENAI_API_KEY)

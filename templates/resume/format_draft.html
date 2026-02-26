@@ -31,10 +31,12 @@
                             <option value="Technology">Technology</option>
                             <option value="Consulting">Consulting</option>
                         </select>
+                        <small class="form-text text-muted">AI will tailor section ordering and keywords for this industry</small>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Paste Your Resume Text <span class="text-danger">*</span></label>
+                        <small class="d-block text-muted mb-2">Include ALL your info — name, contact, education, work experience, skills. Don't worry about formatting — that's our job.</small>
                         <textarea class="form-control" id="draftText" rows="15" required
                                   placeholder="Paste your unformatted resume content here. It can be messy - just include all your information like:
 
@@ -53,9 +55,9 @@ Prepared pitch decks for client meetings
 Skills: Excel, Python, VBA, Bloomberg
 
 Our AI will restructure this into a clean, professional format."></textarea>
-                        <div class="form-text">
-                            <span id="charCount">0</span> characters
-                            <span class="text-muted ms-2">(min 50 characters recommended)</span>
+                        <div class="d-flex justify-content-between form-text">
+                            <span><span id="charCount">0</span> characters</span>
+                            <span class="text-muted">min 50 recommended for best results</span>
                         </div>
                     </div>
 

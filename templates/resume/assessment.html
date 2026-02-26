@@ -191,7 +191,7 @@ function reviseResume() {
     .then(function(data) {
         if (data.success) {
             document.getElementById('revisedOutput').textContent = data.revised_text;
-            document.getElementById('beforeOutput').textContent = '{{ resume.extracted_text[:2000]|replace("'", "\\'") if resume and resume.extracted_text else "Original text not available" }}';
+            document.getElementById('beforeOutput').textContent = {{ (resume.extracted_text[:2000] if resume and resume.extracted_text else "Original text not available")|tojson }};
             document.getElementById('changesOutput').textContent = data.changes;
             document.getElementById('revisionResult').style.display = 'block';
             btn.innerHTML = '<i class="bi bi-check-circle"></i> Revision Complete';

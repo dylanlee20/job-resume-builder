@@ -68,10 +68,14 @@ class ResumeAssessmentService:
                 'detailed_feedback': 'Could not analyze resume due to insufficient text.'
             }
         
+        if not Config.OPENAI_API_KEY:
+            logger.error("OPENAI_API_KEY not configured — cannot assess resume")
+            return ResumeAssessmentService._get_fallback_assessment()
+
         try:
             from openai import OpenAI
             client = OpenAI(api_key=Config.OPENAI_API_KEY)
-            
+
             # Prepare system prompt
             system_prompt = """You are an expert finance career advisor specializing in AI-proof industries:
 Investment Banking, Sales & Trading, Portfolio Management, Risk Management, and M&A Advisory.
@@ -98,7 +102,7 @@ Respond with ONLY valid JSON, no other text."""
 
 Provide the assessment in JSON format."""
             
-            # Call OpenAI API
+            # Call OpenAI API with structured JSON output
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -106,18 +110,25 @@ Provide the assessment in JSON format."""
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.7,
-                max_tokens=1000
+                max_tokens=1000,
+                response_format={"type": "json_object"},
             )
-            
+
             # Parse response
             content = response.choices[0].message.content.strip()
-            
-            # Extract JSON from response (in case there's extra text)
+
+            # Strip markdown fences if present (e.g. ```json ... ```)
+            if content.startswith('```'):
+                lines = content.split('\n')
+                lines = [ln for ln in lines if not ln.strip().startswith('```')]
+                content = '\n'.join(lines).strip()
+
+            # Extract JSON object
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
                 content = content[json_start:json_end]
-            
+
             result = json.loads(content)
             
             # Validate and normalize

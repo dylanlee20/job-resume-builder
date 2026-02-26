@@ -4,238 +4,315 @@
 
 <div class="row justify-content-center">
     <div class="col-md-10">
-        <div class="mb-4">
+        <div class="mb-4 d-flex justify-content-between align-items-center">
             <a href="{{ url_for('resume.hub') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Resume Tools
             </a>
+            <button class="btn btn-sm btn-outline-primary" id="previewToggle" onclick="togglePreview()" style="display:none;">
+                <i class="bi bi-eye"></i> Preview
+            </button>
         </div>
 
-        <div class="card" style="border-radius: 12px;">
-            <div class="card-body p-4">
-                <div class="text-center mb-4">
-                    <h2><i class="bi bi-pencil-square"></i> Build Your Resume</h2>
-                    <p class="text-muted">Fill in your details below and our AI will generate a professional resume</p>
-                </div>
+        <div class="row">
+            <!-- Main Form Column -->
+            <div id="formCol" class="col-12">
+                <div class="card" style="border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-4">
+                            <h2><i class="bi bi-pencil-square"></i> Build Your Resume</h2>
+                            <p class="text-muted">Fill in your details below and our AI will generate a professional resume</p>
+                        </div>
 
-                <!-- Progress Steps -->
-                <div class="d-flex justify-content-center mb-4">
-                    <div class="d-flex align-items-center gap-2" id="progressSteps">
-                        <span class="step-badge active" data-step="1">1. Basic Info</span>
-                        <i class="bi bi-chevron-right text-muted"></i>
-                        <span class="step-badge" data-step="2">2. Education</span>
-                        <i class="bi bi-chevron-right text-muted"></i>
-                        <span class="step-badge" data-step="3">3. Experience</span>
-                        <i class="bi bi-chevron-right text-muted"></i>
-                        <span class="step-badge" data-step="4">4. Skills & More</span>
-                    </div>
-                </div>
-
-                <form id="buildForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-                    <!-- Step 1: Basic Info -->
-                    <div class="form-step" id="step1">
-                        <h5 class="mb-3"><i class="bi bi-person-vcard"></i> Personal Information</h5>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="full_name" required placeholder="John Doe">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" name="contact_email" required placeholder="john@example.com"
-                                       value="{{ current_user.email }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" name="phone" placeholder="+1 (555) 000-0000">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Location</label>
-                                <input type="text" class="form-control" name="location" placeholder="New York, NY">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">LinkedIn URL</label>
-                                <input type="url" class="form-control" name="linkedin" placeholder="https://linkedin.com/in/johndoe">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Target Industry</label>
-                                <select class="form-select" name="target_industry">
-                                    <option value="">Select target industry...</option>
-                                    <option value="Investment Banking">Investment Banking</option>
-                                    <option value="Sales & Trading">Sales & Trading</option>
-                                    <option value="Portfolio Management">Portfolio Management</option>
-                                    <option value="Risk Management">Risk Management</option>
-                                    <option value="M&A Advisory">M&A Advisory</option>
-                                    <option value="Private Equity">Private Equity</option>
-                                    <option value="Other Finance">Other Finance</option>
-                                    <option value="Technology">Technology</option>
-                                    <option value="Consulting">Consulting</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Professional Summary</label>
-                                <textarea class="form-control" name="summary" rows="3" placeholder="A brief 2-3 sentence summary of your professional background and career goals. Leave blank and AI will write one for you."></textarea>
+                        <!-- Progress Steps -->
+                        <div class="d-flex justify-content-center mb-4">
+                            <div class="d-flex align-items-center gap-2" id="progressSteps">
+                                <span class="step-badge active" data-step="1">1. Basic Info</span>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                                <span class="step-badge" data-step="2">2. Education</span>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                                <span class="step-badge" data-step="3">3. Experience</span>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                                <span class="step-badge" data-step="4">4. Skills & More</span>
                             </div>
                         </div>
-                        <div class="text-end mt-4">
-                            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
-                                Next: Education <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- Step 2: Education -->
-                    <div class="form-step" id="step2" style="display: none;">
-                        <h5 class="mb-3"><i class="bi bi-mortarboard"></i> Education</h5>
-                        <div id="educationEntries">
-                            <div class="education-entry card mb-3 p-3" style="background: var(--nw-bg); border-radius: 8px;">
+                        <form id="buildForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                            <!-- Step 1: Basic Info -->
+                            <div class="form-step" id="step1">
+                                <h5 class="mb-3"><i class="bi bi-person-vcard"></i> Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">School / University <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="edu_school[]" required placeholder="Harvard University">
+                                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="full_name" required placeholder="John Doe">
+                                        <small class="form-text text-muted">As it should appear on your resume header</small>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Degree & Major</label>
-                                        <input type="text" class="form-control" name="edu_degree[]" placeholder="B.S. in Finance">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Start Year</label>
-                                        <input type="text" class="form-control" name="edu_start[]" placeholder="2018">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">End Year</label>
-                                        <input type="text" class="form-control" name="edu_end[]" placeholder="2022 or Present">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">GPA (optional)</label>
-                                        <input type="text" class="form-control" name="edu_gpa[]" placeholder="3.8/4.0">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Relevant Coursework / Achievements</label>
-                                        <textarea class="form-control" name="edu_details[]" rows="2" placeholder="Dean's List, relevant coursework, thesis, honors..."></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addEducation()">
-                            <i class="bi bi-plus-circle"></i> Add Another Education
-                        </button>
-                        <div class="d-flex justify-content-between mt-3">
-                            <button type="button" class="btn btn-outline-secondary" onclick="nextStep(1)">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="nextStep(3)">
-                                Next: Experience <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Experience -->
-                    <div class="form-step" id="step3" style="display: none;">
-                        <h5 class="mb-3"><i class="bi bi-briefcase"></i> Work Experience</h5>
-                        <div id="experienceEntries">
-                            <div class="experience-entry card mb-3 p-3" style="background: var(--nw-bg); border-radius: 8px;">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Company <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="exp_company[]" required placeholder="Goldman Sachs">
+                                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control" name="contact_email" required placeholder="john@example.com"
+                                               value="{{ current_user.email }}">
+                                        <small class="form-text text-muted">Professional email preferred (avoid nicknames)</small>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Job Title <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="exp_title[]" required placeholder="Analyst">
+                                        <label class="form-label">Phone</label>
+                                        <input type="text" class="form-control" name="phone" placeholder="+1 (555) 000-0000">
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Start Date</label>
-                                        <input type="text" class="form-control" name="exp_start[]" placeholder="Jun 2022">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">End Date</label>
-                                        <input type="text" class="form-control" name="exp_end[]" placeholder="Present">
-                                    </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <label class="form-label">Location</label>
-                                        <input type="text" class="form-control" name="exp_location[]" placeholder="New York, NY">
+                                        <input type="text" class="form-control" name="location" placeholder="New York, NY">
+                                        <small class="form-text text-muted">City, State format (no full address needed)</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">LinkedIn URL</label>
+                                        <input type="url" class="form-control" name="linkedin" placeholder="https://linkedin.com/in/johndoe">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Target Industry</label>
+                                        <select class="form-select" name="target_industry">
+                                            <option value="">Select target industry...</option>
+                                            <option value="Investment Banking">Investment Banking</option>
+                                            <option value="Sales & Trading">Sales & Trading</option>
+                                            <option value="Portfolio Management">Portfolio Management</option>
+                                            <option value="Risk Management">Risk Management</option>
+                                            <option value="M&A Advisory">M&A Advisory</option>
+                                            <option value="Private Equity">Private Equity</option>
+                                            <option value="Other Finance">Other Finance</option>
+                                            <option value="Technology">Technology</option>
+                                            <option value="Consulting">Consulting</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <small class="form-text text-muted">AI will tailor language and keywords for this industry</small>
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label">Key Responsibilities & Achievements</label>
-                                        <textarea class="form-control" name="exp_details[]" rows="4" placeholder="Describe your main responsibilities and achievements. Use one line per bullet point. Our AI will polish these for you.
-
-Example:
-- Analyzed financial statements for $500M+ deals
-- Built DCF models for M&A transactions
-- Presented to senior management weekly"></textarea>
+                                        <label class="form-label">Professional Summary</label>
+                                        <textarea class="form-control counted-field" name="summary" rows="3"
+                                                  placeholder="Results-driven finance professional with 2+ years of experience in investment banking and M&A advisory. Seeking to leverage analytical skills and deal experience at a top-tier firm."></textarea>
+                                        <div class="d-flex justify-content-between">
+                                            <small class="form-text text-muted">2-3 sentences about your background and goals. Leave blank and AI will write one for you.</small>
+                                            <small class="form-text text-muted char-count" data-target="summary">0 chars</small>
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="text-end mt-4">
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                        Next: Education <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addExperience()">
-                            <i class="bi bi-plus-circle"></i> Add Another Position
-                        </button>
-                        <div class="d-flex justify-content-between mt-3">
-                            <button type="button" class="btn btn-outline-secondary" onclick="nextStep(2)">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="nextStep(4)">
-                                Next: Skills <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- Step 4: Skills & Generate -->
-                    <div class="form-step" id="step4" style="display: none;">
-                        <h5 class="mb-3"><i class="bi bi-tools"></i> Skills & Additional</h5>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Technical Skills</label>
-                                <textarea class="form-control" name="technical_skills" rows="2" placeholder="Excel, VBA, Python, SQL, Bloomberg Terminal, Financial Modeling, PowerPoint..."></textarea>
+                            <!-- Step 2: Education -->
+                            <div class="form-step" id="step2" style="display: none;">
+                                <h5 class="mb-3"><i class="bi bi-mortarboard"></i> Education</h5>
+                                <div id="educationEntries">
+                                    <div class="education-entry card mb-3 p-3" style="background: var(--nw-bg); border-radius: 8px;">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">School / University <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="edu_school[]" required placeholder="Harvard University">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Degree & Major</label>
+                                                <input type="text" class="form-control" name="edu_degree[]" placeholder="B.S. in Finance">
+                                                <small class="form-text text-muted">e.g., B.A. in Economics, M.B.A., M.S. in Financial Engineering</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Start Year</label>
+                                                <input type="text" class="form-control" name="edu_start[]" placeholder="2018">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">End Year</label>
+                                                <input type="text" class="form-control" name="edu_end[]" placeholder="2022 or Expected 2025">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">GPA (optional)</label>
+                                                <input type="text" class="form-control" name="edu_gpa[]" placeholder="3.8/4.0">
+                                                <small class="form-text text-muted">Include if 3.5+ or top of class</small>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Relevant Coursework / Achievements</label>
+                                                <textarea class="form-control counted-field" name="edu_details[]" rows="2"
+                                                          placeholder="Dean's List (3 semesters), Coursework: Derivatives Pricing, Corporate Finance, Econometrics. Senior thesis on credit risk modeling."></textarea>
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="form-text text-muted">Honors, coursework, thesis, clubs, academic awards</small>
+                                                    <small class="form-text text-muted char-count">0 chars</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addEducation()">
+                                    <i class="bi bi-plus-circle"></i> Add Another Education
+                                </button>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="nextStep(1)">
+                                        <i class="bi bi-arrow-left"></i> Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                                        Next: Experience <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label">Soft Skills</label>
-                                <textarea class="form-control" name="soft_skills" rows="2" placeholder="Team Leadership, Client Relations, Presentation, Problem Solving..."></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Certifications & Licenses</label>
-                                <textarea class="form-control" name="certifications" rows="2" placeholder="CFA Level II, Series 7, Series 63..."></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Languages</label>
-                                <input type="text" class="form-control" name="languages" placeholder="English (Native), Mandarin (Fluent), Spanish (Conversational)">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Additional Information</label>
-                                <textarea class="form-control" name="additional" rows="2" placeholder="Interests, volunteer work, publications, anything else relevant..."></textarea>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-outline-secondary" onclick="nextStep(3)">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </button>
-                            <button type="button" class="btn btn-primary btn-lg" id="generateBtn" onclick="generateResume()">
-                                <i class="bi bi-stars"></i> Generate My Resume
-                            </button>
-                        </div>
-                    </div>
-                </form>
 
-                <!-- Result -->
-                <div id="resultSection" style="display: none;" class="mt-4">
-                    <hr>
-                    <h4 class="text-center mb-3"><i class="bi bi-check-circle-fill text-success"></i> Your Resume is Ready!</h4>
-                    <div class="card p-4" style="background: var(--nw-bg); border-radius: 8px;">
-                        <pre id="resumeOutput" style="white-space: pre-wrap; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.6; color: var(--nw-text);"></pre>
+                            <!-- Step 3: Experience -->
+                            <div class="form-step" id="step3" style="display: none;">
+                                <h5 class="mb-3"><i class="bi bi-briefcase"></i> Work Experience</h5>
+                                <div id="experienceEntries">
+                                    <div class="experience-entry card mb-3 p-3" style="background: var(--nw-bg); border-radius: 8px;">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Company <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="exp_company[]" required placeholder="Goldman Sachs">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Job Title <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" name="exp_title[]" required placeholder="Investment Banking Analyst">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Start Date</label>
+                                                <input type="text" class="form-control" name="exp_start[]" placeholder="Jun 2022">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">End Date</label>
+                                                <input type="text" class="form-control" name="exp_end[]" placeholder="Present">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Location</label>
+                                                <input type="text" class="form-control" name="exp_location[]" placeholder="New York, NY">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Key Responsibilities & Achievements</label>
+                                                <textarea class="form-control counted-field" name="exp_details[]" rows="4"
+                                                          placeholder="Write one bullet per line. Start with an action verb. Include numbers when possible.
+
+- Analyzed financial statements for $500M+ M&A deals across 3 industry verticals
+- Built 15+ DCF and LBO models, improving team valuation turnaround by 20%
+- Presented weekly market updates to senior management team of 8 MDs"></textarea>
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="form-text text-muted">Tip: Start with action verbs (Analyzed, Led, Built, Managed). Include $ amounts and %.</small>
+                                                    <small class="form-text text-muted char-count">0 chars</small>
+                                                </div>
+                                            </div>
+                                            <!-- Brainstorm Panel -->
+                                            <div class="col-12">
+                                                <div class="brainstorm-panel">
+                                                    <button type="button" class="btn btn-sm btn-outline-info brainstorm-btn"
+                                                            onclick="brainstormBullets(this, 'experience')">
+                                                        <i class="bi bi-lightbulb"></i> Need ideas? Get AI suggestions
+                                                    </button>
+                                                    <div class="brainstorm-results mt-2" style="display:none;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addExperience()">
+                                    <i class="bi bi-plus-circle"></i> Add Another Position
+                                </button>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="nextStep(2)">
+                                        <i class="bi bi-arrow-left"></i> Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                                        Next: Skills <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Skills & Generate -->
+                            <div class="form-step" id="step4" style="display: none;">
+                                <h5 class="mb-3"><i class="bi bi-tools"></i> Skills & Additional</h5>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Technical Skills</label>
+                                        <textarea class="form-control" name="technical_skills" rows="2"
+                                                  placeholder="Excel, VBA, Python, SQL, Bloomberg Terminal, Financial Modeling, PowerPoint, Tableau"></textarea>
+                                        <small class="form-text text-muted">List comma-separated. Include software, programming languages, and tools.</small>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Soft Skills</label>
+                                        <textarea class="form-control" name="soft_skills" rows="2"
+                                                  placeholder="Team Leadership, Client Communication, Stakeholder Management, Cross-functional Collaboration"></textarea>
+                                        <small class="form-text text-muted">e.g., Leadership, Communication, Problem Solving, Project Management</small>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Certifications & Licenses</label>
+                                        <textarea class="form-control" name="certifications" rows="2"
+                                                  placeholder="CFA Level II Candidate, Series 7 & 63 Licensed, Bloomberg Market Concepts"></textarea>
+                                        <small class="form-text text-muted">Include status (e.g., "CFA Level II Candidate", "Series 7 Licensed")</small>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Languages</label>
+                                        <input type="text" class="form-control" name="languages"
+                                               placeholder="English (Native), Mandarin (Fluent), Spanish (Conversational)">
+                                        <small class="form-text text-muted">Format: Language (Proficiency Level)</small>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Additional Information</label>
+                                        <textarea class="form-control" name="additional" rows="2"
+                                                  placeholder="Varsity tennis team captain, Volunteer at local food bank, Published research in Journal of Finance"></textarea>
+                                        <small class="form-text text-muted">Interests, volunteer work, publications, or anything else relevant</small>
+                                    </div>
+                                    <!-- Brainstorm Panel for Skills -->
+                                    <div class="col-12">
+                                        <div class="brainstorm-panel">
+                                            <button type="button" class="btn btn-sm btn-outline-info brainstorm-btn"
+                                                    onclick="brainstormBullets(this, 'skills')">
+                                                <i class="bi bi-lightbulb"></i> Need ideas? Get AI skill suggestions
+                                            </button>
+                                            <div class="brainstorm-results mt-2" style="display:none;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="nextStep(3)">
+                                        <i class="bi bi-arrow-left"></i> Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-lg" id="generateBtn" onclick="generateResume()">
+                                        <i class="bi bi-stars"></i> Generate My Resume
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Result -->
+                        <div id="resultSection" style="display: none;" class="mt-4">
+                            <hr>
+                            <h4 class="text-center mb-3"><i class="bi bi-check-circle-fill text-success"></i> Your Resume is Ready!</h4>
+                            <div class="card p-4" style="background: var(--nw-bg); border-radius: 8px;">
+                                <pre id="resumeOutput" style="white-space: pre-wrap; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.6; color: var(--nw-text);"></pre>
+                            </div>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-primary me-2" onclick="copyResume()">
+                                    <i class="bi bi-clipboard"></i> Copy to Clipboard
+                                </button>
+                                <button class="btn btn-outline-secondary me-2" onclick="downloadResume()">
+                                    <i class="bi bi-download"></i> Download as Text
+                                </button>
+                                <a href="{{ url_for('resume.hub') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Back to Tools
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-center mt-3">
-                        <button class="btn btn-primary me-2" onclick="copyResume()">
-                            <i class="bi bi-clipboard"></i> Copy to Clipboard
+                </div>
+            </div>
+
+            <!-- Preview Panel (hidden by default) -->
+            <div id="previewCol" class="col-md-5" style="display:none;">
+                <div class="card sticky-top" style="border-radius: 12px; top: 20px;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-eye"></i> Live Preview</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="togglePreview()">
+                            <i class="bi bi-x"></i>
                         </button>
-                        <button class="btn btn-outline-secondary me-2" onclick="downloadResume()">
-                            <i class="bi bi-download"></i> Download as Text
-                        </button>
-                        <a href="{{ url_for('resume.hub') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left"></i> Back to Tools
-                        </a>
+                    </div>
+                    <div class="card-body p-3" style="max-height: 80vh; overflow-y: auto;">
+                        <div id="previewContent" style="font-family: 'Georgia', serif; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; color: var(--nw-text);"></div>
+                        <div id="previewEmpty" class="text-center text-muted py-4">
+                            <i class="bi bi-file-earmark-text" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Start filling in your details to see a live preview here</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -261,11 +338,32 @@ Example:
     background: var(--nw-success);
     color: #fff;
 }
+.brainstorm-results .suggestion-chip {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    margin: 0.2rem;
+    border-radius: 16px;
+    font-size: 0.82rem;
+    background: #e8f4fd;
+    color: #1a73e8;
+    border: 1px solid #b8daff;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.brainstorm-results .suggestion-chip:hover {
+    background: #cfe2ff;
+}
+.brainstorm-results .suggestion-chip.inserted {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
+/* ── Step navigation ────────────────────────────────────────── */
 function nextStep(step) {
     document.querySelectorAll('.form-step').forEach(function(el) { el.style.display = 'none'; });
     document.getElementById('step' + step).style.display = 'block';
@@ -277,9 +375,12 @@ function nextStep(step) {
         else if (s < step) el.classList.add('done');
     });
 
+    // Show preview toggle once user is past step 1
+    document.getElementById('previewToggle').style.display = step > 1 ? '' : 'none';
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
+/* ── Add/remove entries ──────────────────────────────────────── */
 function addEducation() {
     var template = document.querySelector('.education-entry').cloneNode(true);
     template.querySelectorAll('input, textarea').forEach(function(el) { el.value = ''; });
@@ -288,26 +389,46 @@ function addEducation() {
     removeBtn.className = 'btn btn-sm btn-outline-danger position-absolute';
     removeBtn.style.cssText = 'top: 8px; right: 8px;';
     removeBtn.innerHTML = '<i class="bi bi-x"></i>';
-    removeBtn.onclick = function() { template.remove(); };
+    removeBtn.onclick = function() { template.remove(); renderPreview(); };
     template.style.position = 'relative';
     template.appendChild(removeBtn);
     document.getElementById('educationEntries').appendChild(template);
+    bindCharCounters();
 }
 
 function addExperience() {
     var template = document.querySelector('.experience-entry').cloneNode(true);
     template.querySelectorAll('input, textarea').forEach(function(el) { el.value = ''; });
+    // Reset brainstorm panel
+    var br = template.querySelector('.brainstorm-results');
+    if (br) { br.style.display = 'none'; br.innerHTML = ''; }
     var removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn btn-sm btn-outline-danger position-absolute';
     removeBtn.style.cssText = 'top: 8px; right: 8px;';
     removeBtn.innerHTML = '<i class="bi bi-x"></i>';
-    removeBtn.onclick = function() { template.remove(); };
+    removeBtn.onclick = function() { template.remove(); renderPreview(); };
     template.style.position = 'relative';
     template.appendChild(removeBtn);
     document.getElementById('experienceEntries').appendChild(template);
+    bindCharCounters();
 }
 
+/* ── Character counters ──────────────────────────────────────── */
+function bindCharCounters() {
+    document.querySelectorAll('.counted-field').forEach(function(field) {
+        if (field.dataset.counterBound) return;
+        field.dataset.counterBound = '1';
+        var counter = field.closest('.col-12, .col-md-6')?.querySelector('.char-count');
+        if (!counter) return;
+        function update() { counter.textContent = field.value.length + ' chars'; }
+        field.addEventListener('input', update);
+        update();
+    });
+}
+bindCharCounters();
+
+/* ── Generate resume ─────────────────────────────────────────── */
 function generateResume() {
     var btn = document.getElementById('generateBtn');
     btn.disabled = true;
@@ -348,6 +469,9 @@ function generateResume() {
             document.getElementById('resultSection').style.display = 'block';
             document.querySelectorAll('.form-step').forEach(function(el) { el.style.display = 'none'; });
             document.getElementById('progressSteps').style.display = 'none';
+            // Hide preview since result is shown
+            if (previewVisible) togglePreview();
+            document.getElementById('previewToggle').style.display = 'none';
             window.scrollTo({top: 0, behavior: 'smooth'});
         } else {
             alert(data.message || 'Error generating resume. Please try again.');
@@ -362,6 +486,7 @@ function generateResume() {
     });
 }
 
+/* ── Copy / Download ─────────────────────────────────────────── */
 function copyResume() {
     var text = document.getElementById('resumeOutput').textContent;
     navigator.clipboard.writeText(text).then(function() {
@@ -379,5 +504,228 @@ function downloadResume() {
     a.download = 'resume.txt';
     a.click();
 }
+
+/* ── Brainstorm Panel ────────────────────────────────────────── */
+function brainstormBullets(btn, section) {
+    var panel = btn.closest('.brainstorm-panel');
+    var resultsDiv = panel.querySelector('.brainstorm-results');
+    var form = document.getElementById('buildForm');
+
+    // Gather context
+    var industry = form.querySelector('[name="target_industry"]').value || '';
+    var context = '';
+    if (section === 'experience') {
+        var entry = btn.closest('.experience-entry');
+        if (entry) {
+            var company = entry.querySelector('[name="exp_company[]"]').value || '';
+            var title = entry.querySelector('[name="exp_title[]"]').value || '';
+            context = (title + ' at ' + company).trim();
+        }
+    } else if (section === 'skills') {
+        context = form.querySelector('[name="technical_skills"]').value || '';
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Thinking...';
+
+    fetch('{{ url_for("resume.api_brainstorm") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ section: section, context: context, target_industry: industry })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-lightbulb"></i> Get more ideas';
+
+        if (data.success && data.suggestions && data.suggestions.length) {
+            resultsDiv.innerHTML = '';
+            data.suggestions.forEach(function(text) {
+                var chip = document.createElement('span');
+                chip.className = 'suggestion-chip';
+                chip.textContent = text;
+                chip.onclick = function() { insertSuggestion(chip, section, btn); };
+                resultsDiv.appendChild(chip);
+            });
+            resultsDiv.style.display = 'block';
+        } else {
+            resultsDiv.innerHTML = '<small class="text-muted">No suggestions available. Try adding a job title and industry first.</small>';
+            resultsDiv.style.display = 'block';
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-lightbulb"></i> Need ideas? Get AI suggestions';
+        resultsDiv.innerHTML = '<small class="text-danger">Failed to load suggestions. Please try again.</small>';
+        resultsDiv.style.display = 'block';
+    });
+}
+
+function insertSuggestion(chip, section, brainstormBtn) {
+    var entry = brainstormBtn.closest('.experience-entry, .form-step');
+    var textarea;
+
+    if (section === 'experience') {
+        textarea = entry.querySelector('[name="exp_details[]"]');
+    } else if (section === 'skills') {
+        textarea = entry.querySelector('[name="technical_skills"]');
+    }
+
+    if (textarea) {
+        var current = textarea.value.trim();
+        var bullet = '- ' + chip.textContent;
+        textarea.value = current ? current + '\n' + bullet : bullet;
+        chip.classList.add('inserted');
+        // Trigger char counter update
+        textarea.dispatchEvent(new Event('input'));
+        renderPreview();
+    }
+}
+
+/* ── Live Preview ────────────────────────────────────────────── */
+var previewVisible = false;
+var previewTimer = null;
+
+function togglePreview() {
+    previewVisible = !previewVisible;
+    var formCol = document.getElementById('formCol');
+    var previewCol = document.getElementById('previewCol');
+    var toggleBtn = document.getElementById('previewToggle');
+
+    if (previewVisible) {
+        formCol.className = 'col-md-7';
+        previewCol.style.display = '';
+        toggleBtn.innerHTML = '<i class="bi bi-eye-slash"></i> Hide Preview';
+        renderPreview();
+    } else {
+        formCol.className = 'col-12';
+        previewCol.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="bi bi-eye"></i> Preview';
+    }
+}
+
+function renderPreview() {
+    if (!previewVisible) return;
+
+    var form = document.getElementById('buildForm');
+    var lines = [];
+
+    // Name
+    var name = form.querySelector('[name="full_name"]').value.trim();
+    if (name) lines.push(name.toUpperCase());
+
+    // Contact line
+    var contactParts = [];
+    var email = form.querySelector('[name="contact_email"]').value.trim();
+    var phone = form.querySelector('[name="phone"]').value.trim();
+    var location = form.querySelector('[name="location"]').value.trim();
+    var linkedin = form.querySelector('[name="linkedin"]').value.trim();
+    if (email) contactParts.push(email);
+    if (phone) contactParts.push(phone);
+    if (location) contactParts.push(location);
+    if (linkedin) contactParts.push(linkedin);
+    if (contactParts.length) lines.push(contactParts.join(' | '));
+
+    // Summary
+    var summary = form.querySelector('[name="summary"]').value.trim();
+    if (summary) {
+        lines.push('');
+        lines.push('PROFESSIONAL SUMMARY');
+        lines.push(summary);
+    }
+
+    // Education
+    var eduSchools = form.querySelectorAll('[name="edu_school[]"]');
+    var hasEdu = false;
+    eduSchools.forEach(function(el, i) {
+        var school = el.value.trim();
+        if (!school) return;
+        if (!hasEdu) { lines.push(''); lines.push('EDUCATION'); hasEdu = true; }
+        var degree = form.querySelectorAll('[name="edu_degree[]"]')[i]?.value.trim() || '';
+        var start = form.querySelectorAll('[name="edu_start[]"]')[i]?.value.trim() || '';
+        var end = form.querySelectorAll('[name="edu_end[]"]')[i]?.value.trim() || '';
+        var gpa = form.querySelectorAll('[name="edu_gpa[]"]')[i]?.value.trim() || '';
+        var details = form.querySelectorAll('[name="edu_details[]"]')[i]?.value.trim() || '';
+
+        var line = school;
+        if (degree) line += ' \u2014 ' + degree;
+        if (start || end) line += ' (' + [start, end].filter(Boolean).join(' \u2013 ') + ')';
+        if (gpa) line += ' | GPA: ' + gpa;
+        lines.push(line);
+        if (details) lines.push('  ' + details);
+    });
+
+    // Experience
+    var expCompanies = form.querySelectorAll('[name="exp_company[]"]');
+    var hasExp = false;
+    expCompanies.forEach(function(el, i) {
+        var company = el.value.trim();
+        if (!company) return;
+        if (!hasExp) { lines.push(''); lines.push('EXPERIENCE'); hasExp = true; }
+        var title = form.querySelectorAll('[name="exp_title[]"]')[i]?.value.trim() || '';
+        var start = form.querySelectorAll('[name="exp_start[]"]')[i]?.value.trim() || '';
+        var end = form.querySelectorAll('[name="exp_end[]"]')[i]?.value.trim() || '';
+        var loc = form.querySelectorAll('[name="exp_location[]"]')[i]?.value.trim() || '';
+        var details = form.querySelectorAll('[name="exp_details[]"]')[i]?.value.trim() || '';
+
+        var line = company;
+        if (title) line += ' \u2014 ' + title;
+        if (start || end) line += ' (' + [start, end].filter(Boolean).join(' \u2013 ') + ')';
+        if (loc) line += ', ' + loc;
+        lines.push(line);
+        if (details) {
+            details.split('\n').forEach(function(bullet) {
+                bullet = bullet.trim();
+                if (!bullet) return;
+                if (!bullet.startsWith('-') && !bullet.startsWith('\u2022')) bullet = '\u2022 ' + bullet;
+                else bullet = bullet.replace(/^-\s*/, '\u2022 ');
+                lines.push('  ' + bullet);
+            });
+        }
+    });
+
+    // Skills
+    var techSkills = form.querySelector('[name="technical_skills"]').value.trim();
+    var softSkills = form.querySelector('[name="soft_skills"]').value.trim();
+    var certs = form.querySelector('[name="certifications"]').value.trim();
+    var langs = form.querySelector('[name="languages"]').value.trim();
+    if (techSkills || softSkills || certs || langs) {
+        lines.push('');
+        lines.push('SKILLS');
+        if (techSkills) lines.push('Technical: ' + techSkills);
+        if (softSkills) lines.push('Soft Skills: ' + softSkills);
+        if (certs) lines.push('Certifications: ' + certs);
+        if (langs) lines.push('Languages: ' + langs);
+    }
+
+    // Additional
+    var additional = form.querySelector('[name="additional"]').value.trim();
+    if (additional) {
+        lines.push('');
+        lines.push('ADDITIONAL');
+        lines.push(additional);
+    }
+
+    var previewContent = document.getElementById('previewContent');
+    var previewEmpty = document.getElementById('previewEmpty');
+
+    if (lines.length > 0) {
+        previewContent.textContent = lines.join('\n');
+        previewContent.style.display = '';
+        previewEmpty.style.display = 'none';
+    } else {
+        previewContent.style.display = 'none';
+        previewEmpty.style.display = '';
+    }
+}
+
+// Debounced preview update on any form input
+document.getElementById('buildForm').addEventListener('input', function() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 300);
+});
 </script>
 {% endblock %}
