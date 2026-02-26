@@ -43,17 +43,13 @@ class Config:
     STRIPE_PRICE_ID_MONTHLY = os.environ.get('STRIPE_PRICE_ID_MONTHLY')
     STRIPE_PRICE_ID_ANNUAL = os.environ.get('STRIPE_PRICE_ID_ANNUAL')
     
-    # Email / SMTP
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp-mail.outlook.com')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'no_reply_newwhale@outlook.com')
-    SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5000')
+    # Email (Resend API)
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+    FROM_EMAIL = os.environ.get('FROM_EMAIL', 'NewWhale <onboarding@resend.dev>')  # TODO: use verified domain
+    APP_BASE_URL = os.environ.get('APP_BASE_URL', os.environ.get('SITE_URL', 'http://localhost:5000'))
 
-    # Email verification token expiry in hours
-    EMAIL_VERIFICATION_EXPIRY_HOURS = int(os.environ.get('EMAIL_VERIFICATION_EXPIRY_HOURS', 24))
+    # Email verification token expiry in minutes
+    EMAIL_VERIFICATION_EXPIRY_MINUTES = int(os.environ.get('EMAIL_VERIFICATION_EXPIRY_MINUTES', 30))
 
     # LLM API
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')

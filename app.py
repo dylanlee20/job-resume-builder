@@ -2,7 +2,7 @@
 NewWhale Career v2 - Application Factory
 AI-Proof Industries Job Tracker with Resume Assessment
 """
-from flask import Flask, request as flask_request, redirect, url_for, flash
+from flask import Flask, request as flask_request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from models.database import db, init_db
@@ -89,6 +89,44 @@ def create_app():
 
     # Import models so they're registered with SQLAlchemy
     from models.cold_email import EmailCampaign, EmailRecipient
+    from models.email_verification_token import EmailVerificationToken  # noqa: F401
+
+    # ------------------------------------------------------------------
+    # Verification gate: block unverified users from protected routes
+    # ------------------------------------------------------------------
+    # Routes that unverified (or unauthenticated) users are allowed to access
+    _PUBLIC_ENDPOINTS = frozenset({
+        'auth.register', 'auth.login', 'auth.logout',
+        'auth.verify_email', 'auth.resend_verification',
+        'auth.check_username', 'auth.check_email',
+        'static',
+    })
+
+    @app.before_request
+    def enforce_email_verification():
+        """Return 403 for authenticated users whose email is not verified."""
+        if not current_user.is_authenticated:
+            return  # Let Flask-Login handle redirect to login
+        if not current_user.needs_email_verification():
+            return  # Verified or admin — allow through
+        endpoint = flask_request.endpoint or ''
+        if endpoint in _PUBLIC_ENDPOINTS:
+            return  # Auth-related routes are always accessible
+
+        # Unverified user trying to access a protected route
+        if flask_request.accept_mimetypes.best == 'application/json':
+            return jsonify({
+                'error': 'Email not verified',
+                'code': 'EMAIL_NOT_VERIFIED',
+            }), 403
+
+        logout_user()
+        flash(
+            'Please verify your email address before accessing the site. '
+            'Check your inbox for a verification link.',
+            'warning',
+        )
+        return redirect(url_for('auth.login'))
     
     # Initialize job scheduler
     from scheduler.job_scheduler import JobScheduler
