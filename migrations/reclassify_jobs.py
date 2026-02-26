@@ -14,7 +14,7 @@ from flask import Flask
 from models.database import db
 from models.job import Job
 from utils.ai_proof_filter import classify_ai_proof_role
-from utils.seniority_classifier import classify_seniority
+from utils.seniority_classifier import classify_job_type
 from config import Config
 
 
@@ -42,6 +42,11 @@ def run_migration():
                 job.title,
                 job.description or ''
             )
+
+            # Also reclassify job type (Internship vs Full Time)
+            new_job_type = classify_job_type(job.title, job.description or '')
+            if job.seniority != new_job_type:
+                job.seniority = new_job_type
 
             if is_ai_proof == old_ai_proof and category == old_category:
                 skipped += 1

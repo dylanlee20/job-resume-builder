@@ -16,7 +16,7 @@ from models.database import db
 from models.job import Job
 from models.scraper_run import ScraperRun
 from utils.ai_proof_filter import classify_ai_proof_role
-from utils.seniority_classifier import classify_seniority
+from utils.seniority_classifier import classify_job_type
 from utils.job_utils import normalize_location
 from config import Config
 from sqlalchemy.exc import IntegrityError
@@ -126,8 +126,8 @@ def save_job_to_db(job_data):
             job_data.get('description', '')
         )
 
-        # Classify seniority level
-        seniority = classify_seniority(
+        # Classify job type (Internship vs Full Time)
+        job_type = classify_job_type(
             job_data['title'],
             job_data.get('description', '')
         )
@@ -145,7 +145,7 @@ def save_job_to_db(job_data):
             job_url=job_data['job_url'],
             is_ai_proof=is_ai_proof,
             ai_proof_category=category,
-            seniority=seniority,
+            seniority=job_type,
             status='active'
         )
 

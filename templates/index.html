@@ -95,10 +95,10 @@
                         <thead style="position: sticky; top: 0; z-index: 10;">
                             <tr>
                                 <th style="width: 30px;"></th>
-                                <th style="width: 120px;">Company</th>
+                                <th style="width: 140px;">Company</th>
                                 <th>Title</th>
                                 <th style="width: 155px;">Category</th>
-                                <th style="width: 110px;">Seniority</th>
+                                <th style="width: 100px;">Job Type</th>
                                 <th style="width: 150px;">Location</th>
                                 <th style="width: 85px;">Posted</th>
                                 <th style="width: 80px;"></th>
@@ -112,7 +112,7 @@
                                         <i class="bi bi-star{% if job.is_important %}-fill{% endif %}"></i>
                                     </a>
                                 </td>
-                                <td>
+                                <td style="white-space: nowrap;">
                                     <strong style="color: var(--nw-navy);">{{ job.company }}</strong>
                                 </td>
                                 <td>
@@ -138,9 +138,15 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-light" style="color: var(--nw-text) !important; font-size: 0.7rem; border: 1px solid var(--nw-border);">
-                                        {{ job.seniority }}
+                                    {% if job.seniority == 'Internship' %}
+                                    <span class="badge" style="font-size: 0.7rem; background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7;">
+                                        Internship
                                     </span>
+                                    {% else %}
+                                    <span class="badge" style="font-size: 0.7rem; background-color: #e3f2fd; color: #1565c0; border: 1px solid #90caf9;">
+                                        Full Time
+                                    </span>
+                                    {% endif %}
                                 </td>
                                 <td style="font-size: 0.83rem; color: var(--nw-text-light);">
                                     <i class="bi bi-geo-alt"></i> {{ job.location }}
