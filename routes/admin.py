@@ -1,8 +1,9 @@
 """Admin routes for scraper monitoring and user management"""
-from flask import Blueprint, render_template, redirect, url_for, jsonify, flash
+from flask import Blueprint, render_template, redirect, url_for, jsonify, flash, request
 from flask_login import login_required, current_user
 from functools import wraps
 from models.database import db
+from models.user import User
 from models.scraper_run import ScraperRun
 from models.job import Job
 from services.job_service import JobService
@@ -27,8 +28,27 @@ def admin_required(f):
 @admin_bp.route('/users')
 @admin_required
 def users():
-    """Admin user management (placeholder)"""
-    return render_template('admin/users.html')
+    """Admin user management — list all users"""
+    all_users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=all_users)
+
+
+@admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    """Delete a user account (admin cannot delete themselves)"""
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:
+        flash('You cannot delete your own admin account.', 'danger')
+        return redirect(url_for('admin.users'))
+
+    username = user.username
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User "{username}" has been deleted.', 'success')
+    return redirect(url_for('admin.users'))
 
 
 @admin_bp.route('/scraper-status')
