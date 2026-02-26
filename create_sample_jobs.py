@@ -32,7 +32,7 @@ sample_jobs = [
         "location": "London, UK",
         "description": "Manage fixed income portfolios",
         "is_ai_proof": True,
-        "ai_proof_category": "Portfolio Management",
+        "ai_proof_category": "Asset & Wealth Management",
         "seniority": "Professional",
         "job_url": "https://example.com/ms1"
     },
@@ -52,7 +52,7 @@ sample_jobs = [
         "location": "New York, NY",
         "description": "Lead M&A advisory engagements",
         "is_ai_proof": True,
-        "ai_proof_category": "M&A Advisory",
+        "ai_proof_category": "Investment Banking",
         "seniority": "Professional",
         "job_url": "https://example.com/barc1"
     },

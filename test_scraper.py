@@ -82,8 +82,8 @@ if __name__ == '__main__':
         for job_data in jobs:
             saved, reason = save_job_to_db(job_data)
             if saved:
-                if reason in ['Investment Banking', 'Sales & Trading', 'Portfolio Management',
-                             'Risk Management', 'M&A Advisory', 'Private Equity', 'Structuring']:
+                if reason in ['Investment Banking', 'Sales & Trading', 'Asset & Wealth Management',
+                             'Risk Management', 'Private Equity', 'Structuring']:
                     ai_proof_count += 1
                     print(f"✓ AI-PROOF [{reason}]: {job_data['title'][:60]}")
                 else:

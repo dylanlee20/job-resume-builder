@@ -307,8 +307,8 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
 
                                 # Check if AI-proof or excluded
                                 if reason in ['Investment Banking', 'Sales & Trading',
-                                             'Asset Management', 'Risk Management',
-                                             'M&A Advisory', 'Private Equity', 'Structuring']:
+                                             'Asset & Wealth Management', 'Risk Management',
+                                             'Private Equity', 'Structuring']:
                                     ai_proof_count += 1
                                 else:
                                     excluded_count += 1

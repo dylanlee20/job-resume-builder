@@ -33,6 +33,10 @@ AI_PROOF_CATEGORIES = {
         'corporate finance', 'financial advisory', 'restructuring advisory',
         'leveraged finance', 'sponsor coverage', 'industry coverage',
         'pitchbook', 'pitch book',
+        'm&a advisory', 'merger advisory', 'acquisition advisory',
+        'strategic advisory', 'corporate development', 'deal execution',
+        'buy-side advisory', 'sell-side advisory', 'fairness opinion',
+        'valuation advisory',
     ],
 
     'Sales & Trading': [
@@ -47,7 +51,7 @@ AI_PROOF_CATEGORIES = {
         'options trader', 'futures trader', 'bond trader',
     ],
 
-    'Asset Management': [
+    'Asset & Wealth Management': [
         'portfolio management', 'portfolio manager',
         'investment management', 'investment manager',
         'fund manager', 'asset management', 'asset manager',
@@ -63,13 +67,6 @@ AI_PROOF_CATEGORIES = {
         'enterprise risk', 'risk analytics', 'stress testing', 'scenario analysis',
         'var', 'value at risk', 'cva', 'credit valuation adjustment',
         'counterparty risk', 'liquidity risk', 'model risk', 'trading risk',
-    ],
-
-    'M&A Advisory': [
-        'm&a advisory', 'merger advisory', 'acquisition advisory',
-        'strategic advisory', 'corporate development', 'deal execution',
-        'buy-side advisory', 'sell-side advisory', 'fairness opinion',
-        'valuation advisory',
     ],
 
     'Private Equity': [
