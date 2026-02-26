@@ -7,6 +7,7 @@ from flask import (
     url_for, flash, jsonify,
 )
 from flask_login import login_user, logout_user, login_required, current_user
+from markupsafe import Markup, escape
 
 from config import Config
 from models.database import db
@@ -166,9 +167,13 @@ def login():
         # Email verification gate (skip for admins)
         if user.needs_email_verification():
             flash(
-                'Please verify your email address before logging in. '
-                '<a href="' + url_for('auth.resend_verification') + '?email=' + user.email + '">'
-                'Resend verification email</a>',
+                Markup(
+                    'Please verify your email address before logging in. '
+                    '<a href="{}?email={}">Resend verification email</a>'
+                ).format(
+                    url_for('auth.resend_verification'),
+                    escape(user.email),
+                ),
                 'warning',
             )
             return render_template('auth/login.html', username=identifier,
@@ -215,8 +220,10 @@ def verify_email():
 
     if token_record is None:
         flash(
-            'This verification link is invalid, expired, or has already been used. '
-            '<a href="' + url_for('auth.resend_verification') + '">Request a new one.</a>',
+            Markup(
+                'This verification link is invalid, expired, or has already been used. '
+                '<a href="{}">Request a new one.</a>'
+            ).format(url_for('auth.resend_verification')),
             'danger',
         )
         return redirect(url_for('auth.login'))

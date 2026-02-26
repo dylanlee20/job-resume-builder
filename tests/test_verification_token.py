@@ -135,3 +135,19 @@ class TestHashToken:
         h1 = EmailVerificationToken.hash_token('token-a')
         h2 = EmailVerificationToken.hash_token('token-b')
         assert h1 != h2
+
+
+class TestModelRegistration:
+    """Verify EmailVerificationToken is registered with SQLAlchemy metadata
+    so that db.create_all() creates its table during app startup."""
+
+    def test_model_in_models_package(self):
+        """EmailVerificationToken must be importable from the models package."""
+        import models
+        assert hasattr(models, 'EmailVerificationToken')
+
+    def test_table_in_metadata(self, app):
+        """The email_verification_tokens table must be in SQLAlchemy metadata."""
+        with app.app_context():
+            table_names = db.metadata.tables.keys()
+            assert 'email_verification_tokens' in table_names

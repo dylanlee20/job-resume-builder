@@ -9,6 +9,7 @@ from .resume_template import ResumeTemplate
 from .resume_revision import ResumeRevision
 from .subscription import Subscription, Payment
 from .scraper_run import ScraperRun
+from .email_verification_token import EmailVerificationToken
 
 __all__ = [
     'db',
@@ -25,4 +26,5 @@ __all__ = [
     'Subscription',
     'Payment',
     'ScraperRun',
+    'EmailVerificationToken',
 ]
