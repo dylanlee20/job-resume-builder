@@ -78,7 +78,7 @@ class ResumeAssessmentService:
 
             # Prepare system prompt
             system_prompt = """You are an expert finance career advisor specializing in AI-proof industries:
-Investment Banking, Sales & Trading, Portfolio Management, Risk Management, and M&A Advisory.
+Investment Banking, Sales & Trading, Asset & Wealth Management, and Risk Management.
 
 Analyze the following resume and provide a JSON response with these exact fields:
 1. overall_score (integer 0-100): How competitive is this resume for top-tier finance roles?
@@ -87,9 +87,8 @@ Analyze the following resume and provide a JSON response with these exact fields
 4. industry_compatibility (object): Score 0-100 for each AI-proof industry:
    - "Investment Banking"
    - "Sales & Trading"
-   - "Portfolio Management"
+   - "Asset & Wealth Management"
    - "Risk Management"
-   - "M&A Advisory"
 5. key_recommendations (array of 3 strings): Actionable next steps
 
 Respond with ONLY valid JSON, no other text."""
@@ -168,9 +167,8 @@ Provide the assessment in JSON format."""
             'industry_compatibility': {
                 'Investment Banking': 50,
                 'Sales & Trading': 50,
-                'Portfolio Management': 50,
+                'Asset & Wealth Management': 50,
                 'Risk Management': 50,
-                'M&A Advisory': 50
             },
             'detailed_feedback': 'Fallback assessment due to API unavailability.',
             'model_used': 'fallback',
