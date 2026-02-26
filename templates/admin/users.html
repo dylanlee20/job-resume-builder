@@ -1,2 +1,136 @@
-{% extends 'layout.html' %}
-{% block content %}<h1>User Management</h1>{% endblock %}
+{% extends "layout.html" %}
+
+{% block title %}User Management - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding-top: 10px;">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2><i class="bi bi-people"></i> User Management</h2>
+            <p class="text-muted">{{ users|length }} registered user{{ 's' if users|length != 1 else '' }}</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card admin-stat-card">
+                <div class="card-body">
+                    <h6>Total Users</h6>
+                    <div class="stat-number">{{ users|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card admin-stat-card">
+                <div class="card-body">
+                    <h6>Verified</h6>
+                    <div class="stat-number" style="color: #27ae60;">
+                        {{ users|selectattr('email_verified')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card admin-stat-card">
+                <div class="card-body">
+                    <h6>Unverified</h6>
+                    <div class="stat-number" style="color: #e74c3c;">
+                        {{ users|rejectattr('email_verified')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card admin-stat-card">
+                <div class="card-body">
+                    <h6>Premium</h6>
+                    <div class="stat-number" style="color: var(--nw-blue, #3b6bcc);">
+                        {{ users|selectattr('is_premium')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">All Users</div>
+                <div class="card-body" style="padding: 0;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th style="width: 90px;">Tier</th>
+                                <th style="width: 90px;">Verified</th>
+                                <th style="width: 90px;">Role</th>
+                                <th style="width: 150px;">Registered</th>
+                                <th style="width: 150px;">Last Login</th>
+                                <th style="width: 90px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td><strong>{{ user.username }}</strong></td>
+                                <td style="font-size: 0.85rem;">{{ user.email }}</td>
+                                <td>
+                                    {% if user.tier == 'premium' %}
+                                        <span class="badge" style="background-color: #3b6bcc !important; color: #fff !important;">premium</span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #6c757d !important; color: #fff !important;">free</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.email_verified %}
+                                        <span style="color: #27ae60;">&#10003; Yes</span>
+                                    {% else %}
+                                        <span style="color: #e74c3c;">&#10007; No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="badge" style="background-color: #e74c3c !important; color: #fff !important;">admin</span>
+                                    {% else %}
+                                        <span style="color: rgba(255,255,255,0.5);">user</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 0.85rem;">
+                                    {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}
+                                </td>
+                                <td style="font-size: 0.85rem;">
+                                    {{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}
+                                </td>
+                                <td>
+                                    {% if not user.is_admin %}
+                                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                onclick="return confirm('Delete user &quot;{{ user.username }}&quot;? This cannot be undone.');">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span style="color: rgba(255,255,255,0.3); font-size: 0.8rem;">protected</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">No users registered yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
