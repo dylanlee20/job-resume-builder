@@ -152,7 +152,7 @@ class JobService:
             func.sum(func.cast(Job.is_ai_proof, db.Integer)).label('ai_proof'),
             func.sum(
                 case(
-                    (Job.seniority == 'Student/Grad', 1),
+                    (Job.seniority == 'Internship', 1),
                     else_=0
                 )
             ).label('student_grad')

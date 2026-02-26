@@ -13,7 +13,7 @@ sample_jobs = [
         "description": "Summer internship for undergraduate students in our M&A team",
         "is_ai_proof": True,
         "ai_proof_category": "Investment Banking",
-        "seniority": "Student/Grad",
+        "seniority": "Internship",
         "job_url": "https://example.com/gs1"
     },
     {
@@ -23,7 +23,7 @@ sample_jobs = [
         "description": "Summer internship trading equities in Asia markets",
         "is_ai_proof": True,
         "ai_proof_category": "Sales & Trading",
-        "seniority": "Student/Grad",
+        "seniority": "Internship",
         "job_url": "https://example.com/jpm1"
     },
     {
@@ -33,7 +33,7 @@ sample_jobs = [
         "description": "Manage fixed income portfolios",
         "is_ai_proof": True,
         "ai_proof_category": "Asset & Wealth Management",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/ms1"
     },
     {
@@ -43,7 +43,7 @@ sample_jobs = [
         "description": "Oversee market risk analytics",
         "is_ai_proof": True,
         "ai_proof_category": "Risk Management",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/citi1"
     },
     {
@@ -53,7 +53,7 @@ sample_jobs = [
         "description": "Lead M&A advisory engagements",
         "is_ai_proof": True,
         "ai_proof_category": "Investment Banking",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/barc1"
     },
     {
@@ -63,7 +63,7 @@ sample_jobs = [
         "description": "Graduate rotational program analyzing private equity investments",
         "is_ai_proof": True,
         "ai_proof_category": "Private Equity",
-        "seniority": "Student/Grad",
+        "seniority": "Internship",
         "job_url": "https://example.com/blk1"
     },
     {
@@ -73,7 +73,7 @@ sample_jobs = [
         "description": "Structure complex derivatives products",
         "is_ai_proof": True,
         "ai_proof_category": "Structuring",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/db1"
     },
     {
@@ -83,7 +83,7 @@ sample_jobs = [
         "description": "Work with healthcare banking team",
         "is_ai_proof": True,
         "ai_proof_category": "Investment Banking",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/ubs1"
     },
     {
@@ -93,7 +93,7 @@ sample_jobs = [
         "description": "Manage FX trading desk",
         "is_ai_proof": True,
         "ai_proof_category": "Sales & Trading",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/hsbc1"
     },
     {
@@ -103,7 +103,7 @@ sample_jobs = [
         "description": "Summer internship selling structured products to institutions",
         "is_ai_proof": True,
         "ai_proof_category": "Structuring",
-        "seniority": "Student/Grad",
+        "seniority": "Internship",
         "job_url": "https://example.com/bnp1"
     },
 
@@ -115,7 +115,7 @@ sample_jobs = [
         "description": "Handle financial reporting",
         "is_ai_proof": False,
         "ai_proof_category": "Accounting",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/gs2"
     },
     {
@@ -125,7 +125,7 @@ sample_jobs = [
         "description": "Analyze data and create reports",
         "is_ai_proof": False,
         "ai_proof_category": "Data Science",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/jpm2"
     },
     {
@@ -135,7 +135,7 @@ sample_jobs = [
         "description": "Ensure regulatory compliance",
         "is_ai_proof": False,
         "ai_proof_category": "Compliance",
-        "seniority": "Professional",
+        "seniority": "Full Time",
         "job_url": "https://example.com/ms2"
     },
 ]
@@ -164,7 +164,7 @@ def create_samples():
                     description=job_data['description'],
                     is_ai_proof=job_data['is_ai_proof'],
                     ai_proof_category=job_data['ai_proof_category'],
-                    seniority=job_data.get('seniority', 'Professional'),
+                    seniority=job_data.get('seniority', 'Full Time'),
                     job_url=job_data['job_url'],
                     source_website="Sample Data",
                     status='active',

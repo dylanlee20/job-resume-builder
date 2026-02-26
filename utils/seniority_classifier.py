@@ -1,54 +1,53 @@
 """
-Seniority Classification Utility
-Classifies jobs as Student/Grad or Professional based on title and description
+Job Type Classification Utility
+Classifies jobs as Internship or Full Time based on title and description
 """
 
-def classify_seniority(title, description=''):
+
+def classify_job_type(title, description=''):
     """
-    Classify job seniority level based on title and description
+    Classify job type based on title and description.
 
     Args:
         title: Job title
         description: Job description
 
     Returns:
-        str: 'Student/Grad' or 'Professional'
+        str: 'Internship' or 'Full Time'
     """
     text = f"{title} {description}".lower()
 
-    # Student/Grad keywords (internships, campus programs, entry-level)
-    student_keywords = [
+    # Internship keywords (internships, campus programs, rotational)
+    internship_keywords = [
         'intern',
         'internship',
         'summer analyst',
         'summer associate',
-        'graduate',
+        'graduate program',
         'grad program',
         'trainee',
         'campus',
-        'university',
-        'college',
-        'undergraduate',
-        'mba',
-        'student',
-        'graduate program',
         'rotational program',
         'off-cycle',
         'spring week',
-        'insight',
         'spring intern',
         'winter intern',
-        'penultimate',
-        'first year',
-        'sophomore',
-        'junior',
-        'senior year'
+        'insight program',
+        'insight week',
+        'co-op',
+        'coop program',
+        'placement year',
+        'industrial placement',
     ]
 
-    # Check for student/grad keywords
-    for keyword in student_keywords:
+    for keyword in internship_keywords:
         if keyword in text:
-            return 'Student/Grad'
+            return 'Internship'
 
-    # Default to Professional
-    return 'Professional'
+    return 'Full Time'
+
+
+# Backwards-compatible alias
+def classify_seniority(title, description=''):
+    """Legacy alias — maps old values to new job type values."""
+    return classify_job_type(title, description)
