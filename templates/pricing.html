@@ -59,7 +59,7 @@
                 </ul>
             </div>
             <div class="card-footer text-center">
-                {% if current_user.is_authenticated and current_user.is_premium() %}
+                {% if current_user.is_authenticated and current_user.is_premium %}
                 <button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Current Plan</button>
                 {% elif current_user.is_authenticated %}
                 <button class="btn btn-primary btn-lg subscribe-btn" onclick="subscribe('monthly')">
@@ -93,7 +93,7 @@
                 </ul>
             </div>
             <div class="card-footer text-center">
-                {% if current_user.is_authenticated and current_user.is_premium() %}
+                {% if current_user.is_authenticated and current_user.is_premium %}
                 <button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Premium Member</button>
                 {% elif current_user.is_authenticated %}
                 <button class="btn btn-primary btn-lg subscribe-btn" onclick="subscribe('annual')">

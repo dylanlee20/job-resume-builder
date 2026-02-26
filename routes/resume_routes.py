@@ -321,7 +321,7 @@ def assess(resume_id):
 @login_required
 def revise(resume_id):
     """Premium: Revise resume with AI-powered improvements and before/after"""
-    if not current_user.is_premium():
+    if not current_user.is_premium:
         return jsonify({
             'success': False,
             'message': 'Resume revision requires a Premium subscription.'

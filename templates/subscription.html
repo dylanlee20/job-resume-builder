@@ -14,7 +14,7 @@
                 <h5 class="mb-0">Current Plan</h5>
             </div>
             <div class="card-body">
-                {% if current_user.is_premium() and subscription %}
+                {% if current_user.is_premium and subscription %}
                 <div class="d-flex align-items-center mb-3">
                     <span class="badge bg-success me-2" style="font-size: 1rem;">PREMIUM</span>
                     <span class="text-muted">{{ subscription.plan|capitalize }} Plan</span>
@@ -51,7 +51,7 @@
                 <small class="d-block text-muted mt-1">You'll keep access until the end of your billing period.</small>
                 {% endif %}
 
-                {% elif current_user.is_premium() %}
+                {% elif current_user.is_premium %}
                 <div class="d-flex align-items-center mb-3">
                     <span class="badge bg-success me-2" style="font-size: 1rem;">PREMIUM</span>
                     <span class="text-muted">Admin/Granted Access</span>

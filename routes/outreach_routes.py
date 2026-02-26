@@ -20,7 +20,7 @@ def require_annual_plan(f):
 
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not current_user.is_premium():
+        if not current_user.is_premium:
             flash('Cold Email Outreach requires a Premium Annual subscription.', 'error')
             return redirect(url_for('web.pricing'))
         return f(*args, **kwargs)
