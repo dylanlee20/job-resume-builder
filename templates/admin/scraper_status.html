@@ -254,7 +254,7 @@
                                 <th>Company</th>
                                 <th style="width: 120px;">Total Jobs</th>
                                 <th style="width: 120px;">AI-Proof</th>
-                                <th style="width: 120px;">Student/Grad</th>
+                                <th style="width: 120px;">Internships</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -264,7 +264,7 @@
                                     <td><strong>{{ company_stat.company }}</strong></td>
                                     <td><span style="color: var(--nw-blue); font-weight: 600;">{{ company_stat.total }}</span></td>
                                     <td>{{ company_stat.ai_proof }}</td>
-                                    <td>{{ company_stat.student_grad }}</td>
+                                    <td>{{ company_stat.internship_count if company_stat.internship_count is defined else company_stat.student_grad }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}

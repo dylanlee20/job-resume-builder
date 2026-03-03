@@ -30,8 +30,18 @@
     <div class="col-md-12">
         <div class="card" style="border-radius: 10px;">
             <div class="card-body py-2 px-3">
-                <form method="GET" action="{{ url_for('web.dashboard') }}" class="row g-2 align-items-end">
-                    <div class="col-md-3">
+                <form id="dashboardFilterForm" method="GET" action="{{ url_for('web.dashboard') }}" class="row g-2 align-items-end">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label small mb-0">Search</label>
+                        <input
+                            type="text"
+                            name="q"
+                            class="form-control form-control-sm"
+                            value="{{ filters.q }}"
+                            placeholder="Title, company, location, keywords"
+                        >
+                    </div>
+                    <div class="col-lg-2 col-md-6">
                         <label class="form-label small mb-0">Company</label>
                         <select name="company" class="form-select form-select-sm">
                             <option value="">All Companies</option>
@@ -40,16 +50,34 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-0">Location</label>
-                        <select name="location" class="form-select form-select-sm">
-                            <option value="">All Locations</option>
-                            {% for location in locations %}
-                            <option value="{{ location }}" {% if filters.location == location %}selected{% endif %}>{{ location }}</option>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label small mb-0">Country</label>
+                        <select name="country" class="form-select form-select-sm">
+                            <option value="">All Countries</option>
+                            {% for country in countries %}
+                            <option value="{{ country }}" {% if filters.country == country %}selected{% endif %}>{{ country }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label small mb-0">City</label>
+                        <select name="city" class="form-select form-select-sm">
+                            <option value="">All Cities</option>
+                            {% for city in cities %}
+                            <option value="{{ city }}" {% if filters.city == city %}selected{% endif %}>{{ city }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-1 col-md-6">
+                        <label class="form-label small mb-0">Job Type</label>
+                        <select name="job_type" class="form-select form-select-sm">
+                            <option value="">All</option>
+                            {% for job_type in job_types %}
+                            <option value="{{ job_type }}" {% if filters.job_type == job_type %}selected{% endif %}>{{ job_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
                         <label class="form-label small mb-0">Category</label>
                         <select name="category" class="form-select form-select-sm">
                             <option value="">All Categories</option>
@@ -58,7 +86,16 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label small mb-0">Sort</label>
+                        <select name="sort_by" class="form-select form-select-sm">
+                            <option value="newest" {% if filters.sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="oldest" {% if filters.sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
+                            <option value="company_asc" {% if filters.sort_by == 'company_asc' %}selected{% endif %}>Company A-Z</option>
+                            <option value="company_desc" {% if filters.sort_by == 'company_desc' %}selected{% endif %}>Company Z-A</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
                         <div class="form-check mt-3">
                             <input class="form-check-input" type="checkbox" name="starred" value="1" id="starredFilter" {% if filters.is_important %}checked{% endif %}>
                             <label class="form-check-label small" for="starredFilter">
@@ -66,7 +103,7 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-lg-2 col-md-6">
                         <div class="form-check mt-3">
                             <input class="form-check-input" type="checkbox" name="ai_proof" value="1" id="aiProofFilter" {% if filters.ai_proof_only %}checked{% endif %}>
                             <label class="form-check-label small" for="aiProofFilter">
@@ -74,9 +111,12 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-2 text-end">
+                    {% if filters.location and not filters.country and not filters.city %}
+                    <input type="hidden" name="location" value="{{ filters.location }}">
+                    {% endif %}
+                    <div class="col-lg-2 col-md-12 text-end">
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filter</button>
-                        <a href="{{ url_for('web.dashboard') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                        <a href="{{ url_for('web.dashboard') }}" class="btn btn-sm btn-outline-secondary nav-loading-link">Clear</a>
                     </div>
                 </form>
             </div>
@@ -174,13 +214,13 @@
                         <ul class="pagination pagination-sm mb-0">
                             {% if has_prev %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page - 1 }}{% if filters.company %}&company={{ filters.company }}{% endif %}{% if filters.location %}&location={{ filters.location }}{% endif %}{% if filters.ai_proof_category %}&category={{ filters.ai_proof_category }}{% endif %}{% if filters.is_important %}&starred=1{% endif %}{% if filters.ai_proof_only %}&ai_proof=1{% endif %}">Previous</a>
+                                <a class="page-link nav-loading-link" href="{{ prev_url }}">Previous</a>
                             </li>
                             {% endif %}
                             <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
                             {% if has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page + 1 }}{% if filters.company %}&company={{ filters.company }}{% endif %}{% if filters.location %}&location={{ filters.location }}{% endif %}{% if filters.ai_proof_category %}&category={{ filters.ai_proof_category }}{% endif %}{% if filters.is_important %}&starred=1{% endif %}{% if filters.ai_proof_only %}&ai_proof=1{% endif %}">Next</a>
+                                <a class="page-link nav-loading-link" href="{{ next_url }}">Next</a>
                             </li>
                             {% endif %}
                         </ul>
@@ -199,10 +239,34 @@
     </div>
 </div>
 
+<div id="dashboardLoading" class="d-none" style="position: fixed; inset: 0; background: rgba(255, 255, 255, 0.75); z-index: 2050;">
+    <div class="d-flex align-items-center justify-content-center h-100">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2 fw-semibold">Loading jobs...</div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+function showDashboardLoading() {
+    $('#dashboardLoading').removeClass('d-none');
+}
+
+$('#dashboardFilterForm').on('submit', function() {
+    showDashboardLoading();
+});
+
+$(document).on('click', '.nav-loading-link', function() {
+    const href = $(this).attr('href');
+    if (href && href !== '#') {
+        showDashboardLoading();
+    }
+});
+
 $(document).on('click', '.star-toggle', function(e) {
     e.preventDefault();
     const jobId = $(this).data('job-id');

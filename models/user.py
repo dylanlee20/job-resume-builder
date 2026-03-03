@@ -78,6 +78,14 @@ class User(UserMixin, db.Model):
     def is_free(self) -> bool:
         return self.tier == 'free'
 
+    def upgrade_to_premium(self) -> None:
+        """Promote user to premium tier. Caller must commit."""
+        self.tier = 'premium'
+
+    def downgrade_to_free(self) -> None:
+        """Downgrade user to free tier. Caller must commit."""
+        self.tier = 'free'
+
     def get_active_subscription(self):
         """Get the user's current active subscription, if any."""
         from models.subscription import Subscription

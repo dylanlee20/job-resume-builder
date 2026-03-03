@@ -98,6 +98,21 @@ class TestTierHelpers:
             assert user.is_premium is True
             assert user.is_free is False
 
+    def test_upgrade_to_premium(self, app, sample_user):
+        with app.app_context():
+            user = User.query.get(sample_user.id)
+            user.upgrade_to_premium()
+            assert user.tier == 'premium'
+            assert user.is_premium is True
+
+    def test_downgrade_to_free(self, app, sample_user):
+        with app.app_context():
+            user = User.query.get(sample_user.id)
+            user.tier = 'premium'
+            user.downgrade_to_free()
+            assert user.tier == 'free'
+            assert user.is_free is True
+
 
 # =========================================================================
 # record_login

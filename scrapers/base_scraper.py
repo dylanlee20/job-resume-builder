@@ -30,6 +30,8 @@ class BaseScraper(ABC):
         self.source_url = source_url
         self.driver = None
         self._user_data_dir = None
+        self.last_scrape_success = None
+        self.last_error = None
         self.logger = logging.getLogger(f"{__name__}.{company_name}")
 
     @staticmethod
@@ -38,10 +40,25 @@ class BaseScraper(ABC):
         if Config.CHROME_BINARY_PATH:
             return Config.CHROME_BINARY_PATH, 'chrome'
 
-        # Check for Google Chrome first, then Chromium
+        # Windows: check common install locations first
+        if os.name == 'nt':
+            win_candidates = [
+                os.path.join(os.environ.get('PROGRAMFILES', ''), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+                os.path.join(os.environ.get('PROGRAMFILES(X86)', ''), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+                os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+                os.path.join(os.environ.get('PROGRAMFILES', ''), 'Chromium', 'Application', 'chrome.exe'),
+                os.path.join(os.environ.get('PROGRAMFILES(X86)', ''), 'Chromium', 'Application', 'chrome.exe'),
+            ]
+            for path in win_candidates:
+                if path and os.path.exists(path):
+                    return path, 'chrome'
+
+        # Linux/macOS: check command names for Google Chrome first, then Chromium
         chrome_names = [
             ('google-chrome-stable', 'chrome'),
             ('google-chrome', 'chrome'),
+            ('chrome', 'chrome'),
+            ('chrome.exe', 'chrome'),
             ('chromium-browser', 'chromium'),
             ('chromium', 'chromium'),
         ]
@@ -80,9 +97,18 @@ class BaseScraper(ABC):
 
             chrome_binary, browser_type = self._detect_chrome_binary()
             if not chrome_binary:
+                if os.name == 'nt':
+                    install_hint = (
+                        "No Chrome or Chromium binary found. Install Google Chrome "
+                        "or set CHROME_BINARY_PATH in .env"
+                    )
+                else:
+                    install_hint = (
+                        "No Chrome or Chromium binary found. Install google-chrome-stable "
+                        "or chromium-browser, or set CHROME_BINARY_PATH in .env"
+                    )
                 raise Exception(
-                    "No Chrome or Chromium binary found. Install google-chrome-stable "
-                    "or chromium-browser, or set CHROME_BINARY_PATH in .env"
+                    install_hint
                 )
             self.logger.info(f"Using browser: {chrome_binary} (type: {browser_type})")
 
@@ -180,10 +206,12 @@ class BaseScraper(ABC):
             self.driver.set_page_load_timeout(Config.SCRAPER_TIMEOUT)
 
             self.logger.info(f"WebDriver initialized for {self.company_name}")
+            self.last_error = None
             return True
 
         except Exception as e:
             self.logger.error(f"Failed to initialize WebDriver for {self.company_name}: {e}")
+            self.last_error = str(e)
             return False
 
     def close_driver(self):
@@ -270,6 +298,9 @@ class BaseScraper(ABC):
         """
         if max_retries is None:
             max_retries = Config.SCRAPER_RETRY_COUNT
+        self.last_scrape_success = False
+        self.last_error = None
+        last_exception = None
 
         for attempt in range(max_retries):
             try:
@@ -285,10 +316,13 @@ class BaseScraper(ABC):
                 self.logger.info(
                     f"Successfully scraped {len(jobs)} jobs from {self.company_name}"
                 )
-
+                self.last_scrape_success = True
+                self.last_error = None
                 return jobs
 
             except Exception as e:
+                last_exception = e
+                self.last_error = str(e)
                 self.logger.error(
                     f"Scrape failed for {self.company_name} (attempt {attempt + 1}/{max_retries}): {e}"
                 )
@@ -298,11 +332,15 @@ class BaseScraper(ABC):
                     time.sleep(5)
                 else:
                     self.logger.error(f"All retry attempts failed for {self.company_name}")
+                    self.last_scrape_success = False
                     return []
 
             finally:
                 self.close_driver()
 
+        if last_exception and not self.last_error:
+            self.last_error = str(last_exception)
+        self.last_scrape_success = False
         return []
 
     def get_page_source(self):

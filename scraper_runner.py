@@ -288,6 +288,10 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
 
                     scraper = scraper_class()
                     jobs = scraper.scrape_with_retry()
+                    if not getattr(scraper, 'last_scrape_success', True):
+                        failure_reason = getattr(scraper, 'last_error', None) or \
+                            "Scraper failed after all retries"
+                        raise RuntimeError(failure_reason)
 
                     logger.info(f"Scraped {len(jobs)} jobs from {scraper.company_name}")
                     total_scraped += len(jobs)
@@ -332,6 +336,7 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
                     error_msg = f"Error running {scraper_class.__name__}: {e}"
                     logger.error(error_msg)
                     error_log.append(error_msg)
+                    error_count += 1
                     companies_failed += 1
                     company_results[company_name] = {
                         'scraped': 0,
