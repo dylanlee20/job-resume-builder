@@ -31,6 +31,17 @@ fi
 # Install any new dependencies
 "$APP_DIR/venv/bin/pip" install -r requirements.txt --quiet 2>> "$LOG_FILE"
 
+# Ensure a browser exists for Selenium scrapers
+if ! command -v google-chrome-stable >/dev/null 2>&1 && \
+   ! command -v chromium-browser >/dev/null 2>&1 && \
+   ! command -v chromium >/dev/null 2>&1; then
+    echo "$(date): Installing Chromium for Selenium" >> "$LOG_FILE"
+    apt-get update -qq >> "$LOG_FILE" 2>&1 || true
+    apt-get install -y -qq chromium-browser >> "$LOG_FILE" 2>&1 || \
+    apt-get install -y -qq chromium >> "$LOG_FILE" 2>&1 || \
+    echo "$(date): WARNING - Could not install Chromium automatically. Set CHROME_BINARY_PATH in .env" >> "$LOG_FILE"
+fi
+
 # Restart the app
 systemctl restart newwhale-app 2>> "$LOG_FILE" || echo "$(date): WARNING - systemctl restart failed, try manually" >> "$LOG_FILE"
 

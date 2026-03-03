@@ -27,10 +27,18 @@ def dashboard():
     """Main job listings page with compact table view (logged-in users)"""
     # Get filter parameters
     ai_proof_only = request.args.get('ai_proof') == '1'
+    country = request.args.get('country', '').strip()
+    location = request.args.get('location', '').strip()
     filters = {
+        'q': request.args.get('q', '').strip(),
         'company': request.args.get('company', ''),
-        'location': request.args.get('location', ''),
+        'country': country,
+        'city': request.args.get('city', '').strip(),
+        # Backward compatibility for old links using exact location filtering.
+        'location': location,
+        'job_type': request.args.get('job_type', '').strip(),
         'ai_proof_category': request.args.get('category', ''),
+        'sort_by': request.args.get('sort_by', 'newest'),
         'is_important': request.args.get('starred') == '1',
         'ai_proof_only': ai_proof_only,
     }
@@ -44,9 +52,19 @@ def dashboard():
 
     # Get filter options
     companies = JobService.get_all_companies(include_excluded=True)
-    locations = JobService.get_all_locations(include_excluded=True)
+    countries = JobService.get_all_countries(include_excluded=True)
+    cities = JobService.get_all_cities(country=country or None, include_excluded=True)
+    job_types = JobService.get_all_job_types(include_excluded=True)
     categories = JobService.get_all_categories(include_excluded=True)
     stats = JobService.get_statistics()
+
+    # Build pagination URLs preserving non-page query params.
+    pagination_params = {
+        key: value for key, value in request.args.items()
+        if key != 'page' and str(value).strip() != ''
+    }
+    prev_url = url_for('web.dashboard', page=page - 1, **pagination_params) if result['has_prev'] else None
+    next_url = url_for('web.dashboard', page=page + 1, **pagination_params) if result['has_next'] else None
 
     return render_template(
         'index.html',
@@ -58,10 +76,14 @@ def dashboard():
         has_next=result['has_next'],
         has_prev=result['has_prev'],
         companies=companies,
-        locations=locations,
+        countries=countries,
+        cities=cities,
+        job_types=job_types,
         categories=categories,
         stats=stats,
-        filters=filters
+        filters=filters,
+        prev_url=prev_url,
+        next_url=next_url,
     )
 
 

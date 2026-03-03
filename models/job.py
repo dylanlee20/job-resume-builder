@@ -98,6 +98,7 @@ class Job(db.Model):
             'industry': self.industry,
             'ai_proof_category': self.ai_proof_category,
             'is_ai_proof': self.is_ai_proof,
+            'seniority': self.seniority,
             'description': self.description,
             'post_date': self.post_date.isoformat() if self.post_date else None,
             'deadline': self.deadline.isoformat() if self.deadline else None,

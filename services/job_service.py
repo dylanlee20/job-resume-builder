@@ -2,8 +2,8 @@
 from models.database import db
 from models.job import Job
 from utils.job_utils import categorize_and_classify_job, normalize_location
-from datetime import datetime, timedelta
-from sqlalchemy import and_, or_, func, case
+from datetime import datetime
+from sqlalchemy import or_, func, case
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,6 +11,17 @@ logger = logging.getLogger(__name__)
 
 class JobService:
     """Service layer for job operations"""
+
+    @staticmethod
+    def _split_location(location):
+        """Split normalized location into (country, city)."""
+        if not location:
+            return ("", "")
+        value = str(location).strip()
+        if " - " in value:
+            country, city = value.split(" - ", 1)
+            return (country.strip(), city.strip())
+        return (value, "")
     
     @staticmethod
     def get_jobs(filters=None, page=1, per_page=20):
@@ -27,6 +38,18 @@ class JobService:
         """
         filters = filters or {}
         query = Job.query.filter_by(status='active')
+
+        search_text = (filters.get('q') or filters.get('search') or '').strip()
+        if search_text:
+            like = f"%{search_text}%"
+            query = query.filter(
+                or_(
+                    Job.company.ilike(like),
+                    Job.title.ilike(like),
+                    Job.location.ilike(like),
+                    Job.description.ilike(like),
+                )
+            )
         
         # Only filter to AI-proof jobs when explicitly requested via checkbox
         if filters.get('ai_proof_only'):
@@ -35,9 +58,30 @@ class JobService:
         # Apply filters
         if filters.get('company'):
             query = query.filter_by(company=filters['company'])
-        
+
+        if filters.get('country'):
+            country = str(filters['country']).strip()
+            query = query.filter(
+                or_(
+                    Job.location == country,
+                    Job.location.ilike(f"{country} - %")
+                )
+            )
+
+        if filters.get('city'):
+            city = str(filters['city']).strip()
+            query = query.filter(
+                or_(
+                    Job.location == city,
+                    Job.location.ilike(f"% - {city}")
+                )
+            )
+
         if filters.get('location'):
             query = query.filter_by(location=filters['location'])
+
+        if filters.get('job_type'):
+            query = query.filter_by(seniority=filters['job_type'])
         
         if filters.get('category'):
             query = query.filter_by(category=filters['category'])
@@ -49,11 +93,19 @@ class JobService:
             query = query.filter_by(is_important=True)
         
         # Sorting
-        sort_by = filters.get('sort_by', 'first_seen')
-        if sort_by == 'first_seen':
+        sort_by = filters.get('sort_by', 'newest')
+        if sort_by in ('newest', 'first_seen', 'first_seen_desc'):
             query = query.order_by(Job.first_seen.desc())
-        elif sort_by == 'company':
+        elif sort_by in ('oldest', 'first_seen_asc'):
+            query = query.order_by(Job.first_seen.asc())
+        elif sort_by in ('company', 'company_asc'):
             query = query.order_by(Job.company.asc())
+        elif sort_by == 'company_desc':
+            query = query.order_by(Job.company.desc())
+        elif sort_by == 'post_date_desc':
+            query = query.order_by(Job.post_date.desc(), Job.first_seen.desc())
+        else:
+            query = query.order_by(Job.first_seen.desc())
         
         # Pagination
         paginated = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -155,7 +207,7 @@ class JobService:
                     (Job.seniority == 'Internship', 1),
                     else_=0
                 )
-            ).label('student_grad')
+            ).label('internship_count')
         ).filter_by(
             status='active'
         ).group_by(Job.company).order_by(func.count(Job.id).desc()).all()
@@ -165,9 +217,11 @@ class JobService:
                 'company': company,
                 'total': total,
                 'ai_proof': ai_proof or 0,
-                'student_grad': student_grad or 0
+                'internship_count': internship_count or 0,
+                # Backwards-compatible key used by older templates.
+                'student_grad': internship_count or 0
             }
-            for company, total, ai_proof, student_grad in company_stats
+            for company, total, ai_proof, internship_count in company_stats
         ]
 
         return {
@@ -196,6 +250,52 @@ class JobService:
             query = query.filter_by(is_ai_proof=True)
         locations = query.distinct().all()
         return sorted([l[0] for l in locations if l[0]])
+
+    @staticmethod
+    def get_all_countries(include_excluded=False):
+        """Get list of all countries derived from normalized locations."""
+        query = db.session.query(Job.location).filter_by(status='active')
+        if not include_excluded:
+            query = query.filter_by(is_ai_proof=True)
+        locations = [l[0] for l in query.distinct().all() if l[0]]
+        countries = set()
+        for loc in locations:
+            country, _ = JobService._split_location(loc)
+            if country:
+                countries.add(country)
+        return sorted(countries)
+
+    @staticmethod
+    def get_all_cities(country=None, include_excluded=False):
+        """Get list of cities derived from normalized locations."""
+        query = db.session.query(Job.location).filter_by(status='active')
+        if not include_excluded:
+            query = query.filter_by(is_ai_proof=True)
+        locations = [l[0] for l in query.distinct().all() if l[0]]
+
+        cities = set()
+        country_filter = str(country).strip() if country else ''
+        for loc in locations:
+            parsed_country, city = JobService._split_location(loc)
+            if not city:
+                continue
+            if country_filter and parsed_country != country_filter:
+                continue
+            cities.add(city)
+
+        return sorted(cities)
+
+    @staticmethod
+    def get_all_job_types(include_excluded=False):
+        """Get list of available job types."""
+        query = db.session.query(Job.seniority).filter_by(status='active')
+        if not include_excluded:
+            query = query.filter_by(is_ai_proof=True)
+        rows = query.distinct().all()
+        values = {row[0] for row in rows if row[0]}
+        ordered_defaults = [v for v in ('Internship', 'Full Time') if v in values]
+        remaining = sorted(values - set(ordered_defaults))
+        return ordered_defaults + remaining
 
     @staticmethod
     def get_all_categories(include_excluded=False):
