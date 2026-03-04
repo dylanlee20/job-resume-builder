@@ -67,6 +67,7 @@
                 {% if stats %}
                 <small class="text-muted">Pending recipients: {{ stats.pending }}</small>
                 {% endif %}
+                <small class="text-muted d-block">Sender mode: {{ sender_profile.sender_mode or 'none' }}</small>
             </div>
             {% if sender_profile.has_sender_profile %}
             <form method="POST" action="{{ url_for('outreach.send_campaign', campaign_id=campaign.id) }}" class="d-flex gap-2 align-items-center">

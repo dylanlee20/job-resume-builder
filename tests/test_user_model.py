@@ -140,7 +140,7 @@ class TestToDict:
             user = User.query.get(sample_user.id)
             d = user.to_dict()
             expected_keys = {'id', 'username', 'email', 'tier', 'is_admin',
-                             'email_verified', 'created_at', 'last_login'}
+                             'email_verified', 'sender_profile', 'created_at', 'last_login'}
             assert set(d.keys()) == expected_keys
 
     def test_to_dict_no_sensitive_fields(self, app, sample_user):

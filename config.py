@@ -47,6 +47,9 @@ class Config:
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
     FROM_EMAIL = os.environ.get('FROM_EMAIL', 'NewWhale <onboarding@resend.dev>')  # TODO: use verified domain
     APP_BASE_URL = os.environ.get('APP_BASE_URL', os.environ.get('SITE_URL', 'http://localhost:5000'))
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+    GOOGLE_OAUTH_REDIRECT_URI = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI', '')
 
     # Email verification token expiry in minutes
     EMAIL_VERIFICATION_EXPIRY_MINUTES = int(os.environ.get('EMAIL_VERIFICATION_EXPIRY_MINUTES', 30))

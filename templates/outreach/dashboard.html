@@ -20,7 +20,7 @@
 {% if not sender_profile.has_sender_profile %}
 <div class="alert alert-warning">
     <strong>Mailbox not connected.</strong>
-    Configure your sender mailbox first to send campaigns from your own inbox.
+    Connect Gmail OAuth (recommended) or configure SMTP to send campaigns from your own inbox.
     <a href="{{ url_for('outreach.sender_settings') }}" class="alert-link">Open Mailbox Settings</a>.
 </div>
 {% endif %}
@@ -88,7 +88,7 @@
             <div class="col-md-3 text-center">
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">1</div>
                 <h6>Connect Mailbox</h6>
-                <small class="text-muted">Use your own Gmail/Outlook SMTP credentials</small>
+                <small class="text-muted">Connect Gmail OAuth or use SMTP fallback</small>
             </div>
             <div class="col-md-3 text-center">
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">2</div>

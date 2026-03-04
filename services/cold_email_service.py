@@ -15,6 +15,7 @@ import html
 from config import Config
 from models.database import db
 from models.cold_email import EmailCampaign, EmailRecipient
+from services.gmail_service import GmailService
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,18 @@ class ColdEmailService:
     """Service for cold email campaigns (paid premium feature)."""
 
     @staticmethod
-    def _validate_sender_profile(user):
+    def _validate_sender_profile(user, mode=None):
         """Return None if sender profile is usable, else an error string."""
+        if mode == 'gmail':
+            if not user.gmail_refresh_token:
+                return 'Gmail is not connected. Connect Gmail OAuth in Mailbox Settings.'
+            if not (user.gmail_email or user.sender_email):
+                return 'Connected Gmail account is missing sender email.'
+            return None
+
+        if mode is None and user.has_gmail_sender_profile:
+            return None
+
         if not user.sender_email:
             return 'Sender email is required.'
         if not user.smtp_host:
@@ -36,6 +47,20 @@ class ColdEmailService:
         if not user.smtp_password:
             return 'SMTP password/app password is required.'
         return None
+
+    @staticmethod
+    def _sender_mode(user):
+        """Return active sender mode: gmail, smtp, or None."""
+        if user.has_gmail_sender_profile:
+            return 'gmail'
+        if user.has_smtp_sender_profile:
+            return 'smtp'
+        return None
+
+    @staticmethod
+    def _from_email(user):
+        """Return effective sender email address."""
+        return user.sender_email or user.gmail_email or user.smtp_username
 
     @staticmethod
     def _open_smtp_connection(user):
@@ -125,7 +150,7 @@ class ColdEmailService:
         Returns:
             Tuple[bool, str | None]
         """
-        error = ColdEmailService._validate_sender_profile(user)
+        error = ColdEmailService._validate_sender_profile(user, mode='smtp')
         if error:
             return False, error
 
@@ -181,7 +206,7 @@ class ColdEmailService:
     @staticmethod
     def send_campaign(campaign_id, user_id, limit=None):
         """
-        Send pending campaign emails through the user's own SMTP mailbox.
+        Send pending campaign emails through the user's connected mailbox.
 
         Returns:
             Dict with success flag and send summary.
@@ -193,7 +218,8 @@ class ColdEmailService:
             return {'success': False, 'message': 'Unauthorized campaign access.'}
 
         user = campaign.user
-        error = ColdEmailService._validate_sender_profile(user)
+        mode = ColdEmailService._sender_mode(user)
+        error = ColdEmailService._validate_sender_profile(user, mode=mode)
         if error:
             return {
                 'success': False,
@@ -221,15 +247,22 @@ class ColdEmailService:
         campaign.status = 'active'
         db.session.commit()
 
-        try:
-            server = ColdEmailService._open_smtp_connection(user)
-        except Exception as exc:
+        server = None
+        if mode == 'smtp':
+            try:
+                server = ColdEmailService._open_smtp_connection(user)
+            except Exception as exc:
+                return {
+                    'success': False,
+                    'message': (
+                        'Could not connect to your mailbox (SMTP): '
+                        f'{ColdEmailService._format_mailbox_connection_error(user, exc)}'
+                    ),
+                }
+        elif mode != 'gmail':
             return {
                 'success': False,
-                'message': (
-                    'Could not connect to your mailbox: '
-                    f'{ColdEmailService._format_mailbox_connection_error(user, exc)}'
-                ),
+                'message': 'No mailbox is connected. Connect Gmail OAuth or SMTP first.',
             }
 
         try:
@@ -241,13 +274,17 @@ class ColdEmailService:
 
                     msg = MIMEMultipart('alternative')
                     msg['Subject'] = subject
-                    msg['From'] = formataddr((user.username, user.sender_email))
+                    from_email = ColdEmailService._from_email(user)
+                    msg['From'] = formataddr((user.username, from_email))
                     msg['To'] = recipient.email
                     msg.attach(MIMEText(body_text, 'plain', 'utf-8'))
                     msg.attach(MIMEText(body_html, 'html', 'utf-8'))
                     ColdEmailService._attach_resume_if_available(msg, campaign)
 
-                    server.sendmail(user.sender_email, [recipient.email], msg.as_string())
+                    if mode == 'gmail':
+                        GmailService.send_mime_message(user, msg)
+                    else:
+                        server.sendmail(from_email, [recipient.email], msg.as_string())
 
                     recipient.status = 'sent'
                     recipient.sent_at = datetime.utcnow()
@@ -287,10 +324,11 @@ class ColdEmailService:
                 'failures': failure_samples,
             }
         finally:
-            try:
-                server.quit()
-            except Exception:
-                pass
+            if server:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
 
     @staticmethod
     def create_campaign(user_id, name, subject_template, body_template, resume_id=None):

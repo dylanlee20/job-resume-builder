@@ -1,10 +1,12 @@
 """Cold email outreach routes (paid premium feature)."""
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
+import secrets
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response, session
 from flask_login import login_required, current_user
 from models.database import db
 from models.cold_email import EmailCampaign, EmailRecipient
 from models.resume import Resume
 from services.cold_email_service import ColdEmailService
+from services.gmail_service import GmailService
 from utils.feature_access import require_premium_feature
 import csv
 import io
@@ -66,7 +68,73 @@ def sender_settings():
 
         return redirect(url_for('outreach.sender_settings'))
 
-    return render_template('outreach/settings.html', sender_profile=current_user.sender_profile_summary)
+    return render_template(
+        'outreach/settings.html',
+        sender_profile=current_user.sender_profile_summary,
+        gmail_oauth_ready=GmailService.is_configured(),
+    )
+
+
+@outreach_bp.route('/gmail/connect')
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def connect_gmail():
+    """Start Google OAuth flow to connect Gmail mailbox."""
+    if not GmailService.is_configured():
+        flash('Google OAuth is not configured on the server. Set GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET.', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    state = secrets.token_urlsafe(24)
+    session['gmail_oauth_state'] = state
+    session['gmail_oauth_user_id'] = current_user.id
+    auth_url = GmailService.build_authorization_url(state)
+    return redirect(auth_url)
+
+
+@outreach_bp.route('/gmail/callback')
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def gmail_callback():
+    """Handle Google OAuth callback and persist Gmail tokens."""
+    expected_state = session.pop('gmail_oauth_state', None)
+    oauth_user_id = session.pop('gmail_oauth_user_id', None)
+    state = request.args.get('state')
+
+    if not expected_state or state != expected_state or oauth_user_id != current_user.id:
+        flash('Invalid Gmail OAuth state. Please try connecting again.', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    oauth_error = request.args.get('error')
+    if oauth_error:
+        flash(f'Gmail connection canceled/failed: {oauth_error}', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    code = request.args.get('code')
+    if not code:
+        flash('Gmail OAuth callback missing authorization code.', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    try:
+        connected_email = GmailService.connect_user_with_code(current_user, code)
+        flash(
+            f'Gmail connected successfully ({connected_email}). '
+            'Campaigns will now send via Gmail API from your mailbox.',
+            'success'
+        )
+    except Exception as exc:
+        flash(f'Gmail connection failed: {exc}', 'error')
+
+    return redirect(url_for('outreach.sender_settings'))
+
+
+@outreach_bp.route('/gmail/disconnect', methods=['POST'])
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def disconnect_gmail():
+    """Disconnect Gmail OAuth credentials for current user."""
+    GmailService.disconnect_user(current_user)
+    flash('Gmail connection removed.', 'info')
+    return redirect(url_for('outreach.sender_settings'))
 
 
 @outreach_bp.route('/campaign/new', methods=['GET', 'POST'])
