@@ -1,11 +1,14 @@
 """Tests for YAMM-style SMTP outreach sending."""
 
 from datetime import datetime
+from types import SimpleNamespace
+import socket
 
 import pytest
 
 from models.cold_email import EmailCampaign, EmailRecipient
 from models.user import User
+from services.cold_email_service import ColdEmailService
 
 
 def _login(client, username='premiummail', password='password123'):
@@ -112,3 +115,75 @@ def test_send_campaign_marks_pending_recipients_sent(client, app, db, premium_ma
         assert recipient.status == 'sent'
         assert recipient.sent_at is not None
         assert campaign.total_sent == 1
+
+
+def test_open_smtp_connection_prefers_ipv4(monkeypatch):
+    attempts = []
+
+    class _FakeSMTP:
+        def __init__(self, timeout=30):
+            self.timeout = timeout
+
+        def connect(self, host, port):
+            attempts.append((host, port))
+            return 220
+
+        def ehlo(self):
+            return None
+
+        def starttls(self):
+            return None
+
+        def login(self, _username, _password):
+            return None
+
+        def quit(self):
+            return None
+
+    def _fake_getaddrinfo(_host, _port, type=None):  # pylint: disable=redefined-builtin
+        return [
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('2001:db8::1', 587, 0, 0)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, '', ('74.125.140.108', 587)),
+        ]
+
+    monkeypatch.setattr('services.cold_email_service.socket.getaddrinfo', _fake_getaddrinfo)
+    monkeypatch.setattr('services.cold_email_service.smtplib.SMTP', _FakeSMTP)
+
+    user = SimpleNamespace(
+        smtp_host='smtp.gmail.com',
+        smtp_port=587,
+        smtp_use_tls=True,
+        smtp_username='me@example.com',
+        smtp_password='app-password',
+    )
+
+    server = ColdEmailService._open_smtp_connection(user)
+    assert isinstance(server, _FakeSMTP)
+    assert attempts[0][0] == '74.125.140.108'
+
+
+def test_sender_profile_network_unreachable_returns_actionable_error(app, db, premium_mail_user, monkeypatch):
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        user.sender_email = 'me@example.com'
+        user.smtp_host = 'smtp.gmail.com'
+        user.smtp_port = 587
+        user.smtp_username = 'me@example.com'
+        user.smtp_password = 'app-password'
+        user.smtp_use_tls = True
+        db.session.commit()
+
+    def _raise_network_error(_user):
+        raise OSError(101, 'Network is unreachable')
+
+    monkeypatch.setattr(
+        'services.cold_email_service.ColdEmailService._open_smtp_connection',
+        _raise_network_error
+    )
+
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        ok, err = ColdEmailService.test_sender_profile(user)
+
+    assert ok is False
+    assert 'Outbound network route to smtp.gmail.com:587 is unavailable' in err

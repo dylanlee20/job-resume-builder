@@ -1,6 +1,7 @@
 """Cold email outreach service"""
 import logging
 import smtplib
+import socket
 import uuid
 import os
 import mimetypes
@@ -39,13 +40,82 @@ class ColdEmailService:
     @staticmethod
     def _open_smtp_connection(user):
         """Create and authenticate an SMTP connection for this user."""
-        server = smtplib.SMTP(user.smtp_host, int(user.smtp_port), timeout=30)
-        server.ehlo()
-        if user.smtp_use_tls:
-            server.starttls()
-            server.ehlo()
-        server.login(user.smtp_username, user.smtp_password)
-        return server
+        host = (user.smtp_host or '').strip()
+        port = int(user.smtp_port)
+        timeout = 30
+
+        addr_info = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        # Prefer IPv4 first because many low-cost VPS setups have broken IPv6 routes.
+        addr_info = sorted(
+            addr_info,
+            key=lambda item: 0 if item[0] == socket.AF_INET else 1
+        )
+
+        seen = set()
+        last_error = None
+        for family, _socktype, _proto, _canonname, sockaddr in addr_info:
+            ip_address = sockaddr[0]
+            key = (family, ip_address)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            server = smtplib.SMTP(timeout=timeout)
+            try:
+                # Connect by resolved IP to control IPv4/IPv6 attempt order.
+                server.connect(ip_address, port)
+                # Keep TLS SNI/cert hostname aligned with the mailbox host.
+                server._host = host  # pylint: disable=protected-access
+                server.ehlo()
+                if user.smtp_use_tls:
+                    server.starttls()
+                    server.ehlo()
+                server.login(user.smtp_username, user.smtp_password)
+                return server
+            except smtplib.SMTPAuthenticationError:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
+                raise
+            except Exception as exc:
+                last_error = exc
+                logger.warning(
+                    "SMTP connect attempt failed for host=%s ip=%s port=%s: %s",
+                    host, ip_address, port, exc
+                )
+                try:
+                    server.quit()
+                except Exception:
+                    pass
+
+        if last_error:
+            raise last_error
+        raise ConnectionError(f'Could not resolve/connect SMTP host: {host}:{port}')
+
+    @staticmethod
+    def _format_mailbox_connection_error(user, exc):
+        """Return a user-facing mailbox connection error with actionable hints."""
+        host = (user.smtp_host or '').strip() or 'SMTP host'
+        port = user.smtp_port or 'SMTP port'
+
+        if isinstance(exc, socket.gaierror):
+            return f'DNS lookup failed for {host}:{port} ({exc}).'
+
+        err_no = getattr(exc, 'errno', None)
+        if err_no == 101:
+            return (
+                f'{exc}. Outbound network route to {host}:{port} is unavailable from the server. '
+                'Check VPS outbound firewall/provider SMTP restrictions, or try a provider host with IPv4.'
+            )
+
+        if isinstance(exc, (TimeoutError, socket.timeout)):
+            return (
+                f'Connection to {host}:{port} timed out. '
+                'Check SMTP host/port, TLS mode, and VPS outbound firewall rules.'
+            )
+
+        return str(exc)
 
     @staticmethod
     def test_sender_profile(user):
@@ -68,7 +138,7 @@ class ColdEmailService:
         except Exception as exc:
             user.smtp_verified_at = None
             db.session.commit()
-            return False, str(exc)
+            return False, ColdEmailService._format_mailbox_connection_error(user, exc)
 
     @staticmethod
     def _html_with_tracking(body_text, tracking_id):
@@ -156,7 +226,10 @@ class ColdEmailService:
         except Exception as exc:
             return {
                 'success': False,
-                'message': f'Could not connect to your mailbox: {exc}',
+                'message': (
+                    'Could not connect to your mailbox: '
+                    f'{ColdEmailService._format_mailbox_connection_error(user, exc)}'
+                ),
             }
 
         try:
