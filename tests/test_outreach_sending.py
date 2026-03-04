@@ -1,4 +1,4 @@
-"""Tests for YAMM-style SMTP outreach sending."""
+"""Tests for YAMM-style outreach sending (SMTP + Gmail OAuth)."""
 
 from datetime import datetime
 from types import SimpleNamespace
@@ -187,3 +187,116 @@ def test_sender_profile_network_unreachable_returns_actionable_error(app, db, pr
 
     assert ok is False
     assert 'Outbound network route to smtp.gmail.com:587 is unavailable' in err
+
+
+def test_sender_profile_accepts_gmail_oauth_without_smtp(app, db, premium_mail_user):
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        user.gmail_email = 'gmailuser@example.com'
+        user.gmail_refresh_token = 'refresh-token'
+        user.gmail_access_token = 'access-token'
+        db.session.commit()
+
+        error = ColdEmailService._validate_sender_profile(user)
+        assert error is None
+
+
+def test_send_campaign_uses_gmail_when_connected(client, app, db, premium_mail_user, monkeypatch):
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        user.sender_email = 'gmailuser@example.com'
+        user.gmail_email = 'gmailuser@example.com'
+        user.gmail_refresh_token = 'refresh-token'
+        user.gmail_access_token = 'access-token'
+
+        campaign = EmailCampaign(
+            user_id=user.id,
+            name='Gmail Campaign',
+            subject_template='Hello {{first_name}}',
+            body_template='Hi {{first_name}}',
+            status='draft',
+        )
+        db.session.add(campaign)
+        db.session.commit()
+
+        recipient = EmailRecipient(
+            campaign_id=campaign.id,
+            email='target@gmail.com',
+            name='Target Person',
+            tracking_id='track-gmail',
+            status='pending',
+        )
+        db.session.add(recipient)
+        db.session.commit()
+        campaign_id = campaign.id
+        recipient_id = recipient.id
+
+    calls = []
+
+    def _fake_gmail_send(_user, _msg):
+        calls.append(True)
+        return {'id': 'gmail-message-id'}
+
+    monkeypatch.setattr(
+        'services.cold_email_service.GmailService.send_mime_message',
+        _fake_gmail_send
+    )
+
+    _login(client)
+    resp = client.post(f'/outreach/campaign/{campaign_id}/send', data={}, follow_redirects=False)
+
+    assert resp.status_code == 302
+    assert f'/outreach/campaign/{campaign_id}' in resp.headers.get('Location', '')
+    assert len(calls) == 1
+
+    with app.app_context():
+        recipient = EmailRecipient.query.get(recipient_id)
+        campaign = EmailCampaign.query.get(campaign_id)
+        assert recipient.status == 'sent'
+        assert campaign.total_sent == 1
+
+
+def test_gmail_connect_starts_oauth_flow(client, premium_mail_user, monkeypatch):
+    _login(client)
+    monkeypatch.setattr('routes.outreach_routes.GmailService.is_configured', lambda: True)
+
+    seen_states = []
+
+    def _fake_auth_url(state):
+        seen_states.append(state)
+        return f'https://accounts.google.com/o/oauth2/v2/auth?state={state}'
+
+    monkeypatch.setattr('routes.outreach_routes.GmailService.build_authorization_url', _fake_auth_url)
+
+    resp = client.get('/outreach/gmail/connect', follow_redirects=False)
+    assert resp.status_code == 302
+    assert 'accounts.google.com' in resp.headers['Location']
+    assert len(seen_states) == 1
+
+
+def test_gmail_callback_saves_connected_account(client, app, db, premium_mail_user, monkeypatch):
+    _login(client)
+    with client.session_transaction() as sess:
+        sess['gmail_oauth_state'] = 'state123'
+        sess['gmail_oauth_user_id'] = premium_mail_user.id
+
+    def _fake_connect(user, _code):
+        user.gmail_email = 'gmailuser@example.com'
+        user.gmail_refresh_token = 'refresh-token'
+        user.gmail_access_token = 'access-token'
+        db.session.commit()
+        return user.gmail_email
+
+    monkeypatch.setattr(
+        'routes.outreach_routes.GmailService.connect_user_with_code',
+        _fake_connect
+    )
+
+    resp = client.get('/outreach/gmail/callback?state=state123&code=abc', follow_redirects=False)
+    assert resp.status_code == 302
+    assert '/outreach/settings' in resp.headers.get('Location', '')
+
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        assert user.gmail_email == 'gmailuser@example.com'
+        assert user.gmail_refresh_token == 'refresh-token'

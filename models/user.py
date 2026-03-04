@@ -35,6 +35,12 @@ class User(UserMixin, db.Model):
     smtp_password = db.Column(db.String(512), nullable=True)
     smtp_use_tls = db.Column(db.Boolean, nullable=False, default=True)
     smtp_verified_at = db.Column(db.DateTime, nullable=True)
+    gmail_email = db.Column(db.String(255), nullable=True)
+    gmail_access_token = db.Column(db.Text, nullable=True)
+    gmail_refresh_token = db.Column(db.Text, nullable=True)
+    gmail_token_expiry = db.Column(db.DateTime, nullable=True)
+    gmail_scope = db.Column(db.String(1024), nullable=True)
+    gmail_verified_at = db.Column(db.DateTime, nullable=True)
 
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -106,13 +112,26 @@ class User(UserMixin, db.Model):
 
     @property
     def has_sender_profile(self) -> bool:
-        """Return True if user configured the fields required to send emails."""
+        """Return True if user configured Gmail OAuth or SMTP sender settings."""
+        return self.has_gmail_sender_profile or self.has_smtp_sender_profile
+
+    @property
+    def has_smtp_sender_profile(self) -> bool:
+        """Return True if user configured the SMTP fields required to send emails."""
         return bool(
             self.sender_email
             and self.smtp_host
             and self.smtp_port
             and self.smtp_username
             and self.smtp_password
+        )
+
+    @property
+    def has_gmail_sender_profile(self) -> bool:
+        """Return True if user connected Gmail OAuth with a refresh token."""
+        return bool(
+            self.gmail_refresh_token
+            and (self.gmail_email or self.sender_email)
         )
 
     @property
@@ -125,6 +144,15 @@ class User(UserMixin, db.Model):
             'smtp_username': self.smtp_username,
             'smtp_use_tls': self.smtp_use_tls,
             'smtp_verified_at': self.smtp_verified_at.isoformat() if self.smtp_verified_at else None,
+            'gmail_email': self.gmail_email,
+            'gmail_verified_at': self.gmail_verified_at.isoformat() if self.gmail_verified_at else None,
+            'has_gmail_sender_profile': self.has_gmail_sender_profile,
+            'has_smtp_sender_profile': self.has_smtp_sender_profile,
+            'sender_mode': (
+                'gmail' if self.has_gmail_sender_profile
+                else 'smtp' if self.has_smtp_sender_profile
+                else None
+            ),
             'has_sender_profile': self.has_sender_profile,
         }
 
