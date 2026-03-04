@@ -28,11 +28,6 @@
                             <i class="bi bi-file-earmark-text"></i> Resume Tools
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('resume.history') }}">
-                            <i class="bi bi-clock-history"></i> My Resumes
-                        </a>
-                    </li>
                     {% if current_user.tier == 'premium' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('outreach.dashboard') }}">

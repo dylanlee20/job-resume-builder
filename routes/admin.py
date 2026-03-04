@@ -143,12 +143,13 @@ def run_scraper():
         if request.form.get('skip_scraped') == '1':
             cmd.append('--skip-scraped-today')
 
-        # Run scraper in background using subprocess
-        log_file = open('data/logs/scraper.log', 'a')
+        # Run scraper in background. The scraper process already writes to
+        # data/logs/scraper.log via FileHandler, so suppress stdout/stderr here
+        # to avoid duplicate log lines.
         subprocess.Popen(
             cmd,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             cwd=os.getcwd(),
             close_fds=True
         )

@@ -288,6 +288,9 @@
                                 <button class="btn btn-outline-secondary me-2" onclick="downloadResume()">
                                     <i class="bi bi-download"></i> Download as Text
                                 </button>
+                                <a id="rateResumeBtn" href="#" class="btn btn-success me-2" style="display: none;">
+                                    <i class="bi bi-stars"></i> Rate My Resume
+                                </a>
                                 <a href="{{ url_for('resume.hub') }}" class="btn btn-outline-secondary">
                                     <i class="bi bi-arrow-left"></i> Back to Tools
                                 </a>
@@ -465,6 +468,11 @@ function generateResume() {
     .then(function(data) {
         if (data.success) {
             document.getElementById('resumeOutput').textContent = data.resume_text;
+            if (data.resume_id) {
+                var rateBtn = document.getElementById('rateResumeBtn');
+                rateBtn.href = '/resume/' + data.resume_id + '/process';
+                rateBtn.style.display = '';
+            }
             document.getElementById('resultSection').style.display = 'block';
             document.querySelectorAll('.form-step').forEach(function(el) { el.style.display = 'none'; });
             document.getElementById('progressSteps').style.display = 'none';

@@ -1,35 +1,20 @@
-"""Cold email outreach routes (annual plan only)"""
+"""Cold email outreach routes (paid premium feature)."""
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import login_required, current_user
 from models.database import db
 from models.cold_email import EmailCampaign, EmailRecipient
 from models.resume import Resume
 from services.cold_email_service import ColdEmailService
-import logging
+from utils.feature_access import require_premium_feature
 import csv
 import io
-
-logger = logging.getLogger(__name__)
 
 outreach_bp = Blueprint('outreach', __name__, url_prefix='/outreach')
 
 
-def require_annual_plan(f):
-    """Decorator to restrict access to annual plan subscribers"""
-    from functools import wraps
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not current_user.is_premium:
-            flash('Cold Email Outreach requires a Premium Annual subscription.', 'error')
-            return redirect(url_for('web.pricing'))
-        return f(*args, **kwargs)
-    return decorated
-
-
 @outreach_bp.route('/')
 @login_required
-@require_annual_plan
+@require_premium_feature('Cold Email Outreach')
 def dashboard():
     """Cold email outreach dashboard"""
     campaigns = EmailCampaign.query.filter_by(
@@ -43,12 +28,50 @@ def dashboard():
         Resume.uploaded_at.desc()
     ).all()
 
-    return render_template('outreach/dashboard.html', campaigns=campaigns, resumes=resumes)
+    return render_template(
+        'outreach/dashboard.html',
+        campaigns=campaigns,
+        resumes=resumes,
+        sender_profile=current_user.sender_profile_summary,
+    )
+
+
+@outreach_bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def sender_settings():
+    """Configure mailbox credentials used for YAMM-style sending."""
+    if request.method == 'POST':
+        current_user.sender_email = (request.form.get('sender_email') or '').strip()
+        current_user.smtp_host = (request.form.get('smtp_host') or '').strip()
+        current_user.smtp_port = request.form.get('smtp_port', type=int) or 587
+        current_user.smtp_username = (request.form.get('smtp_username') or '').strip()
+        current_user.smtp_use_tls = request.form.get('smtp_use_tls') == '1'
+
+        # Only overwrite password when provided.
+        new_password = request.form.get('smtp_password', '').strip()
+        if new_password:
+            current_user.smtp_password = new_password
+
+        db.session.commit()
+
+        if request.form.get('test_connection') == '1':
+            ok, err = ColdEmailService.test_sender_profile(current_user)
+            if ok:
+                flash('Mailbox connected successfully. You can now send campaigns from your own inbox.', 'success')
+            else:
+                flash(f'Mailbox connection failed: {err}', 'error')
+        else:
+            flash('Sender settings saved.', 'success')
+
+        return redirect(url_for('outreach.sender_settings'))
+
+    return render_template('outreach/settings.html', sender_profile=current_user.sender_profile_summary)
 
 
 @outreach_bp.route('/campaign/new', methods=['GET', 'POST'])
 @login_required
-@require_annual_plan
+@require_premium_feature('Cold Email Outreach')
 def new_campaign():
     """Create a new email campaign"""
     if request.method == 'POST':
@@ -81,7 +104,7 @@ def new_campaign():
 
 @outreach_bp.route('/campaign/<int:campaign_id>')
 @login_required
-@require_annual_plan
+@require_premium_feature('Cold Email Outreach')
 def campaign_detail(campaign_id):
     """View campaign details and recipients"""
     campaign = EmailCampaign.query.get_or_404(campaign_id)
@@ -96,13 +119,46 @@ def campaign_detail(campaign_id):
         'outreach/campaign_detail.html',
         campaign=campaign,
         recipients=recipients,
-        stats=stats
+        stats=stats,
+        sender_profile=current_user.sender_profile_summary,
     )
+
+
+@outreach_bp.route('/campaign/<int:campaign_id>/send', methods=['POST'])
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def send_campaign(campaign_id):
+    """Send pending emails in a campaign via user's connected mailbox."""
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if campaign.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    limit = request.form.get('limit', type=int)
+    if request.is_json:
+        payload = request.get_json(silent=True) or {}
+        if not limit:
+            limit = payload.get('limit')
+
+    result = ColdEmailService.send_campaign(campaign_id, current_user.id, limit=limit)
+    status_code = 200 if result.get('success') else 400
+
+    if request.is_json:
+        return jsonify(result), status_code
+
+    if result.get('success'):
+        flash(result.get('message', 'Campaign send completed.'), 'success')
+        failures = result.get('failures') or []
+        if failures:
+            flash('Some emails failed: ' + ' | '.join(failures), 'warning')
+    else:
+        flash(result.get('message', 'Could not send campaign.'), 'error')
+
+    return redirect(url_for('outreach.campaign_detail', campaign_id=campaign_id))
 
 
 @outreach_bp.route('/campaign/<int:campaign_id>/add-recipients', methods=['POST'])
 @login_required
-@require_annual_plan
+@require_premium_feature('Cold Email Outreach')
 def add_recipients(campaign_id):
     """Add recipients to campaign (JSON or CSV)"""
     campaign = EmailCampaign.query.get_or_404(campaign_id)
@@ -159,7 +215,7 @@ def add_recipients(campaign_id):
 
 @outreach_bp.route('/campaign/<int:campaign_id>/preview')
 @login_required
-@require_annual_plan
+@require_premium_feature('Cold Email Outreach')
 def preview_email(campaign_id):
     """Preview personalized email for a recipient"""
     campaign = EmailCampaign.query.get_or_404(campaign_id)
@@ -188,7 +244,7 @@ def preview_email(campaign_id):
 
 @outreach_bp.route('/campaign/<int:campaign_id>/recipient/<int:recipient_id>/mark-replied', methods=['POST'])
 @login_required
-@require_annual_plan
+@require_premium_feature('Cold Email Outreach')
 def mark_replied(campaign_id, recipient_id):
     """Manually mark a recipient as having replied"""
     campaign = EmailCampaign.query.get_or_404(campaign_id)

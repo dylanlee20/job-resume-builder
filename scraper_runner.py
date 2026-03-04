@@ -55,6 +55,7 @@ from scrapers.mizuho_scraper import MizuhoScraper
 from scrapers.jpmorgan_hongkong_scraper import JPMorganHongKongScraper
 from scrapers.jpmorgan_australia_scraper import JPMorganAustraliaScraper
 from scrapers.goldman_sachs_international_scraper import GoldmanSachsInternationalScraper
+from scrapers.base_scraper import BaseScraper
 
 # All scraper classes
 SCRAPERS = [
@@ -257,6 +258,37 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
         logger.info(f"Companies to scrape: {len(scrapers_to_run)} (skipped: {len(skipped_companies)})")
         logger.info("=" * 80)
 
+        browser_path, browser_type = BaseScraper._detect_chrome_binary()
+        chromedriver_path = BaseScraper._detect_chromedriver()
+        if not browser_path:
+            error_msg = (
+                "Scraper preflight failed: No Chrome/Chromium binary detected. "
+                "Install chromium/google-chrome or set CHROME_BINARY_PATH."
+            )
+            logger.error(error_msg)
+            _update_run_progress(
+                scraper_run,
+                completed_at=datetime.utcnow(),
+                duration_seconds=0,
+                status='failed',
+                current_company=None,
+                total_jobs_scraped=0,
+                new_jobs_added=0,
+                jobs_updated=0,
+                companies_scraped=0,
+                companies_failed=0,
+                error_log=error_msg,
+                company_results=json.dumps({}, indent=2),
+            )
+            return scraper_run.id
+
+        logger.info(
+            "Scraper preflight OK: browser=%s (%s), chromedriver=%s",
+            browser_path,
+            browser_type,
+            chromedriver_path or 'auto-resolve (Selenium Manager/webdriver-manager)',
+        )
+
         total_scraped = 0
         total_saved = 0
         ai_proof_count = 0
@@ -288,10 +320,9 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
 
                     scraper = scraper_class()
                     jobs = scraper.scrape_with_retry()
-                    if not getattr(scraper, 'last_scrape_success', True):
-                        failure_reason = getattr(scraper, 'last_error', None) or \
-                            "Scraper failed after all retries"
-                        raise RuntimeError(failure_reason)
+                    if getattr(scraper, 'last_run_failed', False):
+                        last_error = getattr(scraper, 'last_error', None) or 'unknown scraper failure'
+                        raise RuntimeError(last_error)
 
                     logger.info(f"Scraped {len(jobs)} jobs from {scraper.company_name}")
                     total_scraped += len(jobs)
@@ -336,7 +367,6 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
                     error_msg = f"Error running {scraper_class.__name__}: {e}"
                     logger.error(error_msg)
                     error_log.append(error_msg)
-                    error_count += 1
                     companies_failed += 1
                     company_results[company_name] = {
                         'scraped': 0,
@@ -390,7 +420,7 @@ def run_all_scrapers(trigger='scheduled', skip_scraped_today=False):
         logger.info(f"  - Excluded jobs: {excluded_count}")
         logger.info(f"Duplicates skipped: {duplicate_count}")
         logger.info(f"Errors: {error_count}")
-        logger.info(f"Companies scraped: {companies_scraped}/{len(SCRAPERS)}")
+        logger.info(f"Companies scraped: {companies_scraped}/{len(scrapers_to_run)}")
         logger.info(f"Companies failed: {companies_failed}")
         logger.info("\nBreakdown by category:")
         for category, count in sorted(stats_by_category.items(), key=lambda x: x[1], reverse=True):

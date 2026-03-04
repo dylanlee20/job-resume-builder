@@ -68,8 +68,8 @@
         <div class="card mb-4" style="border-radius: 12px; border: 2px solid {% if current_user.is_premium %}var(--nw-blue){% else %}var(--nw-border){% endif %};">
             <div class="card-body p-4">
                 {% if current_user.is_premium %}
-                <h4><i class="bi bi-magic"></i> AI Resume Revision</h4>
-                <p class="text-muted">Let our AI directly improve your resume based on the assessment findings.</p>
+                <h4><i class="bi bi-magic"></i> Polish to Perfection (Master)</h4>
+                <p class="text-muted">Optimized based on our Resume Screening Signal Enhancement Model.</p>
 
                 <div class="mb-3">
                     <label class="form-label">Target Industry (optional)</label>
@@ -84,7 +84,7 @@
                 </div>
 
                 <button class="btn btn-primary" id="reviseBtn" onclick="reviseResume()">
-                    <i class="bi bi-arrow-left-right"></i> Generate Improved Resume
+                    <i class="bi bi-arrow-left-right"></i> Polish to Perfection
                 </button>
 
                 <!-- Revision Result -->
@@ -140,10 +140,10 @@
                 {% else %}
                 <div class="text-center py-3">
                     <i class="bi bi-lock" style="font-size: 2.5rem; color: var(--nw-text-light);"></i>
-                    <h4 class="mt-2">Unlock AI Resume Revision</h4>
+                    <h4 class="mt-2">Unlock Polish to Perfection (Master)</h4>
                     <p class="text-muted">
-                        Premium members get AI-powered resume improvements with before/after comparisons.
-                        See exactly what changed and why.
+                        Master members get optimization based on Resume Screening Signal Enhancement Model,
+                        with before/after comparisons.
                     </p>
                     <a href="{{ url_for('web.pricing') }}" class="btn btn-warning btn-lg">
                         <i class="bi bi-gem"></i> Upgrade to Premium
@@ -161,8 +161,8 @@
             <a href="{{ url_for('resume.upload') }}" class="btn btn-secondary me-2">
                 <i class="bi bi-upload"></i> Upload Another Resume
             </a>
-            <a href="{{ url_for('resume.history') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-clock-history"></i> View History
+            <a href="{{ url_for('resume.hub', _anchor='resume-cache') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-clock-history"></i> Resume Cache
             </a>
         </div>
     </div>
@@ -197,13 +197,13 @@ function reviseResume() {
         } else {
             alert(data.message || 'Revision failed. Please try again.');
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Generate Improved Resume';
+            btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Polish to Perfection';
         }
     })
     .catch(function(err) {
         alert('Connection error. Please try again.');
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Generate Improved Resume';
+        btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Polish to Perfection';
     });
 }
 

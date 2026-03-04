@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block title %}Mailbox Settings - NewWhale Career{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="mb-3">
+            <a href="{{ url_for('outreach.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Outreach
+            </a>
+        </div>
+
+        <div class="card mb-4" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <h3 class="mb-2"><i class="bi bi-mailbox"></i> Connect Your Mailbox</h3>
+                <p class="text-muted mb-3">
+                    YAMM-style sending: emails are sent from your own mailbox using SMTP. This keeps infra cost near zero.
+                </p>
+
+                <div class="alert alert-info">
+                    <strong>Low-cost setup tips:</strong>
+                    Use your mailbox provider SMTP + app password.
+                    Gmail: <code>smtp.gmail.com:587</code> (TLS)
+                    | Outlook: <code>smtp.office365.com:587</code> (TLS)
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Sender Email</label>
+                            <input type="email" class="form-control" name="sender_email"
+                                   value="{{ sender_profile.sender_email or '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">SMTP Username</label>
+                            <input type="text" class="form-control" name="smtp_username"
+                                   value="{{ sender_profile.smtp_username or '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">SMTP Host</label>
+                            <input type="text" class="form-control" name="smtp_host"
+                                   value="{{ sender_profile.smtp_host or '' }}" placeholder="smtp.gmail.com" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">SMTP Port</label>
+                            <input type="number" class="form-control" name="smtp_port"
+                                   value="{{ sender_profile.smtp_port or 587 }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Security</label>
+                            <select class="form-select" name="smtp_use_tls">
+                                <option value="1" {% if sender_profile.smtp_use_tls %}selected{% endif %}>TLS</option>
+                                <option value="0" {% if not sender_profile.smtp_use_tls %}selected{% endif %}>None</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">SMTP Password / App Password</label>
+                            <input type="password" class="form-control" name="smtp_password"
+                                   placeholder="Leave blank to keep current password">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div class="text-muted small">
+                            {% if sender_profile.smtp_verified_at %}
+                            Last verified: {{ sender_profile.smtp_verified_at }}
+                            {% else %}
+                            Connection not verified yet.
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-outline-primary" name="test_connection" value="1">
+                                <i class="bi bi-plug"></i> Save & Test
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

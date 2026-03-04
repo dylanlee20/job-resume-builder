@@ -7,10 +7,23 @@
         <h2><i class="bi bi-envelope-paper"></i> Cold Email Outreach</h2>
         <p class="text-muted mb-0">Create and manage personalized outreach campaigns</p>
     </div>
-    <a href="{{ url_for('outreach.new_campaign') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Campaign
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('outreach.sender_settings') }}" class="btn btn-outline-primary">
+            <i class="bi bi-mailbox"></i> Mailbox Settings
+        </a>
+        <a href="{{ url_for('outreach.new_campaign') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Campaign
+        </a>
+    </div>
 </div>
+
+{% if not sender_profile.has_sender_profile %}
+<div class="alert alert-warning">
+    <strong>Mailbox not connected.</strong>
+    Configure your sender mailbox first to send campaigns from your own inbox.
+    <a href="{{ url_for('outreach.sender_settings') }}" class="alert-link">Open Mailbox Settings</a>.
+</div>
+{% endif %}
 
 {% if campaigns %}
 <div class="row g-4">
@@ -74,23 +87,23 @@
         <div class="row g-4 mt-2">
             <div class="col-md-3 text-center">
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">1</div>
-                <h6>Create Campaign</h6>
-                <small class="text-muted">Write your email template with personalization placeholders</small>
+                <h6>Connect Mailbox</h6>
+                <small class="text-muted">Use your own Gmail/Outlook SMTP credentials</small>
             </div>
             <div class="col-md-3 text-center">
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">2</div>
+                <h6>Create Campaign</h6>
+                <small class="text-muted">Write your template with personalization placeholders</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">3</div>
                 <h6>Add Recipients</h6>
                 <small class="text-muted">Add contacts one by one or import from CSV</small>
             </div>
             <div class="col-md-3 text-center">
-                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">3</div>
-                <h6>Send Emails</h6>
-                <small class="text-muted">Preview and send personalized emails</small>
-            </div>
-            <div class="col-md-3 text-center">
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--nw-bg); border: 2px solid var(--nw-blue); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--nw-blue); margin-bottom: 0.5rem;">4</div>
-                <h6>Track Results</h6>
-                <small class="text-muted">Monitor opens, replies, and response rates</small>
+                <h6>Send & Track</h6>
+                <small class="text-muted">Send from your own inbox and track opens/replies</small>
             </div>
         </div>
     </div>

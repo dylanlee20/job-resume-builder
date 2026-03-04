@@ -28,11 +28,11 @@
                 
                 {% if resume.status == 'parsed' %}
                     <div class="alert alert-success">
-                        Your resume has been parsed successfully and is ready for assessment!
+                        Your resume is ready. Next step: <strong>Rate my Resume</strong> (Free).
                     </div>
                     
                     <button class="btn btn-primary" id="assess-btn">
-                        <i class="bi bi-stars"></i> Get Free Assessment
+                        <i class="bi bi-stars"></i> Rate my Resume (Free)
                     </button>
                     
                     <div id="assessment-result" class="mt-3" style="display: none;"></div>
@@ -44,7 +44,7 @@
                     <a href="{{ url_for('resume.upload') }}" class="btn btn-secondary">Try Another Resume</a>
                 {% endif %}
                 
-                <a href="{{ url_for('resume.history') }}" class="btn btn-outline-secondary mt-3">View History</a>
+                <a href="{{ url_for('resume.hub', _anchor='resume-cache') }}" class="btn btn-outline-secondary mt-3">Resume Cache</a>
             </div>
         </div>
     </div>
@@ -70,7 +70,7 @@ $(document).ready(function() {
                     $('#assessment-result').show().html(
                         '<div class="alert alert-danger">' + response.message + '</div>'
                     );
-                    $('#assess-btn').prop('disabled', false).html('<i class="bi bi-stars"></i> Get Free Assessment');
+                    $('#assess-btn').prop('disabled', false).html('<i class="bi bi-stars"></i> Rate my Resume (Free)');
                 }
             },
             error: function(xhr) {
@@ -81,7 +81,7 @@ $(document).ready(function() {
                 $('#assessment-result').show().html(
                     '<div class="alert alert-danger">' + message + '</div>'
                 );
-                $('#assess-btn').prop('disabled', false).html('<i class="bi bi-stars"></i> Get Free Assessment');
+                $('#assess-btn').prop('disabled', false).html('<i class="bi bi-stars"></i> Rate my Resume (Free)');
             }
         });
     });
