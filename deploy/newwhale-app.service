@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/root/job-resume-builder
-Environment=PATH=/root/job-resume-builder/venv/bin:/usr/bin:/bin
+Environment=PATH=/root/job-resume-builder/venv/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
 EnvironmentFile=/root/job-resume-builder/.env
 ExecStart=/root/job-resume-builder/venv/bin/python app.py
 Restart=always

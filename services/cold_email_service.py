@@ -2,9 +2,15 @@
 import logging
 import smtplib
 import uuid
+import os
+import mimetypes
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from email.utils import formataddr
 from datetime import datetime
+import html
 from config import Config
 from models.database import db
 from models.cold_email import EmailCampaign, EmailRecipient
@@ -13,7 +19,205 @@ logger = logging.getLogger(__name__)
 
 
 class ColdEmailService:
-    """Service for cold email campaigns (annual plan only)"""
+    """Service for cold email campaigns (paid premium feature)."""
+
+    @staticmethod
+    def _validate_sender_profile(user):
+        """Return None if sender profile is usable, else an error string."""
+        if not user.sender_email:
+            return 'Sender email is required.'
+        if not user.smtp_host:
+            return 'SMTP host is required.'
+        if not user.smtp_port:
+            return 'SMTP port is required.'
+        if not user.smtp_username:
+            return 'SMTP username is required.'
+        if not user.smtp_password:
+            return 'SMTP password/app password is required.'
+        return None
+
+    @staticmethod
+    def _open_smtp_connection(user):
+        """Create and authenticate an SMTP connection for this user."""
+        server = smtplib.SMTP(user.smtp_host, int(user.smtp_port), timeout=30)
+        server.ehlo()
+        if user.smtp_use_tls:
+            server.starttls()
+            server.ehlo()
+        server.login(user.smtp_username, user.smtp_password)
+        return server
+
+    @staticmethod
+    def test_sender_profile(user):
+        """
+        Validate SMTP settings by opening an authenticated connection.
+
+        Returns:
+            Tuple[bool, str | None]
+        """
+        error = ColdEmailService._validate_sender_profile(user)
+        if error:
+            return False, error
+
+        try:
+            server = ColdEmailService._open_smtp_connection(user)
+            server.quit()
+            user.smtp_verified_at = datetime.utcnow()
+            db.session.commit()
+            return True, None
+        except Exception as exc:
+            user.smtp_verified_at = None
+            db.session.commit()
+            return False, str(exc)
+
+    @staticmethod
+    def _html_with_tracking(body_text, tracking_id):
+        """Convert text email body to HTML and append open-tracking pixel."""
+        escaped = html.escape(body_text).replace('\n', '<br>\n')
+        base_url = (Config.APP_BASE_URL or '').rstrip('/') or 'http://localhost:5000'
+        pixel_url = f'{base_url}/outreach/track/{tracking_id}.png'
+        pixel = f'<img src="{pixel_url}" width="1" height="1" style="display:none;" alt="">'
+        return f'{escaped}<br><br>{pixel}'
+
+    @staticmethod
+    def _attach_resume_if_available(msg, campaign):
+        """Attach campaign resume when present (file or generated text)."""
+        resume = campaign.resume
+        if not resume:
+            return
+
+        # Prefer original uploaded file if available.
+        if resume.file_path and os.path.exists(resume.file_path):
+            ctype, _ = mimetypes.guess_type(resume.original_filename or resume.file_path)
+            if ctype is None:
+                ctype = 'application/octet-stream'
+            maintype, subtype = ctype.split('/', 1)
+
+            with open(resume.file_path, 'rb') as file_obj:
+                part = MIMEBase(maintype, subtype)
+                part.set_payload(file_obj.read())
+                encoders.encode_base64(part)
+                filename = resume.original_filename or os.path.basename(resume.file_path)
+                part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+                msg.attach(part)
+            return
+
+        # Built/formatted resumes may not have a real file path. Attach text fallback.
+        if resume.extracted_text:
+            attachment = MIMEText(resume.extracted_text, 'plain', 'utf-8')
+            attachment.add_header('Content-Disposition', 'attachment; filename="resume.txt"')
+            msg.attach(attachment)
+
+    @staticmethod
+    def send_campaign(campaign_id, user_id, limit=None):
+        """
+        Send pending campaign emails through the user's own SMTP mailbox.
+
+        Returns:
+            Dict with success flag and send summary.
+        """
+        campaign = EmailCampaign.query.get(campaign_id)
+        if not campaign:
+            return {'success': False, 'message': 'Campaign not found.'}
+        if campaign.user_id != user_id:
+            return {'success': False, 'message': 'Unauthorized campaign access.'}
+
+        user = campaign.user
+        error = ColdEmailService._validate_sender_profile(user)
+        if error:
+            return {
+                'success': False,
+                'message': f'Sender profile incomplete: {error}',
+            }
+
+        pending_q = campaign.recipients.filter_by(status='pending').order_by(EmailRecipient.id.asc())
+        if limit and limit > 0:
+            recipients = pending_q.limit(limit).all()
+        else:
+            recipients = pending_q.all()
+
+        if not recipients:
+            return {
+                'success': True,
+                'message': 'No pending recipients to send.',
+                'sent': 0,
+                'failed': 0,
+                'remaining': 0,
+            }
+
+        sent = 0
+        failed = 0
+        failure_samples = []
+        campaign.status = 'active'
+        db.session.commit()
+
+        try:
+            server = ColdEmailService._open_smtp_connection(user)
+        except Exception as exc:
+            return {
+                'success': False,
+                'message': f'Could not connect to your mailbox: {exc}',
+            }
+
+        try:
+            for recipient in recipients:
+                try:
+                    subject = ColdEmailService.personalize_template(campaign.subject_template, recipient)
+                    body_text = ColdEmailService.personalize_template(campaign.body_template, recipient)
+                    body_html = ColdEmailService._html_with_tracking(body_text, recipient.tracking_id)
+
+                    msg = MIMEMultipart('alternative')
+                    msg['Subject'] = subject
+                    msg['From'] = formataddr((user.username, user.sender_email))
+                    msg['To'] = recipient.email
+                    msg.attach(MIMEText(body_text, 'plain', 'utf-8'))
+                    msg.attach(MIMEText(body_html, 'html', 'utf-8'))
+                    ColdEmailService._attach_resume_if_available(msg, campaign)
+
+                    server.sendmail(user.sender_email, [recipient.email], msg.as_string())
+
+                    recipient.status = 'sent'
+                    recipient.sent_at = datetime.utcnow()
+                    sent += 1
+                except Exception as exc:
+                    recipient.status = 'failed'
+                    failed += 1
+                    if len(failure_samples) < 5:
+                        failure_samples.append(f'{recipient.email}: {exc}')
+                    logger.error("Failed sending outreach email to %s: %s", recipient.email, exc)
+
+            # Recompute campaign counters from recipient states.
+            campaign.total_sent = campaign.recipients.filter(
+                EmailRecipient.status.in_(['sent', 'opened', 'replied'])
+            ).count()
+            campaign.total_opened = campaign.recipients.filter(
+                EmailRecipient.status.in_(['opened', 'replied'])
+            ).count()
+            campaign.total_replied = campaign.recipients.filter_by(status='replied').count()
+
+            remaining = campaign.recipients.filter_by(status='pending').count()
+            campaign.status = 'completed' if remaining == 0 else 'active'
+            db.session.commit()
+
+            message = f'Sent {sent} email(s)'
+            if failed:
+                message += f', {failed} failed.'
+            else:
+                message += ' successfully.'
+
+            return {
+                'success': True,
+                'message': message,
+                'sent': sent,
+                'failed': failed,
+                'remaining': remaining,
+                'failures': failure_samples,
+            }
+        finally:
+            try:
+                server.quit()
+            except Exception:
+                pass
 
     @staticmethod
     def create_campaign(user_id, name, subject_template, body_template, resume_id=None):
@@ -90,7 +294,9 @@ class ColdEmailService:
             return None
 
         total = campaign.recipients.count()
-        sent = campaign.recipients.filter_by(status='sent').count()
+        sent = campaign.recipients.filter(
+            EmailRecipient.status.in_(['sent', 'opened', 'replied'])
+        ).count()
         opened = campaign.recipients.filter(
             EmailRecipient.status.in_(['opened', 'replied'])
         ).count()

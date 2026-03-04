@@ -32,6 +32,32 @@ def normalize_location(location):
     Returns:
         Normalized location string (e.g. 'US - New York City', 'China - Hong Kong')
     """
+
+
+
+def parse_country_city(location):
+    """
+    Split a normalized location into country and city.
+
+    Args:
+        location: string produced by :func:`normalize_location` or similar.
+
+    Returns:
+        `(country, city)` tuple. City will be ``None`` if not present or not
+        applicable (e.g. "US" → ("US", None), "Global" → ("Global", None)).
+    """
+    if not location:
+        return (None, None)
+
+    # expected format "Country - City" or just "Country"
+    parts = [p.strip() for p in location.split('-', 1)]
+    country = parts[0] if parts else None
+    city = parts[1] if len(parts) == 2 else None
+    if city:
+        # some entries may still include commas; remove them for filtering
+        city = city.split(',')[0].strip()
+    return (country, city)
+
     import re
 
     if not location:

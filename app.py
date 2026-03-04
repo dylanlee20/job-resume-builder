@@ -42,6 +42,9 @@ def create_app():
     # Import all models BEFORE init_db so create_all() sees every table
     from models.cold_email import EmailCampaign, EmailRecipient  # noqa: F401
     from models.email_verification_token import EmailVerificationToken  # noqa: F401
+    from models.resume import Resume  # noqa: F401
+    from models.resume_assessment import ResumeAssessment  # noqa: F401
+    from models.resume_revision import ResumeRevision  # noqa: F401
 
     # Initialize database
     init_db(app)

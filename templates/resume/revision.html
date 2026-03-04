@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block title %}Cached Revision - NewWhale Career{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="mb-3 d-flex gap-2">
+            <a href="{{ url_for('resume.hub', _anchor='resume-cache') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Resume Cache
+            </a>
+            {% if revision.assessment_id %}
+            <a href="{{ url_for('resume.view_assessment', resume_id=resume.id, assessment_id=revision.assessment_id) }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-clipboard-data"></i> Related Assessment
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="card" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <h3 class="mb-2"><i class="bi bi-file-earmark-check"></i> Cached Revised Resume</h3>
+                <p class="text-muted mb-3">
+                    {{ resume.original_filename }} | Last revised: {{ revision.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    | Target: {{ revision.target_industry }}
+                </p>
+
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="copyRevision()">
+                        <i class="bi bi-clipboard"></i> Copy Text
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="downloadRevision()">
+                        <i class="bi bi-download"></i> Download TXT
+                    </button>
+                </div>
+
+                <div class="border rounded p-3">
+                    <pre id="revisionText" style="white-space: pre-wrap; font-size: 0.92rem; line-height: 1.6;">{{ revision.revision_suggestions }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyRevision() {
+    const text = document.getElementById('revisionText').textContent;
+    navigator.clipboard.writeText(text);
+}
+
+function downloadRevision() {
+    const text = document.getElementById('revisionText').textContent;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cached_revised_resume.txt';
+    a.click();
+}
+</script>
+{% endblock %}

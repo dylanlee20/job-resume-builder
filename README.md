@@ -41,6 +41,24 @@ Access at: `http://localhost:5002`
 - SQLite (development) / PostgreSQL (production)
 - Stripe account (for payments)
 - OpenAI API key (for resume assessment)
+- Chrome/Chromium + `chromedriver` (for job scrapers)
+
+### Scraper Runtime Prerequisites
+
+The scraper uses Selenium and needs both a browser binary and `chromedriver`.
+
+```bash
+# macOS (Homebrew)
+brew install --cask google-chrome
+brew install --cask chromedriver
+
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y chromium chromium-driver
+```
+
+If your browser is not in PATH, set `CHROME_BINARY_PATH` in `.env`.
+Optionally set `CHROMEDRIVER_PATH` if driver auto-detection fails.
 
 ## 🏗️ Architecture
 

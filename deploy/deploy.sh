@@ -31,15 +31,21 @@ fi
 # Install any new dependencies
 "$APP_DIR/venv/bin/pip" install -r requirements.txt --quiet 2>> "$LOG_FILE"
 
-# Ensure a browser exists for Selenium scrapers
-if ! command -v google-chrome-stable >/dev/null 2>&1 && \
-   ! command -v chromium-browser >/dev/null 2>&1 && \
-   ! command -v chromium >/dev/null 2>&1; then
-    echo "$(date): Installing Chromium for Selenium" >> "$LOG_FILE"
-    apt-get update -qq >> "$LOG_FILE" 2>&1 || true
-    apt-get install -y -qq chromium-browser >> "$LOG_FILE" 2>&1 || \
-    apt-get install -y -qq chromium >> "$LOG_FILE" 2>&1 || \
-    echo "$(date): WARNING - Could not install Chromium automatically. Set CHROME_BINARY_PATH in .env" >> "$LOG_FILE"
+# Ensure Chromium + chromedriver exist for Selenium scrapers.
+if ! command -v google-chrome-stable >/dev/null \
+   && ! command -v google-chrome >/dev/null \
+   && ! command -v chromium >/dev/null \
+   && ! command -v chromium-browser >/dev/null; then
+    apt-get install -y -qq chromium chromium-driver >> "$LOG_FILE" 2>&1 \
+        || apt-get install -y -qq chromium-browser chromium-chromedriver >> "$LOG_FILE" 2>&1 \
+        || apt-get install -y -qq chromium-browser chromium-driver >> "$LOG_FILE" 2>&1 \
+        || echo "$(date): WARNING - Could not auto-install Chromium browser packages" >> "$LOG_FILE"
+fi
+
+if ! command -v chromedriver >/dev/null; then
+    apt-get install -y -qq chromium-driver >> "$LOG_FILE" 2>&1 \
+        || apt-get install -y -qq chromium-chromedriver >> "$LOG_FILE" 2>&1 \
+        || echo "$(date): WARNING - Could not auto-install chromedriver package" >> "$LOG_FILE"
 fi
 
 # Restart the app

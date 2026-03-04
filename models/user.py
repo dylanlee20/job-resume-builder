@@ -27,6 +27,15 @@ class User(UserMixin, db.Model):
     # Stripe
     stripe_customer_id = db.Column(db.String(100), nullable=True)
 
+    # Outbound email sender profile (BYO mailbox, low-cost mail-merge mode)
+    sender_email = db.Column(db.String(255), nullable=True)
+    smtp_host = db.Column(db.String(255), nullable=True)
+    smtp_port = db.Column(db.Integer, nullable=True, default=587)
+    smtp_username = db.Column(db.String(255), nullable=True)
+    smtp_password = db.Column(db.String(512), nullable=True)
+    smtp_use_tls = db.Column(db.Boolean, nullable=False, default=True)
+    smtp_verified_at = db.Column(db.DateTime, nullable=True)
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -95,6 +104,30 @@ class User(UserMixin, db.Model):
             .first()
         )
 
+    @property
+    def has_sender_profile(self) -> bool:
+        """Return True if user configured the fields required to send emails."""
+        return bool(
+            self.sender_email
+            and self.smtp_host
+            and self.smtp_port
+            and self.smtp_username
+            and self.smtp_password
+        )
+
+    @property
+    def sender_profile_summary(self) -> dict:
+        """Safe sender profile summary (no secrets)."""
+        return {
+            'sender_email': self.sender_email,
+            'smtp_host': self.smtp_host,
+            'smtp_port': self.smtp_port,
+            'smtp_username': self.smtp_username,
+            'smtp_use_tls': self.smtp_use_tls,
+            'smtp_verified_at': self.smtp_verified_at.isoformat() if self.smtp_verified_at else None,
+            'has_sender_profile': self.has_sender_profile,
+        }
+
     def record_login(self) -> None:
         """Update last_login timestamp. Caller must commit."""
         self.last_login = datetime.utcnow()
@@ -108,6 +141,7 @@ class User(UserMixin, db.Model):
             'tier': self.tier,
             'is_admin': self.is_admin,
             'email_verified': self.email_verified,
+            'sender_profile': self.sender_profile_summary,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
         }

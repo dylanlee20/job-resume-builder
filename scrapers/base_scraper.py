@@ -30,35 +30,33 @@ class BaseScraper(ABC):
         self.source_url = source_url
         self.driver = None
         self._user_data_dir = None
-        self.last_scrape_success = None
+        self.last_run_failed = False
         self.last_error = None
         self.logger = logging.getLogger(f"{__name__}.{company_name}")
 
     @staticmethod
     def _detect_chrome_binary():
         """Detect available Chrome or Chromium binary on the system"""
+        env_paths = [
+            os.environ.get('GOOGLE_CHROME_BIN'),
+            os.environ.get('GOOGLE_CHROME_SHIM'),
+            os.environ.get('CHROMIUM_PATH'),
+        ]
+        for env_path in env_paths:
+            if env_path and os.path.exists(env_path):
+                browser_type = 'chromium' if 'chromium' in env_path.lower() else 'chrome'
+                return env_path, browser_type
+
         if Config.CHROME_BINARY_PATH:
-            return Config.CHROME_BINARY_PATH, 'chrome'
+            configured_path = os.path.expanduser(Config.CHROME_BINARY_PATH)
+            if os.path.exists(configured_path):
+                browser_type = 'chromium' if 'chromium' in configured_path.lower() else 'chrome'
+                return configured_path, browser_type
 
-        # Windows: check common install locations first
-        if os.name == 'nt':
-            win_candidates = [
-                os.path.join(os.environ.get('PROGRAMFILES', ''), 'Google', 'Chrome', 'Application', 'chrome.exe'),
-                os.path.join(os.environ.get('PROGRAMFILES(X86)', ''), 'Google', 'Chrome', 'Application', 'chrome.exe'),
-                os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Google', 'Chrome', 'Application', 'chrome.exe'),
-                os.path.join(os.environ.get('PROGRAMFILES', ''), 'Chromium', 'Application', 'chrome.exe'),
-                os.path.join(os.environ.get('PROGRAMFILES(X86)', ''), 'Chromium', 'Application', 'chrome.exe'),
-            ]
-            for path in win_candidates:
-                if path and os.path.exists(path):
-                    return path, 'chrome'
-
-        # Linux/macOS: check command names for Google Chrome first, then Chromium
+        # Check for Google Chrome first, then Chromium
         chrome_names = [
             ('google-chrome-stable', 'chrome'),
             ('google-chrome', 'chrome'),
-            ('chrome', 'chrome'),
-            ('chrome.exe', 'chrome'),
             ('chromium-browser', 'chromium'),
             ('chromium', 'chromium'),
         ]
@@ -67,7 +65,83 @@ class BaseScraper(ABC):
             if path:
                 return path, browser_type
 
+        # Direct binary paths help under constrained PATHs (systemd/snap/local apps).
+        direct_paths = [
+            ('/usr/bin/google-chrome-stable', 'chrome'),
+            ('/usr/bin/google-chrome', 'chrome'),
+            ('/opt/google/chrome/chrome', 'chrome'),
+            ('/usr/bin/chromium-browser', 'chromium'),
+            ('/usr/bin/chromium', 'chromium'),
+            ('/usr/lib/chromium-browser/chromium-browser', 'chromium'),
+            ('/snap/bin/chromium', 'chromium'),
+            ('/snap/bin/chromium-browser', 'chromium'),
+
+            # macOS app bundle paths (common local development setup)
+            ('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', 'chrome'),
+            ('/Applications/Chromium.app/Contents/MacOS/Chromium', 'chromium'),
+            (os.path.expanduser('~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'), 'chrome'),
+            (os.path.expanduser('~/Applications/Chromium.app/Contents/MacOS/Chromium'), 'chromium'),
+        ]
+        for path, browser_type in direct_paths:
+            if os.path.exists(path):
+                return path, browser_type
+
         return None, None
+
+    @staticmethod
+    def _detect_chromedriver():
+        """Detect a pre-installed chromedriver executable."""
+        configured = Config.CHROMEDRIVER_PATH or os.environ.get('CHROMEDRIVER_PATH', '')
+        if configured:
+            configured = os.path.expanduser(configured)
+            if os.path.exists(configured):
+                return configured
+
+        candidates = [
+            shutil.which('chromedriver'),
+            '/usr/bin/chromedriver',
+            '/usr/local/bin/chromedriver',
+            '/snap/bin/chromedriver',
+        ]
+        for path in candidates:
+            if path and os.path.exists(path):
+                return path
+
+        return None
+
+    def _build_service_with_webdriver_manager(self, browser_type):
+        """Download/resolve chromedriver with webdriver-manager."""
+        if browser_type == 'chromium':
+            driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+        else:
+            driver_path = ChromeDriverManager().install()
+
+        # webdriver-manager occasionally returns a non-executable helper path.
+        if 'THIRD_PARTY_NOTICES' in driver_path or not os.path.exists(driver_path):
+            cache_base = os.path.expanduser('~/.wdm/drivers/chromedriver')
+            found = False
+            for root, _dirs, files in os.walk(cache_base):
+                if 'chromedriver' in files:
+                    potential_path = os.path.join(root, 'chromedriver')
+                    try:
+                        os.chmod(potential_path, 0o755)
+                        if os.path.getsize(potential_path) > 1000000:
+                            driver_path = potential_path
+                            found = True
+                            self.logger.info("Found chromedriver in webdriver-manager cache: %s", driver_path)
+                            break
+                    except Exception:
+                        continue
+
+            if not found:
+                system_chromedriver = self._detect_chromedriver()
+                if system_chromedriver:
+                    driver_path = system_chromedriver
+                    self.logger.info("Using system chromedriver fallback: %s", driver_path)
+                else:
+                    raise Exception("Could not find valid chromedriver executable")
+
+        return Service(driver_path)
 
     @staticmethod
     def _kill_zombie_chrome():
@@ -97,18 +171,9 @@ class BaseScraper(ABC):
 
             chrome_binary, browser_type = self._detect_chrome_binary()
             if not chrome_binary:
-                if os.name == 'nt':
-                    install_hint = (
-                        "No Chrome or Chromium binary found. Install Google Chrome "
-                        "or set CHROME_BINARY_PATH in .env"
-                    )
-                else:
-                    install_hint = (
-                        "No Chrome or Chromium binary found. Install google-chrome-stable "
-                        "or chromium-browser, or set CHROME_BINARY_PATH in .env"
-                    )
                 raise Exception(
-                    install_hint
+                    "No Chrome/Chromium binary found. Install chromium or google-chrome "
+                    "and set CHROME_BINARY_PATH if needed."
                 )
             self.logger.info(f"Using browser: {chrome_binary} (type: {browser_type})")
 
@@ -165,53 +230,36 @@ class BaseScraper(ABC):
             chrome_options.add_experimental_option('useAutomationExtension', False)
 
             try:
-                if browser_type == 'chromium':
-                    driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+                # 1) Prefer pre-installed chromedriver for stable prod behavior.
+                system_chromedriver = self._detect_chromedriver()
+                if system_chromedriver:
+                    self.logger.info("Using detected chromedriver: %s", system_chromedriver)
+                    service = Service(system_chromedriver)
+                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
                 else:
-                    driver_path = ChromeDriverManager().install()
-
-                # Fix: webdriver-manager may return wrong file path
-                if 'THIRD_PARTY_NOTICES' in driver_path or not os.path.exists(driver_path):
-                    cache_base = os.path.expanduser('~/.wdm/drivers/chromedriver')
-
-                    found = False
-                    for root, dirs, files in os.walk(cache_base):
-                        if 'chromedriver' in files:
-                            potential_path = os.path.join(root, 'chromedriver')
-                            try:
-                                os.chmod(potential_path, 0o755)
-                                if os.path.getsize(potential_path) > 1000000:
-                                    driver_path = potential_path
-                                    self.logger.info(f"Found chromedriver at: {driver_path}")
-                                    found = True
-                                    break
-                            except Exception:
-                                continue
-
-                    if not found:
-                        # Last resort: try system chromedriver
-                        system_chromedriver = shutil.which('chromedriver')
-                        if system_chromedriver:
-                            driver_path = system_chromedriver
-                            self.logger.info(f"Using system chromedriver: {driver_path}")
-                        else:
-                            raise Exception("Could not find valid chromedriver executable")
-
-                service = Service(driver_path)
+                    # 2) Try Selenium Manager (Selenium 4.6+ built-in resolver).
+                    try:
+                        self.logger.info("No local chromedriver found, trying Selenium Manager")
+                        self.driver = webdriver.Chrome(options=chrome_options)
+                    except Exception as selenium_manager_error:
+                        # 3) Final fallback: webdriver-manager
+                        self.logger.warning(
+                            "Selenium Manager driver resolution failed: %s. Falling back to webdriver-manager.",
+                            selenium_manager_error,
+                        )
+                        service = self._build_service_with_webdriver_manager(browser_type)
+                        self.driver = webdriver.Chrome(service=service, options=chrome_options)
             except Exception as e:
                 self.logger.error(f"ChromeDriver setup failed: {e}")
                 raise
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
             self.driver.set_page_load_timeout(Config.SCRAPER_TIMEOUT)
 
             self.logger.info(f"WebDriver initialized for {self.company_name}")
-            self.last_error = None
             return True
 
         except Exception as e:
             self.logger.error(f"Failed to initialize WebDriver for {self.company_name}: {e}")
-            self.last_error = str(e)
             return False
 
     def close_driver(self):
@@ -298,9 +346,9 @@ class BaseScraper(ABC):
         """
         if max_retries is None:
             max_retries = Config.SCRAPER_RETRY_COUNT
-        self.last_scrape_success = False
+
+        self.last_run_failed = False
         self.last_error = None
-        last_exception = None
 
         for attempt in range(max_retries):
             try:
@@ -316,12 +364,12 @@ class BaseScraper(ABC):
                 self.logger.info(
                     f"Successfully scraped {len(jobs)} jobs from {self.company_name}"
                 )
-                self.last_scrape_success = True
+
+                self.last_run_failed = False
                 self.last_error = None
                 return jobs
 
             except Exception as e:
-                last_exception = e
                 self.last_error = str(e)
                 self.logger.error(
                     f"Scrape failed for {self.company_name} (attempt {attempt + 1}/{max_retries}): {e}"
@@ -332,15 +380,13 @@ class BaseScraper(ABC):
                     time.sleep(5)
                 else:
                     self.logger.error(f"All retry attempts failed for {self.company_name}")
-                    self.last_scrape_success = False
+                    self.last_run_failed = True
                     return []
 
             finally:
                 self.close_driver()
 
-        if last_exception and not self.last_error:
-            self.last_error = str(last_exception)
-        self.last_scrape_success = False
+        self.last_run_failed = True
         return []
 
     def get_page_source(self):

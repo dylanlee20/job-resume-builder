@@ -18,3 +18,25 @@ body {
     border-radius: 4px;
     font-size: 0.85em;
 }
+
+/* Dashboard control pills */
+#controlsForm .form-control,
+#controlsForm .form-select,
+#controlsForm .input-group-text,
+#controlsForm .btn {
+    border-radius: 999px;
+}
+#controlsForm .form-control-sm,
+#controlsForm .form-select-sm {
+    padding-top: .25rem;
+    padding-bottom: .25rem;
+}
+
+/* Table card subtle shadow already provided by Bootstrap's shadow-sm */
+
+/* Truncate utility for table cells (if not already) */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -10,11 +10,13 @@ from werkzeug.utils import secure_filename
 from models.database import db
 from models.resume import Resume
 from models.resume_assessment import ResumeAssessment
+from models.resume_revision import ResumeRevision
 from services.resume_parser_service import ResumeParserService
 from services.resume_assessment_service import ResumeAssessmentService
 from services.resume_builder_service import ResumeBuilderService
 from utils.validation import validate_resume_file
 from utils.resume_utils import generate_stored_filename, get_upload_path, delete_resume_file
+from utils.feature_access import require_premium_feature
 
 # Maximum character length for text fields sent to LLM
 _MAX_TEXT_LEN = 5000
@@ -28,12 +30,51 @@ resume_bp = Blueprint('resume', __name__, url_prefix='/resume')
 @resume_bp.route('/')
 @login_required
 def hub():
-    """Resume tools hub - choose your mode"""
-    recent_resumes = Resume.query.filter_by(
+    """Resume tools hub with unified flow and resume cache."""
+    resumes = Resume.query.filter_by(
         user_id=current_user.id
-    ).order_by(Resume.uploaded_at.desc()).limit(5).all()
+    ).order_by(Resume.uploaded_at.desc()).limit(20).all()
 
-    return render_template('resume/hub.html', recent_resumes=recent_resumes)
+    cache_entries = []
+    latest_cache = None
+
+    for resume in resumes:
+        latest_revision = resume.revisions.order_by(ResumeRevision.created_at.desc()).first()
+        latest_assessment = resume.assessments.order_by(ResumeAssessment.created_at.desc()).first()
+
+        revision_at = latest_revision.created_at if latest_revision else None
+        has_revision = bool(revision_at and revision_at >= resume.uploaded_at)
+
+        if has_revision:
+            preview_text = (latest_revision.revision_suggestions or '').strip()
+            source_label = 'revised'
+            last_edit_at = revision_at
+            latest_revision_id = latest_revision.id
+        else:
+            preview_text = (resume.extracted_text or '').strip()
+            source_label = 'uploaded'
+            last_edit_at = resume.uploaded_at
+            latest_revision_id = None
+
+        entry = {
+            'resume': resume,
+            'source_label': source_label,
+            'last_edit_at': last_edit_at,
+            'preview_text': preview_text[:900],
+            'has_preview_text': bool(preview_text),
+            'latest_revision_id': latest_revision_id,
+            'latest_assessment_id': latest_assessment.id if latest_assessment else None,
+        }
+        cache_entries.append(entry)
+
+        if not latest_cache or last_edit_at > latest_cache['last_edit_at']:
+            latest_cache = entry
+
+    return render_template(
+        'resume/hub.html',
+        cache_entries=cache_entries,
+        latest_cache=latest_cache,
+    )
 
 
 # ── Mode 1: Build from Scratch ─────────────────────────────────────
@@ -319,14 +360,9 @@ def assess(resume_id):
 
 @resume_bp.route('/<int:resume_id>/revise', methods=['POST'])
 @login_required
+@require_premium_feature('Resume revision')
 def revise(resume_id):
     """Premium: Revise resume with AI-powered improvements and before/after"""
-    if not current_user.is_premium:
-        return jsonify({
-            'success': False,
-            'message': 'Resume revision requires a Premium subscription.'
-        }), 403
-
     resume = Resume.query.get_or_404(resume_id)
 
     if resume.user_id != current_user.id:
@@ -354,6 +390,32 @@ def revise(resume_id):
         target_industry=target_industry
     )
 
+    if result.get('success'):
+        try:
+            before_score = latest_assessment.overall_score if latest_assessment else None
+            projected_after = None
+            if before_score is not None:
+                projected_after = min(100, before_score + 8)
+
+            revision = ResumeRevision(
+                resume_id=resume.id,
+                assessment_id=latest_assessment.id if latest_assessment else None,
+                user_id=current_user.id,
+                target_industry=target_industry or 'Auto-detect',
+                templates_used='[]',
+                revision_suggestions=result.get('revised_text', ''),
+                before_score=before_score,
+                projected_after_score=projected_after,
+                model_used=result.get('model_used'),
+                tokens_used=result.get('tokens_used'),
+            )
+            db.session.add(revision)
+            db.session.commit()
+            result['revision_id'] = revision.id
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error saving revision for resume {resume_id}: {e}")
+
     return jsonify(result)
 
 
@@ -372,9 +434,22 @@ def view_assessment(resume_id, assessment_id):
     return render_template('resume/assessment.html', assessment=assessment, resume=resume)
 
 
+@resume_bp.route('/<int:resume_id>/revision/<int:revision_id>')
+@login_required
+def view_revision(resume_id, revision_id):
+    """View a cached revised resume snapshot."""
+    revision = ResumeRevision.query.get_or_404(revision_id)
+
+    if revision.user_id != current_user.id or revision.resume_id != resume_id:
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('resume.hub'))
+
+    resume = Resume.query.get_or_404(resume_id)
+    return render_template('resume/revision.html', revision=revision, resume=resume)
+
+
 @resume_bp.route('/history')
 @login_required
 def history():
-    """View user's resume upload and assessment history"""
-    resumes = Resume.query.filter_by(user_id=current_user.id).order_by(Resume.uploaded_at.desc()).all()
-    return render_template('resume/history.html', resumes=resumes)
+    """Legacy route: send users to Resume Tools cache section."""
+    return redirect(url_for('resume.hub', _anchor='resume-cache'))

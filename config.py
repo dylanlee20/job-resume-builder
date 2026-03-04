@@ -94,3 +94,4 @@ class Config:
 
     # Chrome/Chromium binary path (auto-detected if not set)
     CHROME_BINARY_PATH = os.environ.get('CHROME_BINARY_PATH', '')
+    CHROMEDRIVER_PATH = os.environ.get('CHROMEDRIVER_PATH', '')

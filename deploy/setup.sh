@@ -15,6 +15,29 @@ apt-get update -qq
 apt-get install -y -qq "python${PYTHON_VERSION}-venv" > /dev/null 2>&1
 echo "System prerequisites OK (python${PYTHON_VERSION}-venv installed)"
 
+echo "Ensuring Chromium + chromedriver are installed for scrapers..."
+if ! command -v google-chrome-stable >/dev/null \
+   && ! command -v google-chrome >/dev/null \
+   && ! command -v chromium >/dev/null \
+   && ! command -v chromium-browser >/dev/null; then
+    apt-get install -y -qq chromium chromium-driver > /dev/null 2>&1 \
+        || apt-get install -y -qq chromium-browser chromium-chromedriver > /dev/null 2>&1 \
+        || apt-get install -y -qq chromium-browser chromium-driver > /dev/null 2>&1 \
+        || true
+fi
+
+if ! command -v chromedriver >/dev/null; then
+    apt-get install -y -qq chromium-driver > /dev/null 2>&1 \
+        || apt-get install -y -qq chromium-chromedriver > /dev/null 2>&1 \
+        || true
+fi
+
+if command -v google-chrome-stable >/dev/null || command -v google-chrome >/dev/null || command -v chromium >/dev/null || command -v chromium-browser >/dev/null; then
+    echo "Browser install check: OK"
+else
+    echo "WARNING: Chrome/Chromium not found after install attempt. Set CHROME_BINARY_PATH manually in .env."
+fi
+
 # Make deploy script executable
 chmod +x "$APP_DIR/deploy/deploy.sh"
 
