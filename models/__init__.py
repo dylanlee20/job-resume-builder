@@ -10,6 +10,14 @@ from .resume_revision import ResumeRevision
 from .subscription import Subscription, Payment
 from .scraper_run import ScraperRun
 from .email_verification_token import EmailVerificationToken
+from .coffee_chat import (
+    MentorProfile,
+    MentorAvailability,
+    CoffeeChatBooking,
+    CoffeeChatPayment,
+    MeetingLink,
+    MentorshipNote,
+)
 
 __all__ = [
     'db',
@@ -27,4 +35,10 @@ __all__ = [
     'Payment',
     'ScraperRun',
     'EmailVerificationToken',
+    'MentorProfile',
+    'MentorAvailability',
+    'CoffeeChatBooking',
+    'CoffeeChatPayment',
+    'MeetingLink',
+    'MentorshipNote',
 ]

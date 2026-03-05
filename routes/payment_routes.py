@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, jsonify, request, redirect, url_fo
 from flask_login import login_required, current_user
 from config import Config
 from services.payment_service import PaymentService
+from services.coffee_chat_service import CoffeeChatService
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,16 @@ def stripe_webhook():
         event_data = event['data']['object']
 
         if event_type == 'checkout.session.completed':
-            PaymentService.handle_checkout_completed(event_data)
+            metadata = event_data.get('metadata', {}) if isinstance(event_data, dict) else {}
+            if metadata.get('payment_type') == 'coffee_chat':
+                CoffeeChatService.handle_checkout_completed(event_data)
+            else:
+                PaymentService.handle_checkout_completed(event_data)
+
+        elif event_type == 'checkout.session.expired':
+            metadata = event_data.get('metadata', {}) if isinstance(event_data, dict) else {}
+            if metadata.get('payment_type') == 'coffee_chat':
+                CoffeeChatService.handle_checkout_expired(event_data)
 
         elif event_type == 'customer.subscription.updated':
             PaymentService.handle_subscription_updated(event_data)

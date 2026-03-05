@@ -28,6 +28,11 @@
                             <i class="bi bi-file-earmark-text"></i> Resume Tools
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('coffee_chat.mentors') }}">
+                            <i class="bi bi-cup-hot"></i> Coffee Chat
+                        </a>
+                    </li>
                     {% if current_user.tier == 'premium' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('outreach.dashboard') }}">
@@ -112,7 +117,8 @@
                 <div class="col-md-6 text-md-end">
                     <a href="{{ url_for('web.dashboard') if current_user.is_authenticated else '/' }}" class="me-3">Jobs</a>
                     <a href="{{ url_for('web.pricing') }}" class="me-3">Pricing</a>
-                    <a href="{{ url_for('resume.hub') if current_user.is_authenticated else url_for('auth.register') }}">Resume Tools</a>
+                    <a href="{{ url_for('resume.hub') if current_user.is_authenticated else url_for('auth.register') }}" class="me-3">Resume Tools</a>
+                    <a href="{{ url_for('coffee_chat.mentors') if current_user.is_authenticated else url_for('auth.register') }}">Coffee Chat</a>
                 </div>
             </div>
         </div>
