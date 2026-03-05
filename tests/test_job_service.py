@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from models.database import db
 from models.job import Job
 from services.job_service import JobService
+from utils.job_utils import normalize_location, parse_country_city
 
 
 def _create_job(
@@ -44,6 +45,14 @@ def _create_job(
 
 
 class TestJobService:
+    def test_location_parser_handles_country_city_variants(self):
+        assert parse_country_city('US - New York') == ('US', 'New York')
+        assert parse_country_city('New York, NY') == ('US', 'New York')
+        assert parse_country_city('London, United Kingdom') == ('UK', 'London')
+        assert parse_country_city('Hong Kong, China') == ('China', 'Hong Kong')
+        assert parse_country_city('Singapore') == ('Singapore', None)
+        assert normalize_location('Tokyo, Japan') == 'Japan - Tokyo'
+
     def test_job_to_dict_includes_seniority(self, app, db):
         with app.app_context():
             job = _create_job(
@@ -170,3 +179,65 @@ class TestJobService:
 
             job_types = JobService.get_all_job_types(include_excluded=True)
             assert job_types == ['Internship', 'Full Time']
+
+    def test_country_city_options_are_clean_with_mixed_location_formats(self, app, db):
+        with app.app_context():
+            _create_job(
+                company='Goldman Sachs',
+                title='Summer Analyst',
+                location='US - New York',
+            )
+            _create_job(
+                company='Morgan Stanley',
+                title='Analyst',
+                location='New York, NY',
+            )
+            _create_job(
+                company='JPMorgan',
+                title='Associate',
+                location='London, United Kingdom',
+            )
+            _create_job(
+                company='HSBC',
+                title='Intern',
+                location='Hong Kong, China',
+            )
+
+            countries = JobService.get_all_countries(include_excluded=True)
+            assert countries == ['China', 'UK', 'US']
+            assert all(',' not in country for country in countries)
+            assert all(' - ' not in country for country in countries)
+
+            us_cities = JobService.get_all_cities(country='US', include_excluded=True)
+            assert us_cities == ['New York']
+            assert all(',' not in city for city in us_cities)
+
+            china_cities = JobService.get_all_cities(country='China', include_excluded=True)
+            assert china_cities == ['Hong Kong']
+
+    def test_country_city_filter_matches_legacy_city_state_locations(self, app, db):
+        with app.app_context():
+            _create_job(
+                company='Goldman Sachs',
+                title='Summer Analyst',
+                location='US - New York',
+            )
+            _create_job(
+                company='Morgan Stanley',
+                title='Analyst',
+                location='New York, NY',
+            )
+            _create_job(
+                company='JPMorgan',
+                title='Associate',
+                location='UK - London',
+            )
+
+            result = JobService.get_jobs(
+                filters={'country': 'US', 'city': 'New York'},
+                page=1,
+                per_page=20,
+            )
+            assert result['total'] == 2
+            companies = sorted([job['company'] for job in result['jobs']])
+            assert companies == ['Goldman Sachs', 'Morgan Stanley']

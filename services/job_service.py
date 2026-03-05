@@ -1,10 +1,12 @@
 """Job service for business logic and data access"""
+from datetime import datetime
+import logging
+
+from sqlalchemy import or_, func, case
+
 from models.database import db
 from models.job import Job
-from utils.job_utils import categorize_and_classify_job, normalize_location
-from datetime import datetime
-from sqlalchemy import or_, func, case
-import logging
+from utils.job_utils import categorize_and_classify_job, normalize_location, parse_country_city
 
 logger = logging.getLogger(__name__)
 
@@ -14,14 +16,9 @@ class JobService:
 
     @staticmethod
     def _split_location(location):
-        """Split normalized location into (country, city)."""
-        if not location:
-            return ("", "")
-        value = str(location).strip()
-        if " - " in value:
-            country, city = value.split(" - ", 1)
-            return (country.strip(), city.strip())
-        return (value, "")
+        """Split any location string into (country, city) using robust parser."""
+        country, city = parse_country_city(location)
+        return (country or "", city or "")
     
     @staticmethod
     def get_jobs(filters=None, page=1, per_page=20):
@@ -59,23 +56,47 @@ class JobService:
         if filters.get('company'):
             query = query.filter_by(company=filters['company'])
 
+        country = ""
+        city = ""
         if filters.get('country'):
-            country = str(filters['country']).strip()
-            query = query.filter(
-                or_(
-                    Job.location == country,
-                    Job.location.ilike(f"{country} - %")
-                )
-            )
-
+            parsed_country, _ = parse_country_city(str(filters['country']).strip())
+            country = parsed_country or str(filters['country']).strip()
         if filters.get('city'):
-            city = str(filters['city']).strip()
-            query = query.filter(
-                or_(
-                    Job.location == city,
-                    Job.location.ilike(f"% - {city}")
+            _, parsed_city = parse_country_city(str(filters['city']).strip())
+            city = parsed_city or str(filters['city']).strip()
+
+        # Apply location filters with support for both normalized and legacy formats.
+        if country and city:
+            conditions = [
+                Job.location == f"{country} - {city}",
+                Job.location.ilike(f"{country} - {city}%"),
+                Job.location.ilike(f"{city}, {country}"),
+                Job.location.ilike(f"{city}, {country},%"),
+                Job.location.ilike(f"% - {city}"),
+                Job.location == city,
+            ]
+            if country == 'US':
+                conditions.append(Job.location.ilike(f"{city}, %"))  # legacy "City, ST"
+            query = query.filter(or_(*conditions))
+        else:
+            if country:
+                query = query.filter(
+                    or_(
+                        Job.location == country,
+                        Job.location.ilike(f"{country} - %"),
+                        Job.location.ilike(f"%, {country}"),
+                        Job.location.ilike(f"%, {country},%"),
+                    )
                 )
-            )
+
+            if city:
+                query = query.filter(
+                    or_(
+                        Job.location == city,
+                        Job.location.ilike(f"% - {city}"),
+                        Job.location.ilike(f"{city}, %"),
+                    )
+                )
 
         if filters.get('location'):
             query = query.filter_by(location=filters['location'])
@@ -261,7 +282,7 @@ class JobService:
         countries = set()
         for loc in locations:
             country, _ = JobService._split_location(loc)
-            if country:
+            if country and country not in {'Global', 'Unknown'}:
                 countries.add(country)
         return sorted(countries)
 
