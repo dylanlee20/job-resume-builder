@@ -5,6 +5,7 @@ import socket
 import uuid
 import os
 import mimetypes
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -16,6 +17,7 @@ from config import Config
 from models.database import db
 from models.cold_email import EmailCampaign, EmailRecipient
 from services.gmail_service import GmailService
+from services.outlook_service import OutlookService
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,14 @@ class ColdEmailService:
                 return 'Connected Gmail account is missing sender email.'
             return None
 
-        if mode is None and user.has_gmail_sender_profile:
+        if mode == 'outlook':
+            if not user.outlook_refresh_token:
+                return 'Outlook is not connected. Connect Outlook OAuth in Mailbox Settings.'
+            if not (user.outlook_email or user.sender_email):
+                return 'Connected Outlook account is missing sender email.'
+            return None
+
+        if mode is None and (user.has_gmail_sender_profile or user.has_outlook_sender_profile):
             return None
 
         if not user.sender_email:
@@ -50,9 +59,11 @@ class ColdEmailService:
 
     @staticmethod
     def _sender_mode(user):
-        """Return active sender mode: gmail, smtp, or None."""
+        """Return active sender mode: gmail, outlook, smtp, or None."""
         if user.has_gmail_sender_profile:
             return 'gmail'
+        if user.has_outlook_sender_profile:
+            return 'outlook'
         if user.has_smtp_sender_profile:
             return 'smtp'
         return None
@@ -60,7 +71,12 @@ class ColdEmailService:
     @staticmethod
     def _from_email(user):
         """Return effective sender email address."""
-        return user.sender_email or user.gmail_email or user.smtp_username
+        return (
+            user.sender_email
+            or user.gmail_email
+            or user.outlook_email
+            or user.smtp_username
+        )
 
     @staticmethod
     def _open_smtp_connection(user):
@@ -204,6 +220,37 @@ class ColdEmailService:
             msg.attach(attachment)
 
     @staticmethod
+    def _build_outlook_attachments(campaign):
+        """Build Microsoft Graph fileAttachment objects for campaign resume."""
+        resume = campaign.resume
+        if not resume:
+            return None
+
+        attachments = []
+        if resume.file_path and os.path.exists(resume.file_path):
+            ctype, _ = mimetypes.guess_type(resume.original_filename or resume.file_path)
+            if ctype is None:
+                ctype = 'application/octet-stream'
+            filename = resume.original_filename or os.path.basename(resume.file_path)
+            with open(resume.file_path, 'rb') as file_obj:
+                attachments.append({
+                    '@odata.type': '#microsoft.graph.fileAttachment',
+                    'name': filename,
+                    'contentType': ctype,
+                    'contentBytes': base64.b64encode(file_obj.read()).decode('utf-8'),
+                })
+            return attachments
+
+        if resume.extracted_text:
+            attachments.append({
+                '@odata.type': '#microsoft.graph.fileAttachment',
+                'name': 'resume.txt',
+                'contentType': 'text/plain',
+                'contentBytes': base64.b64encode(resume.extracted_text.encode('utf-8')).decode('utf-8'),
+            })
+        return attachments or None
+
+    @staticmethod
     def send_campaign(campaign_id, user_id, limit=None):
         """
         Send pending campaign emails through the user's connected mailbox.
@@ -259,10 +306,10 @@ class ColdEmailService:
                         f'{ColdEmailService._format_mailbox_connection_error(user, exc)}'
                     ),
                 }
-        elif mode != 'gmail':
+        elif mode not in ('gmail', 'outlook'):
             return {
                 'success': False,
-                'message': 'No mailbox is connected. Connect Gmail OAuth or SMTP first.',
+                'message': 'No mailbox is connected. Connect Gmail OAuth, Outlook OAuth, or SMTP first.',
             }
 
         try:
@@ -283,6 +330,14 @@ class ColdEmailService:
 
                     if mode == 'gmail':
                         GmailService.send_mime_message(user, msg)
+                    elif mode == 'outlook':
+                        OutlookService.send_email(
+                            user=user,
+                            to_email=recipient.email,
+                            subject=subject,
+                            body_html=body_html,
+                            attachments=ColdEmailService._build_outlook_attachments(campaign),
+                        )
                     else:
                         server.sendmail(from_email, [recipient.email], msg.as_string())
 

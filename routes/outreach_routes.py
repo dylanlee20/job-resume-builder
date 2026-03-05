@@ -7,6 +7,7 @@ from models.cold_email import EmailCampaign, EmailRecipient
 from models.resume import Resume
 from services.cold_email_service import ColdEmailService
 from services.gmail_service import GmailService
+from services.outlook_service import OutlookService
 from utils.feature_access import require_premium_feature
 import csv
 import io
@@ -72,6 +73,7 @@ def sender_settings():
         'outreach/settings.html',
         sender_profile=current_user.sender_profile_summary,
         gmail_oauth_ready=GmailService.is_configured(),
+        outlook_oauth_ready=OutlookService.is_configured(),
     )
 
 
@@ -134,6 +136,68 @@ def disconnect_gmail():
     """Disconnect Gmail OAuth credentials for current user."""
     GmailService.disconnect_user(current_user)
     flash('Gmail connection removed.', 'info')
+    return redirect(url_for('outreach.sender_settings'))
+
+
+@outreach_bp.route('/outlook/connect')
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def connect_outlook():
+    """Start Microsoft OAuth flow to connect Outlook mailbox."""
+    if not OutlookService.is_configured():
+        flash('Microsoft OAuth is not configured on the server. Set MICROSOFT_CLIENT_ID/MICROSOFT_CLIENT_SECRET.', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    state = secrets.token_urlsafe(24)
+    session['outlook_oauth_state'] = state
+    session['outlook_oauth_user_id'] = current_user.id
+    auth_url = OutlookService.build_authorization_url(state)
+    return redirect(auth_url)
+
+
+@outreach_bp.route('/outlook/callback')
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def outlook_callback():
+    """Handle Microsoft OAuth callback and persist Outlook tokens."""
+    expected_state = session.pop('outlook_oauth_state', None)
+    oauth_user_id = session.pop('outlook_oauth_user_id', None)
+    state = request.args.get('state')
+
+    if not expected_state or state != expected_state or oauth_user_id != current_user.id:
+        flash('Invalid Outlook OAuth state. Please try connecting again.', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    oauth_error = request.args.get('error')
+    if oauth_error:
+        flash(f'Outlook connection canceled/failed: {oauth_error}', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    code = request.args.get('code')
+    if not code:
+        flash('Outlook OAuth callback missing authorization code.', 'error')
+        return redirect(url_for('outreach.sender_settings'))
+
+    try:
+        connected_email = OutlookService.connect_user_with_code(current_user, code)
+        flash(
+            f'Outlook connected successfully ({connected_email}). '
+            'Campaigns will now send via Microsoft Graph from your mailbox.',
+            'success'
+        )
+    except Exception as exc:
+        flash(f'Outlook connection failed: {exc}', 'error')
+
+    return redirect(url_for('outreach.sender_settings'))
+
+
+@outreach_bp.route('/outlook/disconnect', methods=['POST'])
+@login_required
+@require_premium_feature('Cold Email Outreach')
+def disconnect_outlook():
+    """Disconnect Outlook OAuth credentials for current user."""
+    OutlookService.disconnect_user(current_user)
+    flash('Outlook connection removed.', 'info')
     return redirect(url_for('outreach.sender_settings'))
 
 

@@ -93,3 +93,79 @@ class EmailService:
         """
 
         return cls._send(to_email, subject, html_body)
+
+    @classmethod
+    def send_coffee_chat_booking_created(
+        cls,
+        to_email: str,
+        recipient_name: str,
+        counterpart_name: str,
+        schedule_text: str,
+    ) -> tuple[bool, Optional[str]]:
+        """Notify user that a coffee chat booking was created and awaits payment confirmation."""
+        subject = "Coffee Chat Booking Created (Pending Payment)"
+        html_body = f"""
+        <html><body style="font-family: Arial, sans-serif;">
+            <h3>Coffee chat booking created</h3>
+            <p>Hi {recipient_name},</p>
+            <p>A mentorship booking with <strong>{counterpart_name}</strong> was created.</p>
+            <p><strong>Schedule:</strong> {schedule_text}</p>
+            <p>Status: <strong>Pending payment</strong>. You will receive a confirmation email when payment succeeds.</p>
+            <hr>
+            <p style="font-size: 12px; color: #666;">
+                Mentorship sessions are strictly for career guidance and educational purposes.
+                No investment, financial, or trading advice is provided.
+            </p>
+        </body></html>
+        """
+        return cls._send(to_email, subject, html_body)
+
+    @classmethod
+    def send_coffee_chat_booking_confirmed(
+        cls,
+        to_email: str,
+        recipient_name: str,
+        counterpart_name: str,
+        schedule_text: str,
+        meeting_url: str,
+    ) -> tuple[bool, Optional[str]]:
+        """Notify user that coffee chat payment succeeded and session is confirmed."""
+        subject = "Coffee Chat Confirmed"
+        html_body = f"""
+        <html><body style="font-family: Arial, sans-serif;">
+            <h3>Your coffee chat is confirmed</h3>
+            <p>Hi {recipient_name},</p>
+            <p>Your mentorship session with <strong>{counterpart_name}</strong> is now confirmed.</p>
+            <p><strong>Schedule:</strong> {schedule_text}</p>
+            <p><strong>Meeting link:</strong> <a href="{meeting_url}">{meeting_url}</a></p>
+            <hr>
+            <p style="font-size: 12px; color: #666;">
+                The platform does not provide financial advice and is not responsible
+                for statements made during mentorship sessions.
+            </p>
+        </body></html>
+        """
+        return cls._send(to_email, subject, html_body)
+
+    @classmethod
+    def send_coffee_chat_session_reminder(
+        cls,
+        to_email: str,
+        recipient_name: str,
+        counterpart_name: str,
+        schedule_text: str,
+        meeting_url: str,
+    ) -> tuple[bool, Optional[str]]:
+        """Send upcoming session reminder."""
+        subject = "Coffee Chat Reminder"
+        html_body = f"""
+        <html><body style="font-family: Arial, sans-serif;">
+            <h3>Session reminder</h3>
+            <p>Hi {recipient_name},</p>
+            <p>This is a reminder for your mentorship session with <strong>{counterpart_name}</strong>.</p>
+            <p><strong>Schedule:</strong> {schedule_text}</p>
+            <p><strong>Meeting link:</strong> <a href="{meeting_url}">{meeting_url}</a></p>
+            <p>See you soon.</p>
+        </body></html>
+        """
+        return cls._send(to_email, subject, html_body)

@@ -14,7 +14,7 @@
             <div class="card-body p-4">
                 <h3 class="mb-2"><i class="bi bi-mailbox"></i> Connect Your Mailbox</h3>
                 <p class="text-muted mb-3">
-                    YAMM-style sending: emails are sent from your own mailbox. Preferred path is Gmail OAuth (API, no SMTP port issues).
+                    YAMM-style sending: emails are sent from your own mailbox. Preferred paths are OAuth API connections (Gmail/Outlook), then SMTP fallback.
                 </p>
 
                 <div class="alert alert-light border mb-4">
@@ -50,8 +50,41 @@
                     {% endif %}
                 </div>
 
+                <div class="alert alert-light border mb-4">
+                    <h6 class="mb-2"><i class="bi bi-microsoft"></i> Option B: Connect Outlook / Microsoft 365</h6>
+                    <p class="mb-2 small text-muted">
+                        Uses OAuth + Microsoft Graph over HTTPS, avoids SMTP port restrictions, and is smooth for Office users.
+                    </p>
+                    {% if sender_profile.has_outlook_sender_profile %}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="small">
+                            Connected Outlook:
+                            <strong>{{ sender_profile.outlook_email }}</strong>
+                            {% if sender_profile.outlook_verified_at %}
+                            <span class="text-muted">· verified {{ sender_profile.outlook_verified_at }}</span>
+                            {% endif %}
+                        </div>
+                        <form method="POST" action="{{ url_for('outreach.disconnect_outlook') }}" class="m-0">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-x-circle"></i> Disconnect Outlook
+                            </button>
+                        </form>
+                    </div>
+                    {% elif outlook_oauth_ready %}
+                    <a href="{{ url_for('outreach.connect_outlook') }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-microsoft"></i> Connect Outlook
+                    </a>
+                    {% else %}
+                    <div class="small text-danger">
+                        Microsoft OAuth is not configured on this server yet.
+                        Set <code>MICROSOFT_CLIENT_ID</code> and <code>MICROSOFT_CLIENT_SECRET</code>.
+                    </div>
+                    {% endif %}
+                </div>
+
                 <div class="alert alert-info">
-                    <strong>Option B: SMTP fallback</strong> (for non-Gmail or custom providers).
+                    <strong>Option C: SMTP fallback</strong> (for non-Gmail/Outlook or custom providers).
                     Common settings:
                     Gmail <code>smtp.gmail.com:587</code> (TLS),
                     Outlook <code>smtp.office365.com:587</code> (TLS),
