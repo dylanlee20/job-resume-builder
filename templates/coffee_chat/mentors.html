@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+{% block title %}Coffee Chat Mentors | NewWhale{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Coffee Chat Marketplace</h2>
+        <p class="text-muted mb-0">Paid 1:1 career mentorship with finance professionals.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('coffee_chat.student_dashboard') }}" class="btn btn-outline-primary">
+            <i class="bi bi-journal-check"></i> Student Dashboard
+        </a>
+        <a href="{{ url_for('coffee_chat.mentor_onboard') }}" class="btn btn-primary">
+            <i class="bi bi-person-badge"></i> Become a Mentor
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label mb-1">Industry</label>
+                <select class="form-select" name="industry">
+                    <option value="">All industries</option>
+                    {% for item in industries %}
+                    <option value="{{ item }}" {% if selected_industry == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label mb-1">Role</label>
+                <select class="form-select" name="role">
+                    <option value="">All roles</option>
+                    {% for item in roles %}
+                    <option value="{{ item }}" {% if selected_role == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('coffee_chat.mentors') }}">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if mentors %}
+<div class="row g-3">
+    {% for mentor in mentors %}
+    <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-1">{{ mentor.name }}</h5>
+                <p class="text-muted mb-2">{{ mentor.headline or mentor.role }}</p>
+                <div class="mb-2">
+                    <span class="badge text-bg-light border me-1">{{ mentor.industry }}</span>
+                    <span class="badge text-bg-light border">{{ mentor.role }}</span>
+                </div>
+                <p class="mb-1"><strong>Company:</strong> {{ mentor.company or 'N/A' }}</p>
+                <p class="mb-1"><strong>Experience:</strong> {{ mentor.years_experience }} years</p>
+                <p class="mb-1"><strong>Timezone:</strong> {{ mentor.timezone }}</p>
+                <p class="mb-3"><strong>Coffee Chat:</strong> ${{ '%.2f'|format(mentor.coffee_chat_price / 100) }}</p>
+                <a href="{{ url_for('coffee_chat.mentor_profile', mentor_id=mentor.id) }}" class="btn btn-primary w-100">
+                    View Profile & Book
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-cup-hot" style="font-size: 2rem;"></i>
+        <h5 class="mt-3">No mentors matched your filters.</h5>
+        <p class="text-muted mb-0">Try clearing filters or become the first mentor in this niche.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

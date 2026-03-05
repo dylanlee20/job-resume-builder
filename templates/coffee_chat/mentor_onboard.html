@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+{% block title %}Mentor Onboarding | NewWhale{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Mentor Onboarding</h2>
+        <p class="text-muted mb-0">Create your profile, set availability, and publish paid coffee chats.</p>
+    </div>
+    {% if mentor %}
+    <a href="{{ url_for('coffee_chat.mentor_dashboard') }}" class="btn btn-outline-primary">
+        <i class="bi bi-speedometer2"></i> Mentor Dashboard
+    </a>
+    {% endif %}
+</div>
+
+<form method="post" class="card">
+    <div class="card-body">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Display Name</label>
+                <input class="form-control" name="name" value="{{ mentor.name if mentor else current_user.username }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Headline</label>
+                <input class="form-control" name="headline" value="{{ mentor.headline if mentor else '' }}" placeholder="e.g. IB Associate mentoring students">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Industry</label>
+                <input class="form-control" name="industry" value="{{ mentor.industry if mentor else '' }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Role</label>
+                <input class="form-control" name="role" value="{{ mentor.role if mentor else '' }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Company</label>
+                <input class="form-control" name="company" value="{{ mentor.company if mentor else '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Years of Experience</label>
+                <input class="form-control" type="number" min="0" name="years_experience" value="{{ mentor.years_experience if mentor else 0 }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Timezone</label>
+                <select class="form-select" name="timezone" required>
+                    {% set tz_current = mentor.timezone if mentor else 'UTC' %}
+                    {% for tz in timezone_choices %}
+                    <option value="{{ tz }}" {% if tz_current == tz %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Hourly Rate (USD cents)</label>
+                <input class="form-control" type="number" min="0" name="hourly_rate" value="{{ mentor.hourly_rate if mentor and mentor.hourly_rate is not none else '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Coffee Chat Price (USD cents)</label>
+                <input class="form-control" type="number" min="100" name="coffee_chat_price" value="{{ mentor.coffee_chat_price if mentor else 2500 }}" required>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">Bio</label>
+                <textarea class="form-control" name="bio" rows="4">{{ mentor.bio if mentor else '' }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">LinkedIn URL</label>
+                <input class="form-control" name="linkedin_url" value="{{ mentor.linkedin_url if mentor else '' }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Profile Photo URL</label>
+                <input class="form-control" name="profile_photo" value="{{ mentor.profile_photo if mentor else '' }}">
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h5 class="mb-3">Weekly Availability (Optional here; editable later)</h5>
+        <p class="text-muted small">Use 24h format. Example: 18:00 to 21:00.</p>
+
+        <div id="availabilityRows">
+            {% if availabilities %}
+                {% for row in availabilities %}
+                <div class="row g-2 mb-2 availability-row">
+                    <div class="col-md-3">
+                        <select class="form-select" name="avail_day">
+                            {% for idx in range(7) %}
+                            <option value="{{ idx }}" {% if row.day_of_week == idx %}selected{% endif %}>{{ day_labels[idx] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input class="form-control" type="time" name="avail_start" value="{{ row.start_time.strftime('%H:%M') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <input class="form-control" type="time" name="avail_end" value="{{ row.end_time.strftime('%H:%M') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-danger remove-row w-100">Remove</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="row g-2 mb-2 availability-row">
+                <div class="col-md-3">
+                    <select class="form-select" name="avail_day">
+                        {% for idx in range(7) %}
+                        <option value="{{ idx }}">{{ day_labels[idx] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input class="form-control" type="time" name="avail_start">
+                </div>
+                <div class="col-md-3">
+                    <input class="form-control" type="time" name="avail_end">
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-outline-danger remove-row w-100">Remove</button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="addAvailabilityRow">
+            <i class="bi bi-plus-lg"></i> Add Availability Row
+        </button>
+
+        <hr class="my-4">
+        <h5 class="mb-3">Mandatory Compliance Declarations</h5>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="compliance_accepted" value="1" id="complianceAccepted" {% if mentor and mentor.compliance_accepted %}checked{% endif %}>
+            <label class="form-check-label" for="complianceAccepted">
+                I confirm mentorship sessions are strictly for career guidance and educational purposes.
+                No investment, financial, or trading advice will be provided.
+            </label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="confidentiality_confirmed" value="1" id="confidentialityConfirmed" {% if mentor and mentor.confidentiality_confirmed %}checked{% endif %}>
+            <label class="form-check-label" for="confidentialityConfirmed">
+                I will not disclose confidential information or non-public company data.
+            </label>
+        </div>
+        <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" name="employer_policy_confirmed" value="1" id="employerPolicyConfirmed" {% if mentor and mentor.employer_policy_confirmed %}checked{% endif %}>
+            <label class="form-check-label" for="employerPolicyConfirmed">
+                I confirm this activity complies with my employer's outside business activity policies.
+            </label>
+        </div>
+
+        <button class="btn btn-primary" type="submit">
+            <i class="bi bi-check2-circle"></i> Save Mentor Profile
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dayLabels = {{ day_labels|tojson }};
+
+function availabilityRowHtml() {
+    const options = dayLabels.map((label, idx) => `<option value="${idx}">${label}</option>`).join('');
+    return `
+    <div class="row g-2 mb-2 availability-row">
+        <div class="col-md-3"><select class="form-select" name="avail_day">${options}</select></div>
+        <div class="col-md-3"><input class="form-control" type="time" name="avail_start"></div>
+        <div class="col-md-3"><input class="form-control" type="time" name="avail_end"></div>
+        <div class="col-md-3"><button type="button" class="btn btn-outline-danger remove-row w-100">Remove</button></div>
+    </div>`;
+}
+
+document.getElementById('addAvailabilityRow').addEventListener('click', () => {
+    document.getElementById('availabilityRows').insertAdjacentHTML('beforeend', availabilityRowHtml());
+});
+
+document.addEventListener('click', (event) => {
+    if (!event.target.classList.contains('remove-row')) return;
+    const rows = document.querySelectorAll('.availability-row');
+    if (rows.length === 1) return;
+    event.target.closest('.availability-row').remove();
+});
+</script>
+{% endblock %}

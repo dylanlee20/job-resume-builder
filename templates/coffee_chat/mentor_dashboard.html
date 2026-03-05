@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+{% block title %}Mentor Dashboard | NewWhale{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Mentor Dashboard</h2>
+        <p class="text-muted mb-0">Manage sessions, earnings, and weekly availability.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('coffee_chat.mentor_onboard') }}" class="btn btn-outline-primary">Edit Profile</a>
+        <a href="{{ url_for('coffee_chat.mentors') }}" class="btn btn-primary">Marketplace</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted">Profile Status</div>
+                <h5 class="mb-1">{{ mentor.verified_status|replace('_', ' ')|title }}</h5>
+                <small class="text-muted">Listable: {{ 'Yes' if mentor.is_listable else 'No' }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted">Gross Session Revenue</div>
+                <h5 class="mb-1">${{ '%.2f'|format(gross_cents / 100) }}</h5>
+                <small class="text-muted">Based on successful payments.</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted">Estimated Mentor Payout</div>
+                <h5 class="mb-1">${{ '%.2f'|format(payout_cents / 100) }}</h5>
+                <small class="text-muted">After platform fee split.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><strong>Weekly Availability</strong></div>
+            <div class="card-body">
+                {% if availabilities %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Window</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in availabilities %}
+                            <tr>
+                                <td>{{ day_labels[row.day_of_week] }}</td>
+                                <td>{{ row.start_time.strftime('%H:%M') }} - {{ row.end_time.strftime('%H:%M') }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{{ url_for('coffee_chat.delete_availability', availability_id=row.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-2">No availability rows configured yet.</p>
+                {% endif %}
+
+                <hr>
+                <h6>Add Window</h6>
+                <form method="post" action="{{ url_for('coffee_chat.add_availability') }}" class="row g-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-12">
+                        <select class="form-select" name="day_of_week" required>
+                            {% for idx in range(7) %}
+                            <option value="{{ idx }}">{{ day_labels[idx] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <input class="form-control" type="time" name="start_time" required>
+                    </div>
+                    <div class="col-6">
+                        <input class="form-control" type="time" name="end_time" required>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary w-100" type="submit">Add Availability</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card mb-3">
+            <div class="card-header"><strong>Upcoming Sessions</strong></div>
+            <div class="card-body p-0">
+                {% if upcoming %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Start (UTC)</th>
+                                <th>Status</th>
+                                <th class="text-end"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in upcoming %}
+                            <tr>
+                                <td>{{ booking.student.username }}</td>
+                                <td>{{ booking.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td><span class="badge text-bg-light border">{{ booking.status }}</span></td>
+                                <td class="text-end">
+                                    {% if booking.status == 'confirmed' %}
+                                    <form method="post" action="{{ url_for('coffee_chat.mark_booking_complete', booking_id=booking.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-sm btn-outline-success">Mark Complete</button>
+                                    </form>
+                                    {% elif booking.meeting_link %}
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ booking.meeting_link.meeting_url }}">Join</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="p-3 text-muted mb-0">No upcoming sessions.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><strong>Past Sessions</strong></div>
+            <div class="card-body p-0">
+                {% if past %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Start (UTC)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in past %}
+                            <tr>
+                                <td>{{ booking.student.username }}</td>
+                                <td>{{ booking.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td><span class="badge text-bg-light border">{{ booking.status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="p-3 text-muted mb-0">No past sessions yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
