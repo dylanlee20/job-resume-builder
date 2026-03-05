@@ -111,13 +111,29 @@ class BaseScraper(ABC):
 
     def _build_service_with_webdriver_manager(self, browser_type):
         """Download/resolve chromedriver with webdriver-manager."""
-        if browser_type == 'chromium':
-            driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-        else:
-            driver_path = ChromeDriverManager().install()
+        try:
+            if browser_type == 'chromium':
+                driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+            else:
+                driver_path = ChromeDriverManager().install()
+        except Exception as install_error:
+            self.logger.warning(
+                "webdriver-manager install failed, trying local chromedriver fallback: %s",
+                install_error,
+            )
+            driver_path = None
+
+        if driver_path is None:
+            self.logger.warning(
+                "webdriver-manager returned no chromedriver path, trying local detection fallback."
+            )
+            driver_path = self._detect_chromedriver()
+
+        if not driver_path:
+            raise Exception("Could not find valid chromedriver executable")
 
         # webdriver-manager occasionally returns a non-executable helper path.
-        if 'THIRD_PARTY_NOTICES' in driver_path or not os.path.exists(driver_path):
+        if 'THIRD_PARTY_NOTICES' in str(driver_path) or not os.path.exists(driver_path):
             cache_base = os.path.expanduser('~/.wdm/drivers/chromedriver')
             found = False
             for root, _dirs, files in os.walk(cache_base):
@@ -141,6 +157,8 @@ class BaseScraper(ABC):
                 else:
                     raise Exception("Could not find valid chromedriver executable")
 
+        # Keep env in sync so downstream resolver logic sees the same pinned path.
+        os.environ['CHROMEDRIVER_PATH'] = driver_path
         return Service(driver_path)
 
     @staticmethod
@@ -159,7 +177,11 @@ class BaseScraper(ABC):
                 ['pkill', '-f', 'chromedriver'],
                 capture_output=True, timeout=5
             )
-            time.sleep(1)  # Let OS reclaim memory
+            subprocess.run(
+                ['pkill', '-f', 'chrome_crashpad_handler'],
+                capture_output=True, timeout=5
+            )
+            time.sleep(2)  # Let OS reclaim memory and release sockets
         except Exception:
             pass
 
@@ -233,6 +255,7 @@ class BaseScraper(ABC):
                 # 1) Prefer pre-installed chromedriver for stable prod behavior.
                 system_chromedriver = self._detect_chromedriver()
                 if system_chromedriver:
+                    os.environ['CHROMEDRIVER_PATH'] = system_chromedriver
                     self.logger.info("Using detected chromedriver: %s", system_chromedriver)
                     service = Service(system_chromedriver)
                     self.driver = webdriver.Chrome(service=service, options=chrome_options)
