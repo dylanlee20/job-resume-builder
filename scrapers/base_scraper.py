@@ -221,8 +221,6 @@ class BaseScraper(ABC):
                 # Snap has dbus restrictions
                 chrome_options.add_argument('--disable-features=VizDisplayCompositor,dbus')
             else:
-                # Single process mode — saves ~100MB (not compatible with snap)
-                chrome_options.add_argument('--single-process')
                 chrome_options.add_argument('--disable-features=VizDisplayCompositor')
 
             # Memory-saving flags for low-RAM environments
