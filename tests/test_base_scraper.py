@@ -97,3 +97,48 @@ def test_detect_chromedriver_uses_config_path(monkeypatch):
     path = BaseScraper._detect_chromedriver()
 
     assert path == '/custom/chromedriver'
+
+
+def test_build_service_with_webdriver_manager_falls_back_when_install_returns_none(monkeypatch):
+    scraper = _SuccessScraper()
+
+    class _FakeChromeDriverManager:
+        def __init__(self, *args, **kwargs):
+            _ = (args, kwargs)
+
+        def install(self):
+            return None
+
+    class _FakeService:
+        def __init__(self, path):
+            self.path = path
+
+    monkeypatch.setattr('scrapers.base_scraper.ChromeDriverManager', _FakeChromeDriverManager)
+    monkeypatch.setattr('scrapers.base_scraper.Service', _FakeService)
+    monkeypatch.setattr(scraper, '_detect_chromedriver', lambda: '/tmp/fallback-chromedriver')
+    monkeypatch.setattr(os.path, 'exists', lambda p: p == '/tmp/fallback-chromedriver')
+    monkeypatch.delenv('CHROMEDRIVER_PATH', raising=False)
+
+    service = scraper._build_service_with_webdriver_manager('chrome')
+
+    assert service.path == '/tmp/fallback-chromedriver'
+    assert os.environ.get('CHROMEDRIVER_PATH') == '/tmp/fallback-chromedriver'
+
+
+def test_kill_zombie_chrome_kills_chromedriver_and_crashpad(monkeypatch):
+    calls = []
+    sleep_calls = []
+
+    def _fake_run(args, capture_output=True, timeout=5):
+        calls.append((tuple(args), capture_output, timeout))
+        return None
+
+    monkeypatch.setattr('scrapers.base_scraper.subprocess.run', _fake_run)
+    monkeypatch.setattr('scrapers.base_scraper.time.sleep', lambda value: sleep_calls.append(value))
+
+    BaseScraper._kill_zombie_chrome()
+
+    patterns = [call[0] for call in calls]
+    assert ('pkill', '-f', 'chromedriver') in patterns
+    assert ('pkill', '-f', 'chrome_crashpad_handler') in patterns
+    assert sleep_calls == [2]
