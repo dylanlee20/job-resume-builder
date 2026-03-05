@@ -45,6 +45,10 @@ def create_app():
     from models.resume import Resume  # noqa: F401
     from models.resume_assessment import ResumeAssessment  # noqa: F401
     from models.resume_revision import ResumeRevision  # noqa: F401
+    from models.coffee_chat import (  # noqa: F401
+        MentorProfile, MentorAvailability, CoffeeChatBooking,
+        CoffeeChatPayment, MeetingLink, MentorshipNote,
+    )
 
     # Initialize database
     init_db(app)
@@ -80,6 +84,7 @@ def create_app():
     from routes.resume_routes import resume_bp
     from routes.payment_routes import payment_bp, stripe_webhook
     from routes.outreach_routes import outreach_bp
+    from routes.coffee_chat_routes import coffee_chat_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
@@ -88,6 +93,7 @@ def create_app():
     app.register_blueprint(resume_bp)
     app.register_blueprint(payment_bp)
     app.register_blueprint(outreach_bp)
+    app.register_blueprint(coffee_chat_bp)
 
     # Exempt endpoints from CSRF
     csrf.exempt(stripe_webhook)

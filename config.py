@@ -50,6 +50,9 @@ class Config:
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
     GOOGLE_OAUTH_REDIRECT_URI = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI', '')
+    MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
+    MICROSOFT_CLIENT_SECRET = os.environ.get('MICROSOFT_CLIENT_SECRET', '')
+    MICROSOFT_OAUTH_REDIRECT_URI = os.environ.get('MICROSOFT_OAUTH_REDIRECT_URI', '')
 
     # Email verification token expiry in minutes
     EMAIL_VERIFICATION_EXPIRY_MINUTES = int(os.environ.get('EMAIL_VERIFICATION_EXPIRY_MINUTES', 30))
