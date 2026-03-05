@@ -1,4 +1,4 @@
-"""Tests for YAMM-style outreach sending (SMTP + Gmail OAuth)."""
+"""Tests for YAMM-style outreach sending (SMTP + Gmail + Outlook OAuth)."""
 
 from datetime import datetime
 from types import SimpleNamespace
@@ -201,6 +201,18 @@ def test_sender_profile_accepts_gmail_oauth_without_smtp(app, db, premium_mail_u
         assert error is None
 
 
+def test_sender_profile_accepts_outlook_oauth_without_smtp(app, db, premium_mail_user):
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        user.outlook_email = 'outlookuser@example.com'
+        user.outlook_refresh_token = 'refresh-token'
+        user.outlook_access_token = 'access-token'
+        db.session.commit()
+
+        error = ColdEmailService._validate_sender_profile(user)
+        assert error is None
+
+
 def test_send_campaign_uses_gmail_when_connected(client, app, db, premium_mail_user, monkeypatch):
     with app.app_context():
         user = User.query.get(premium_mail_user.id)
@@ -240,6 +252,61 @@ def test_send_campaign_uses_gmail_when_connected(client, app, db, premium_mail_u
     monkeypatch.setattr(
         'services.cold_email_service.GmailService.send_mime_message',
         _fake_gmail_send
+    )
+
+    _login(client)
+    resp = client.post(f'/outreach/campaign/{campaign_id}/send', data={}, follow_redirects=False)
+
+    assert resp.status_code == 302
+    assert f'/outreach/campaign/{campaign_id}' in resp.headers.get('Location', '')
+    assert len(calls) == 1
+
+    with app.app_context():
+        recipient = EmailRecipient.query.get(recipient_id)
+        campaign = EmailCampaign.query.get(campaign_id)
+        assert recipient.status == 'sent'
+        assert campaign.total_sent == 1
+
+
+def test_send_campaign_uses_outlook_when_connected(client, app, db, premium_mail_user, monkeypatch):
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        user.sender_email = 'outlookuser@example.com'
+        user.outlook_email = 'outlookuser@example.com'
+        user.outlook_refresh_token = 'refresh-token'
+        user.outlook_access_token = 'access-token'
+
+        campaign = EmailCampaign(
+            user_id=user.id,
+            name='Outlook Campaign',
+            subject_template='Hello {{first_name}}',
+            body_template='Hi {{first_name}}',
+            status='draft',
+        )
+        db.session.add(campaign)
+        db.session.commit()
+
+        recipient = EmailRecipient(
+            campaign_id=campaign.id,
+            email='target@outlook.com',
+            name='Target Person',
+            tracking_id='track-outlook',
+            status='pending',
+        )
+        db.session.add(recipient)
+        db.session.commit()
+        campaign_id = campaign.id
+        recipient_id = recipient.id
+
+    calls = []
+
+    def _fake_outlook_send(*_args, **_kwargs):
+        calls.append(True)
+        return {'id': 'outlook-message-id'}
+
+    monkeypatch.setattr(
+        'services.cold_email_service.OutlookService.send_email',
+        _fake_outlook_send
     )
 
     _login(client)
@@ -300,3 +367,49 @@ def test_gmail_callback_saves_connected_account(client, app, db, premium_mail_us
         user = User.query.get(premium_mail_user.id)
         assert user.gmail_email == 'gmailuser@example.com'
         assert user.gmail_refresh_token == 'refresh-token'
+
+
+def test_outlook_connect_starts_oauth_flow(client, premium_mail_user, monkeypatch):
+    _login(client)
+    monkeypatch.setattr('routes.outreach_routes.OutlookService.is_configured', lambda: True)
+
+    seen_states = []
+
+    def _fake_auth_url(state):
+        seen_states.append(state)
+        return f'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?state={state}'
+
+    monkeypatch.setattr('routes.outreach_routes.OutlookService.build_authorization_url', _fake_auth_url)
+
+    resp = client.get('/outreach/outlook/connect', follow_redirects=False)
+    assert resp.status_code == 302
+    assert 'login.microsoftonline.com' in resp.headers['Location']
+    assert len(seen_states) == 1
+
+
+def test_outlook_callback_saves_connected_account(client, app, db, premium_mail_user, monkeypatch):
+    _login(client)
+    with client.session_transaction() as sess:
+        sess['outlook_oauth_state'] = 'state456'
+        sess['outlook_oauth_user_id'] = premium_mail_user.id
+
+    def _fake_connect(user, _code):
+        user.outlook_email = 'outlookuser@example.com'
+        user.outlook_refresh_token = 'refresh-token'
+        user.outlook_access_token = 'access-token'
+        db.session.commit()
+        return user.outlook_email
+
+    monkeypatch.setattr(
+        'routes.outreach_routes.OutlookService.connect_user_with_code',
+        _fake_connect
+    )
+
+    resp = client.get('/outreach/outlook/callback?state=state456&code=xyz', follow_redirects=False)
+    assert resp.status_code == 302
+    assert '/outreach/settings' in resp.headers.get('Location', '')
+
+    with app.app_context():
+        user = User.query.get(premium_mail_user.id)
+        assert user.outlook_email == 'outlookuser@example.com'
+        assert user.outlook_refresh_token == 'refresh-token'
