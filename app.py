@@ -189,9 +189,11 @@ def create_app():
     return app, scheduler
 
 
+# Module-level app for gunicorn
+app, _scheduler = create_app()
+
 if __name__ == '__main__':
-    # Create application
-    app, scheduler = create_app()
+    scheduler = _scheduler
     
     # Run application
     logger.info(f"Starting Flask application on {Config.HOST}:{Config.PORT}")
