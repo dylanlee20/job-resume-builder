@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block title %}Coffee Chat Meeting Room | NewWhale{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h3 class="mb-1">Coffee Chat Meeting Room</h3>
+                <p class="text-muted mb-3">
+                    Session #{{ booking.id }} with {{ booking.mentor.name }} and {{ booking.student.username }}
+                </p>
+                <p class="mb-2"><strong>Status:</strong> {{ booking.status }}</p>
+                <p class="mb-2"><strong>Start (UTC):</strong> {{ booking.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                <p class="mb-3"><strong>Link Provider:</strong> {{ meeting_link.provider }}</p>
+
+                <div class="alert alert-secondary mb-3">
+                    This internal meeting link is privacy-first. Exchange personal phone numbers only if both parties consent.
+                </div>
+                <div class="alert alert-warning small">
+                    Mentorship sessions are for career guidance and education only.
+                    No investment, financial, or trading advice is provided.
+                </div>
+                <div class="text-center">
+                    <code>{{ meeting_link.meeting_url }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

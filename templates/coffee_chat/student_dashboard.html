@@ -1,0 +1,172 @@
+{% extends "layout.html" %}
+{% block title %}Student Coffee Chat Dashboard | NewWhale{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Student Coffee Chat Dashboard</h2>
+        <p class="text-muted mb-0">Track sessions and convert mentorship advice into job-search actions.</p>
+    </div>
+    <a href="{{ url_for('coffee_chat.mentors') }}" class="btn btn-primary">
+        <i class="bi bi-search"></i> Browse Mentors
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><strong>Upcoming Sessions</strong></div>
+    <div class="card-body p-0">
+        {% if upcoming %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Mentor</th>
+                        <th>Time (UTC)</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in upcoming %}
+                    <tr>
+                        <td>{{ booking.mentor.name }}</td>
+                        <td>{{ booking.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td><span class="badge text-bg-light border">{{ booking.status }}</span></td>
+                        <td class="text-end">
+                            {% if booking.meeting_link %}
+                            <a class="btn btn-sm btn-outline-primary" href="{{ booking.meeting_link.meeting_url }}">Join</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="p-3 text-muted mb-0">No upcoming sessions.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><strong>Past Sessions</strong></div>
+    <div class="card-body p-0">
+        {% if past %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Mentor</th>
+                        <th>Time (UTC)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in past %}
+                    <tr>
+                        <td>{{ booking.mentor.name }}</td>
+                        <td>{{ booking.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td><span class="badge text-bg-light border">{{ booking.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="p-3 text-muted mb-0">No past sessions yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><strong>Add Post-Chat Notes (Pipeline Integration)</strong></div>
+    <div class="card-body">
+        {% set note_targets = (upcoming + past)|selectattr('status', 'in', ['confirmed', 'completed'])|list %}
+        {% if note_targets %}
+        <form method="post" action="{{ url_for('coffee_chat.save_booking_notes', booking_id=note_targets[0].id) }}" id="notesForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Session</label>
+                    <select class="form-select" id="bookingSelect" required>
+                        {% for booking in note_targets %}
+                        <option value="{{ booking.id }}">
+                            #{{ booking.id }} with {{ booking.mentor.name }} ({{ booking.start_time.strftime('%Y-%m-%d %H:%M UTC') }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Link to Job Posting (optional)</label>
+                    <select class="form-select" name="job_id">
+                        <option value="">Not linked</option>
+                        {% for job in jobs %}
+                        <option value="{{ job.id }}">{{ job.company }} — {{ job.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Session Notes</label>
+                    <textarea class="form-control" name="notes" rows="3" required></textarea>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Advice Received</label>
+                    <textarea class="form-control" name="advice_received" rows="3"></textarea>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Next Steps</label>
+                    <textarea class="form-control" name="next_steps" rows="3"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-3">Save Session Note</button>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">You need a confirmed/completed session before adding notes.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><strong>Saved Mentorship Notes</strong></div>
+    <div class="card-body">
+        {% if notes %}
+        <div class="accordion" id="notesAccordion">
+            {% for note in notes %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ note.id }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ note.id }}">
+                        Session #{{ note.booking_id }} • {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </button>
+                </h2>
+                <div id="collapse{{ note.id }}" class="accordion-collapse collapse" data-bs-parent="#notesAccordion">
+                    <div class="accordion-body">
+                        <p><strong>Notes:</strong><br>{{ note.notes or '-' }}</p>
+                        <p><strong>Advice:</strong><br>{{ note.advice_received or '-' }}</p>
+                        <p><strong>Next Steps:</strong><br>{{ note.next_steps or '-' }}</p>
+                        {% if note.job %}
+                        <p class="mb-0"><strong>Linked Job:</strong> {{ note.job.company }} — {{ note.job.title }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No notes saved yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const bookingSelect = document.getElementById('bookingSelect');
+const notesForm = document.getElementById('notesForm');
+if (bookingSelect && notesForm) {
+    bookingSelect.addEventListener('change', () => {
+        const bookingId = bookingSelect.value;
+        notesForm.action = `/coffee-chat/bookings/${bookingId}/notes`;
+    });
+}
+</script>
+{% endblock %}

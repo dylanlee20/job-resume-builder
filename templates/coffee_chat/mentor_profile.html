@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+{% block title %}{{ mentor.name }} | Coffee Chat{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="mb-1">{{ mentor.name }}</h3>
+                <p class="text-muted mb-2">{{ mentor.headline or mentor.role }}</p>
+                <div class="mb-3">
+                    <span class="badge text-bg-light border me-1">{{ mentor.industry }}</span>
+                    <span class="badge text-bg-light border">{{ mentor.role }}</span>
+                </div>
+                <p class="mb-1"><strong>Company:</strong> {{ mentor.company or 'N/A' }}</p>
+                <p class="mb-1"><strong>Experience:</strong> {{ mentor.years_experience }} years</p>
+                <p class="mb-1"><strong>Mentor timezone:</strong> {{ mentor.timezone }}</p>
+                <p class="mb-3"><strong>Coffee chat price:</strong> ${{ '%.2f'|format(mentor.coffee_chat_price / 100) }}</p>
+                <p>{{ mentor.bio or 'No bio yet.' }}</p>
+                {% if mentor.linkedin_url %}
+                <a href="{{ mentor.linkedin_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-linkedin"></i> LinkedIn
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="mb-2">Select Your Timezone</h5>
+                <form method="get" class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <select class="form-select" name="tz">
+                            {% for tz in timezone_choices %}
+                            <option value="{{ tz }}" {% if viewer_timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" type="submit">Refresh Slots</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Book a 30-minute session</h5>
+                {% if slots %}
+                <form method="post" action="{{ url_for('coffee_chat.create_booking') }}" id="bookingForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="mentor_id" value="{{ mentor.id }}">
+                    <input type="hidden" name="student_timezone" id="studentTimezone" value="{{ viewer_timezone }}">
+                    <input type="hidden" name="start_utc" id="startUtcInput">
+                    <input type="hidden" name="end_utc" id="endUtcInput">
+
+                    <div class="mb-3">
+                        <label class="form-label">Available slots ({{ viewer_timezone }})</label>
+                        <select class="form-select" id="slotSelect" required>
+                            <option value="">Choose a timeslot</option>
+                            {% for slot in slots %}
+                            <option value="{{ slot.start_utc }}" data-end="{{ slot.end_utc }}">
+                                {{ slot.date_label }} | {{ slot.time_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="alert alert-warning small">
+                        <strong>Compliance notice:</strong> Mentorship sessions are strictly for career guidance and educational purposes.
+                        No investment, financial, or trading advice is provided.
+                    </div>
+                    <div class="alert alert-secondary small">
+                        <strong>Liability notice:</strong> {{ liability_notice }}
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="career_disclaimer" value="1" id="careerDisclaimer" required>
+                        <label class="form-check-label" for="careerDisclaimer">
+                            I confirm this booking is for career mentorship only (no investment advice).
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="liability_notice" value="1" id="liabilityNotice" required>
+                        <label class="form-check-label" for="liabilityNotice">
+                            I acknowledge the platform liability notice.
+                        </label>
+                    </div>
+
+                    <button class="btn btn-primary w-100" type="submit">
+                        <i class="bi bi-credit-card"></i> Continue to Secure Payment
+                    </button>
+                </form>
+                {% else %}
+                <div class="text-muted">
+                    No available slots in the next two weeks. Please try another timezone or check again later.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const slotSelect = document.getElementById('slotSelect');
+const startUtcInput = document.getElementById('startUtcInput');
+const endUtcInput = document.getElementById('endUtcInput');
+const timezoneInput = document.getElementById('studentTimezone');
+
+if (timezoneInput && window.Intl && Intl.DateTimeFormat) {
+    timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone || timezoneInput.value;
+}
+
+if (slotSelect) {
+    slotSelect.addEventListener('change', () => {
+        const option = slotSelect.options[slotSelect.selectedIndex];
+        startUtcInput.value = option.value || '';
+        endUtcInput.value = option.dataset.end || '';
+    });
+}
+
+document.getElementById('bookingForm')?.addEventListener('submit', (event) => {
+    if (!startUtcInput.value || !endUtcInput.value) {
+        event.preventDefault();
+        alert('Please choose a valid timeslot.');
+    }
+});
+</script>
+{% endblock %}
