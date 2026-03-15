@@ -101,3 +101,6 @@ class Config:
     # Chrome/Chromium binary path (auto-detected if not set)
     CHROME_BINARY_PATH = os.environ.get('CHROME_BINARY_PATH', '')
     CHROMEDRIVER_PATH = os.environ.get('CHROMEDRIVER_PATH', '')
+
+    # Internal export feed for downstream consumers like WhaleStreet
+    JOB_EXPORT_TOKEN = os.environ.get('JOB_EXPORT_TOKEN', '')

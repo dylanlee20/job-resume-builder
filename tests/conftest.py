@@ -9,6 +9,7 @@ os.environ['ADMIN_USERNAME'] = 'testadmin'
 os.environ['DISABLE_SCHEDULER'] = 'true'
 os.environ['APP_BASE_URL'] = 'http://localhost:5000'
 os.environ['EMAIL_VERIFICATION_EXPIRY_MINUTES'] = '30'
+os.environ['JOB_EXPORT_TOKEN'] = 'test-job-export-token'
 # Force in-memory DB BEFORE create_app() reads it
 os.environ['DATABASE_URL'] = 'sqlite://'
 
