@@ -2,71 +2,68 @@
 {% block title %}{{ deck.title }} — Slide {{ slide_number }}{% endblock %}
 {% block content %}
 <style>
+    /* Pull the viewer out of the bootstrap container so it can fill the viewport. */
+    body > .container.mt-4 { max-width: 100% !important; padding: 0 !important; margin-top: 0 !important; }
     .slide-stage {
         background: #1f2533;
         min-height: calc(100vh - 56px);
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: flex-start;
         padding: 16px 24px 24px;
     }
     .slide-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        max-width: 1200px;
-        color: #d0d7e3;
-        margin-bottom: 12px;
+        display: flex; align-items: center; justify-content: space-between;
+        width: 100%; max-width: 1400px; color: #d0d7e3; margin-bottom: 12px; gap: 1rem;
+        flex-wrap: wrap;
     }
-    .slide-toolbar .deck-title { font-weight: 600; }
+    .slide-toolbar .deck-meta { display: flex; flex-direction: column; min-width: 0; }
+    .slide-toolbar .deck-section { font-size: 0.75rem; color: #8a96a8; text-transform: uppercase; letter-spacing: 0.04em; }
+    .slide-toolbar .deck-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .slide-toolbar .toolbar-right { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
     .slide-toolbar .counter { font-variant-numeric: tabular-nums; }
+    .slide-toolbar .jump-form { display: flex; align-items: center; gap: 0.35rem; }
+    .slide-toolbar .jump-form input { width: 64px; }
     .slide-frame {
-        position: relative;
-        width: 100%;
-        max-width: 1200px;
-        background: #000;
-        border-radius: 6px;
-        overflow: hidden;
-        user-select: none;
-        -webkit-user-select: none;
+        position: relative; width: 100%; max-width: 1400px;
+        background: #000; border-radius: 6px; overflow: hidden;
+        user-select: none; -webkit-user-select: none;
     }
-    .slide-frame img {
-        display: block;
-        width: 100%;
-        height: auto;
-        pointer-events: none;
-        -webkit-user-drag: none;
-        user-drag: none;
-    }
-    .slide-frame::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: transparent;
-        pointer-events: auto;
-    }
-    .slide-nav {
-        display: flex;
-        gap: 10px;
-        margin-top: 14px;
-    }
+    .slide-frame img { display: block; width: 100%; height: auto; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
+    .slide-frame::after { content: ""; position: absolute; inset: 0; background: transparent; pointer-events: auto; }
+    .slide-nav { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
     .slide-nav .btn { min-width: 110px; }
+
+    /* Full-screen mode (browser FS API) */
+    .slide-stage:fullscreen { padding: 0; min-height: 100vh; background: #000; justify-content: center; }
+    .slide-stage:fullscreen .slide-toolbar { position: fixed; top: 0; left: 0; right: 0; padding: 10px 20px; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); margin: 0; z-index: 10; opacity: 0; transition: opacity 0.2s; }
+    .slide-stage:fullscreen .slide-nav { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); margin: 0; z-index: 10; opacity: 0; transition: opacity 0.2s; }
+    .slide-stage:fullscreen.show-chrome .slide-toolbar,
+    .slide-stage:fullscreen.show-chrome .slide-nav { opacity: 1; }
+    .slide-stage:fullscreen .slide-frame { max-width: 100vw; max-height: 100vh; display: flex; align-items: center; justify-content: center; border-radius: 0; background: #000; }
+    .slide-stage:fullscreen .slide-frame img { max-width: 100vw; max-height: 100vh; width: auto; height: auto; }
+
     @media print {
         body * { visibility: hidden !important; }
-        body::after {
-            content: "Printing disabled";
-            visibility: visible;
-            position: fixed; top: 40%; left: 0; right: 0;
-            text-align: center; font-size: 24px;
-        }
+        body::after { content: "Printing disabled"; visibility: visible; position: fixed; top: 40%; left: 0; right: 0; text-align: center; font-size: 24px; }
     }
 </style>
 <div class="slide-stage" id="slideStage" oncontextmenu="return false;">
     <div class="slide-toolbar">
-        <div class="deck-title">{{ deck.title }}</div>
-        <div class="counter">Slide {{ slide_number }} / {{ total }}</div>
+        <div class="deck-meta">
+            <div class="deck-section">{{ deck.section_title }}</div>
+            <div class="deck-title">{{ deck.title }}</div>
+        </div>
+        <div class="toolbar-right">
+            <form class="jump-form" id="jumpForm">
+                <span class="small text-muted">Slide</span>
+                <input type="number" class="form-control form-control-sm" min="1" max="{{ total }}" value="{{ slide_number }}" id="jumpInput">
+                <span class="counter">/ {{ total }}</span>
+            </form>
+            <button type="button" class="btn btn-sm btn-outline-light" id="fullscreenBtn" title="Toggle full screen (F)">
+                <i class="bi bi-arrows-fullscreen"></i> Full screen
+            </button>
+        </div>
     </div>
     <div class="slide-frame" id="slideFrame">
         <img src="{{ url_for('slides.slide_image', slug=deck.slug, slide_number=slide_number) }}"
@@ -98,6 +95,12 @@
 (function () {
     const NEXT_URL = {% if slide_number < total %}"{{ url_for('slides.view_slide', slug=deck.slug, slide_number=slide_number + 1) }}"{% else %}null{% endif %};
     const PREV_URL = {% if slide_number > 1 %}"{{ url_for('slides.view_slide', slug=deck.slug, slide_number=slide_number - 1) }}"{% else %}null{% endif %};
+    const SLIDE_URL_BASE = "{{ url_for('slides.view_slide', slug=deck.slug, slide_number=0)|replace('/0','/') }}";
+    const TOTAL = {{ total }};
+    const stage = document.getElementById("slideStage");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const jumpForm = document.getElementById("jumpForm");
+    const jumpInput = document.getElementById("jumpInput");
 
     document.addEventListener("contextmenu", e => e.preventDefault());
     document.addEventListener("dragstart", e => e.preventDefault());
@@ -105,6 +108,11 @@
     document.addEventListener("copy", e => e.preventDefault());
 
     document.addEventListener("keydown", e => {
+        // Don't intercept typing inside the jump-to-slide field.
+        if (document.activeElement && document.activeElement.tagName === "INPUT") {
+            if (e.key === "Escape") document.activeElement.blur();
+            return;
+        }
         const k = e.key.toLowerCase();
         const ctrl = e.ctrlKey || e.metaKey;
         if (ctrl && (k === "s" || k === "p" || k === "u" || k === "c")) {
@@ -112,6 +120,7 @@
             return;
         }
         if (k === "f12") { e.preventDefault(); return; }
+        if (k === "f") { e.preventDefault(); toggleFullscreen(); return; }
         if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
             if (NEXT_URL) window.location.href = NEXT_URL;
         } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
@@ -119,9 +128,33 @@
         }
     });
 
-    window.addEventListener("beforeprint", () => {
-        document.body.style.visibility = "hidden";
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            stage.requestFullscreen().catch(err => console.warn("fullscreen rejected:", err));
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+    // In fullscreen mode, show the toolbar/nav only when the cursor is moving.
+    let chromeTimer = null;
+    document.addEventListener("mousemove", () => {
+        if (!document.fullscreenElement) return;
+        stage.classList.add("show-chrome");
+        clearTimeout(chromeTimer);
+        chromeTimer = setTimeout(() => stage.classList.remove("show-chrome"), 1800);
     });
+
+    jumpForm.addEventListener("submit", e => {
+        e.preventDefault();
+        const n = parseInt(jumpInput.value, 10);
+        if (Number.isFinite(n) && n >= 1 && n <= TOTAL && n !== {{ slide_number }}) {
+            window.location.href = SLIDE_URL_BASE + n;
+        }
+    });
+
+    window.addEventListener("beforeprint", () => { document.body.style.visibility = "hidden"; });
 })();
 </script>
 {% endblock %}

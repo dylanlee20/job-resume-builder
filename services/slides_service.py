@@ -1,19 +1,28 @@
-"""Slide catalog + per-request watermarking.
+"""Slide catalog (auto-discovered from disk) + per-request watermarking.
 
-Decks live under slides_data/decks/<slug>/slide_NNN.png. Each slide is
-served through a Flask route that opens the source PNG, overlays a
-diagonal watermark with the viewer's email + timestamp, and streams it.
-Source PNGs are never exposed directly.
+Layout on disk:
+  slides_data/decks/<section-slug>/<deck-slug>/slide_NNN.png
+
+The catalog is rebuilt from the filesystem each time list_decks() /
+get_deck() is called (cached in-process for one second). No hand-curated
+list — drop a new section folder + deck folder + PNGs and it shows up.
+
+Display titles are derived from the slug:
+  '01-behavioral-and-fit' -> '01 — Behavioral and Fit'
+  'b07-understanding-banking' -> 'B07 — Understanding Banking'
 """
 
 from __future__ import annotations
 
 import io
 import os
-from dataclasses import dataclass
+import re
+import threading
+import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -24,27 +33,109 @@ SLIDES_ROOT = Path(__file__).resolve().parent.parent / "slides_data" / "decks"
 @dataclass(frozen=True)
 class Deck:
     slug: str
+    section_slug: str
     title: str
-    section: str
+    section_title: str
     slide_count: int
 
 
-DECK_CATALOG: dict[str, Deck] = {
-    "smoke-test": Deck(
-        slug="smoke-test",
-        title="Smoke Test — All Slide Types",
-        section="00 — Engine Verification",
-        slide_count=14,
-    ),
-}
+@dataclass
+class _CatalogCache:
+    catalog: Dict[str, Deck] = field(default_factory=dict)
+    sections: List[str] = field(default_factory=list)
+    built_at: float = 0.0
+
+
+_cache = _CatalogCache()
+_cache_lock = threading.Lock()
+_CACHE_TTL = 5.0  # seconds
+
+
+def _humanize(slug: str) -> str:
+    """'01-behavioral-and-fit' -> '01 — Behavioral and Fit'."""
+    parts = slug.split("-")
+    if not parts:
+        return slug
+
+    prefix = parts[0]
+    if re.fullmatch(r"\d{1,3}", prefix):
+        head = prefix
+        tail = " ".join(p.capitalize() for p in parts[1:])
+        return f"{head} — {tail}" if tail else head
+    if re.fullmatch(r"[a-z]\d{1,3}", prefix):
+        head = prefix.upper()
+        tail = " ".join(p.capitalize() for p in parts[1:])
+        return f"{head} — {tail}" if tail else head
+    return " ".join(p.capitalize() for p in parts)
+
+
+def _build_catalog() -> None:
+    catalog: Dict[str, Deck] = {}
+    sections: List[str] = []
+    if not SLIDES_ROOT.is_dir():
+        _cache.catalog = catalog
+        _cache.sections = sections
+        _cache.built_at = time.time()
+        return
+    for section_dir in sorted(SLIDES_ROOT.iterdir()):
+        if not section_dir.is_dir():
+            continue
+        section_slug = section_dir.name
+        sections.append(section_slug)
+        for deck_dir in sorted(section_dir.iterdir()):
+            if not deck_dir.is_dir():
+                continue
+            slides = sorted(deck_dir.glob("slide_*.png"))
+            if not slides:
+                continue
+            deck = Deck(
+                slug=deck_dir.name,
+                section_slug=section_slug,
+                title=_humanize(deck_dir.name),
+                section_title=_humanize(section_slug),
+                slide_count=len(slides),
+            )
+            catalog[deck.slug] = deck
+    _cache.catalog = catalog
+    _cache.sections = sections
+    _cache.built_at = time.time()
+
+
+def _ensure_catalog() -> None:
+    with _cache_lock:
+        if not _cache.catalog or (time.time() - _cache.built_at) > _CACHE_TTL:
+            _build_catalog()
 
 
 def list_decks() -> List[Deck]:
-    return list(DECK_CATALOG.values())
+    _ensure_catalog()
+    return list(_cache.catalog.values())
+
+
+def list_sections() -> List[Dict]:
+    """Return list of {section_slug, section_title, decks: [Deck]} grouped."""
+    _ensure_catalog()
+    grouped: Dict[str, List[Deck]] = {}
+    for deck in _cache.catalog.values():
+        grouped.setdefault(deck.section_slug, []).append(deck)
+    out = []
+    for section_slug in _cache.sections:
+        decks = grouped.get(section_slug, [])
+        if not decks:
+            continue
+        out.append({
+            "section_slug": section_slug,
+            "section_title": _humanize(section_slug),
+            "decks": decks,
+            "deck_count": len(decks),
+            "slide_count": sum(d.slide_count for d in decks),
+        })
+    return out
 
 
 def get_deck(slug: str) -> Optional[Deck]:
-    return DECK_CATALOG.get(slug)
+    _ensure_catalog()
+    return _cache.catalog.get(slug)
 
 
 def slide_path(slug: str, slide_number: int) -> Optional[Path]:
@@ -53,7 +144,7 @@ def slide_path(slug: str, slide_number: int) -> Optional[Path]:
         return None
     if not 1 <= slide_number <= deck.slide_count:
         return None
-    path = SLIDES_ROOT / slug / f"slide_{slide_number:03d}.png"
+    path = SLIDES_ROOT / deck.section_slug / slug / f"slide_{slide_number:03d}.png"
     return path if path.is_file() else None
 
 
@@ -78,7 +169,6 @@ def render_watermarked_png(
     viewer_email: str,
     viewer_ip: str = "",
 ) -> bytes:
-    """Open source PNG, overlay diagonal watermark, return PNG bytes."""
     img = Image.open(source).convert("RGBA")
     width, height = img.size
 

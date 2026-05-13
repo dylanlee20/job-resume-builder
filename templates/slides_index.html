@@ -1,23 +1,50 @@
 {% extends "layout.html" %}
 {% block title %}Slides — NewWhale Career{% endblock %}
 {% block content %}
-<div class="container py-4">
-    <h1 class="mb-1">Banking Slides</h1>
-    <p class="text-muted mb-4">Institutional-grade IB interview prep curriculum. View only — downloads disabled.</p>
-    <div class="row g-3">
-        {% for deck in decks %}
-        <div class="col-md-6 col-lg-4">
-            <a href="{{ url_for('slides.deck_redirect', slug=deck.slug) }}" class="text-decoration-none">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small mb-1">{{ deck.section }}</div>
-                        <h5 class="card-title mb-2">{{ deck.title }}</h5>
-                        <div class="text-muted small">{{ deck.slide_count }} slides</div>
-                    </div>
-                </div>
-            </a>
+<style>
+    .deck-section { margin-bottom: 2rem; }
+    .deck-section h3 { color: var(--nw-navy); font-size: 1.2rem; margin-bottom: 0.25rem; }
+    .deck-section .section-meta { color: var(--nw-text-light); font-size: 0.85rem; margin-bottom: 0.9rem; }
+    .deck-card {
+        background: #fff; border: 1px solid var(--nw-border); border-radius: 8px;
+        padding: 0.85rem 1rem; height: 100%; transition: box-shadow 0.15s;
+    }
+    .deck-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-color: var(--nw-blue); }
+    .deck-card .deck-title { color: var(--nw-text); font-weight: 600; font-size: 0.95rem; line-height: 1.3; margin-bottom: 0.4rem; }
+    .deck-card .deck-count { color: var(--nw-text-light); font-size: 0.8rem; }
+    a.deck-link { text-decoration: none; }
+</style>
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-baseline mb-3">
+        <div>
+            <h1 class="mb-1" style="font-size: 1.6rem;">Banking Slides</h1>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                Institutional-grade interview prep curriculum. View only — downloads disabled, watermarked per viewer.
+            </p>
         </div>
-        {% endfor %}
     </div>
+
+    {% for section in sections %}
+    <div class="deck-section">
+        <h3>{{ section.section_title }}</h3>
+        <div class="section-meta">{{ section.deck_count }} decks · {{ section.slide_count }} slides</div>
+        <div class="row g-2">
+            {% for deck in section.decks %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <a href="{{ url_for('slides.deck_redirect', slug=deck.slug) }}" class="deck-link">
+                    <div class="deck-card">
+                        <div class="deck-title">{{ deck.title }}</div>
+                        <div class="deck-count">{{ deck.slide_count }} slides</div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not sections %}
+    <div class="alert alert-warning">No slide decks have been published yet.</div>
+    {% endif %}
 </div>
 {% endblock %}

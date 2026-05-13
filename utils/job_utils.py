@@ -1,7 +1,5 @@
-"""Job utility functions for categorization and location normalization."""
+"""Job utility functions for location normalization."""
 import re
-
-from utils.ai_proof_filter import classify_ai_proof_role
 
 
 _REMOTE_TOKENS = {
@@ -140,16 +138,6 @@ _CITY_TO_COUNTRY = {
     'montreal': ('Canada', 'Montreal'),
     'calgary': ('Canada', 'Calgary'),
 }
-
-
-def categorize_and_classify_job(title, description=''):
-    """Categorize and classify a job using AI-proof filters."""
-    is_ai_proof, category = classify_ai_proof_role(title, description)
-    return {
-        'is_ai_proof': is_ai_proof,
-        'ai_proof_category': category if is_ai_proof else 'EXCLUDED',
-        'category': category if is_ai_proof else None,
-    }
 
 
 def _normalize_token(value):

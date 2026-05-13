@@ -111,9 +111,6 @@
                 <div class="card-body">
                     <h6>Total Jobs</h6>
                     <div class="stat-number">{{ total_jobs }}</div>
-                    <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.3rem;">
-                        {{ ai_proof_jobs }} AI-proof
-                    </div>
                 </div>
             </div>
         </div>
@@ -253,7 +250,6 @@
                             <tr>
                                 <th>Company</th>
                                 <th style="width: 120px;">Total Jobs</th>
-                                <th style="width: 120px;">AI-Proof</th>
                                 <th style="width: 120px;">Internships</th>
                             </tr>
                         </thead>
@@ -263,13 +259,12 @@
                                 <tr>
                                     <td><strong>{{ company_stat.company }}</strong></td>
                                     <td><span style="color: var(--nw-blue); font-weight: 600;">{{ company_stat.total }}</span></td>
-                                    <td>{{ company_stat.ai_proof }}</td>
                                     <td>{{ company_stat.internship_count if company_stat.internship_count is defined else company_stat.student_grad }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">No statistics available</td>
+                                    <td colspan="3" class="text-center text-muted">No statistics available</td>
                                 </tr>
                             {% endif %}
                         </tbody>

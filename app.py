@@ -35,20 +35,10 @@ def create_app():
     # Ensure required directories exist
     os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(Config.EXCEL_EXPORT_PATH), exist_ok=True)
-    os.makedirs(Config.UPLOAD_FOLDER_RESUMES, exist_ok=True)
-    os.makedirs(Config.UPLOAD_FOLDER_TEMPLATES, exist_ok=True)
     os.makedirs(os.path.dirname(Config.LOG_PATH), exist_ok=True)
-    
-    # Import all models BEFORE init_db so create_all() sees every table
-    from models.cold_email import EmailCampaign, EmailRecipient  # noqa: F401
+
+    # Import surviving models BEFORE init_db so create_all() sees every table
     from models.email_verification_token import EmailVerificationToken  # noqa: F401
-    from models.resume import Resume  # noqa: F401
-    from models.resume_assessment import ResumeAssessment  # noqa: F401
-    from models.resume_revision import ResumeRevision  # noqa: F401
-    from models.coffee_chat import (  # noqa: F401
-        MentorProfile, MentorAvailability, CoffeeChatBooking,
-        CoffeeChatPayment, MeetingLink, MentorshipNote,
-    )
 
     # Initialize database
     init_db(app)
@@ -81,26 +71,13 @@ def create_app():
     from routes.web import web_bp
     from routes.api import api_bp
     from routes.admin import admin_bp
-    from routes.resume_routes import resume_bp
-    from routes.payment_routes import payment_bp, stripe_webhook
-    from routes.outreach_routes import outreach_bp
-    from routes.coffee_chat_routes import coffee_chat_bp
     from routes.slides import slides_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(admin_bp)
-    app.register_blueprint(resume_bp)
-    app.register_blueprint(payment_bp)
-    app.register_blueprint(outreach_bp)
-    app.register_blueprint(coffee_chat_bp)
     app.register_blueprint(slides_bp)
-
-    # Exempt endpoints from CSRF
-    csrf.exempt(stripe_webhook)
-    from routes.outreach_routes import track_open
-    csrf.exempt(track_open)
 
     # ------------------------------------------------------------------
     # Verification gate: block unverified users from protected routes

@@ -77,7 +77,6 @@ def scraper_status():
 
     # Get overall statistics
     total_jobs = Job.query.count()
-    ai_proof_jobs = Job.query.filter_by(is_ai_proof=True).count()
     jobs_last_7_days = Job.query.filter(
         Job.first_seen >= datetime.utcnow() - timedelta(days=7)
     ).count()
@@ -103,7 +102,6 @@ def scraper_status():
         latest_run=latest_run,
         next_run=next_run,
         total_jobs=total_jobs,
-        ai_proof_jobs=ai_proof_jobs,
         jobs_last_7_days=jobs_last_7_days,
         stats=stats,
         recent_logs=recent_logs

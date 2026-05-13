@@ -4,7 +4,7 @@
 <!-- Hero Tagline -->
 <div class="hero-section">
     <h1>Welcome to <span class="tagline-highlight">NewWhale</span></h1>
-    <p>At NewWhale, We <span class="tagline-highlight">KnewWell</span> about Jobs Available and Resumes that boost your success rate with our proprietary AI resume data & model</p>
+    <p>Live job listings across 40+ banks, asset managers, and consultancies — refreshed daily.</p>
 </div>
 
 <!-- Stats Bar -->
@@ -12,13 +12,11 @@
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background: #fff; border: 1px solid var(--nw-border); border-radius: 10px;">
             <div>
-                <span class="badge bg-primary me-2" style="font-size: 0.85em; padding: 6px 12px;">{{ stats.total_ai_proof_jobs }} AI-Proof Jobs</span>
-                <span class="badge bg-secondary me-2" style="font-size: 0.85em; padding: 6px 12px;">{{ stats.total_excluded_jobs }} Excluded</span>
-                <span class="badge me-2" style="font-size: 0.85em; padding: 6px 12px; background-color: #27ae60 !important; color: #fff !important;">{{ stats.ai_proof_percentage }}% AI-Resistant</span>
+                <span class="badge bg-primary me-2" style="font-size: 0.85em; padding: 6px 12px;">{{ stats.total_active_jobs }} active jobs</span>
             </div>
             <div>
-                <a href="{{ url_for('resume.upload') }}" class="btn btn-primary btn-sm">
-                    <i class="bi bi-file-earmark-arrow-up"></i> Upload Resume
+                <a href="{{ url_for('slides.index') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-easel"></i> Banking Slides
                 </a>
             </div>
         </div>
@@ -78,15 +76,6 @@
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-6">
-                        <label class="form-label small mb-0">Category</label>
-                        <select name="category" class="form-select form-select-sm">
-                            <option value="">All Categories</option>
-                            {% for category in categories %}
-                            <option value="{{ category }}" {% if filters.ai_proof_category == category %}selected{% endif %}>{{ category }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-lg-2 col-md-6">
                         <label class="form-label small mb-0">Sort</label>
                         <select name="sort_by" class="form-select form-select-sm">
                             <option value="newest" {% if filters.sort_by == 'newest' %}selected{% endif %}>Newest First</option>
@@ -100,14 +89,6 @@
                             <input class="form-check-input" type="checkbox" name="starred" value="1" id="starredFilter" {% if filters.is_important %}checked{% endif %}>
                             <label class="form-check-label small" for="starredFilter">
                                 <i class="bi bi-star-fill" style="color: #e8a838;"></i> Starred
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-6">
-                        <div class="form-check mt-3">
-                            <input class="form-check-input" type="checkbox" name="ai_proof" value="1" id="aiProofFilter" {% if filters.ai_proof_only %}checked{% endif %}>
-                            <label class="form-check-label small" for="aiProofFilter">
-                                <i class="bi bi-shield-check"></i> AI-Proof
                             </label>
                         </div>
                     </div>
@@ -137,7 +118,6 @@
                                 <th style="width: 30px;"></th>
                                 <th style="width: 140px;">Company</th>
                                 <th>Title</th>
-                                <th style="width: 155px;">Category</th>
                                 <th style="width: 100px;">Job Type</th>
                                 <th style="width: 150px;">Location</th>
                                 <th style="width: 85px;">Posted</th>
@@ -162,20 +142,6 @@
                                         <span class="badge bg-primary" style="font-size: 0.6rem;">NEW</span>
                                         {% endif %}
                                     </a>
-                                </td>
-                                <td>
-                                    {% set cat_class = {
-                                        'Investment Banking': 'badge-ib',
-                                        'Sales & Trading': 'badge-st',
-                                        'Asset & Wealth Management': 'badge-pm',
-                                        'Risk Management': 'badge-rm',
-                                        'Private Equity': 'badge-pe',
-                                        'Structuring': 'badge-str',
-                                        'EXCLUDED': 'badge-excluded'
-                                    } %}
-                                    <span class="badge {{ cat_class.get(job.ai_proof_category, 'badge-excluded') }}" style="font-size: 0.7rem;">
-                                        {{ job.ai_proof_category }}
-                                    </span>
                                 </td>
                                 <td>
                                     {% if job.seniority == 'Internship' %}

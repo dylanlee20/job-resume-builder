@@ -72,15 +72,12 @@ def internal_jobs_export():
             'code': 'INVALID_JOB_EXPORT_TOKEN',
         }), 403
 
-    ai_proof_only = request.args.get('ai_proof_only', '1') != '0'
     status = (request.args.get('status') or 'active').strip()
     limit = min(max(request.args.get('limit', default=500, type=int), 1), 2000)
 
     query = Job.query
     if status:
         query = query.filter_by(status=status)
-    if ai_proof_only:
-        query = query.filter_by(is_ai_proof=True)
 
     jobs = query.order_by(Job.last_updated.desc(), Job.first_seen.desc()).limit(limit).all()
     latest_run = ScraperRun.query.order_by(ScraperRun.started_at.desc()).first()
@@ -89,13 +86,10 @@ def internal_jobs_export():
     return jsonify({
         'exported_at': datetime.utcnow().isoformat(),
         'count': len(jobs),
-        'ai_proof_only': ai_proof_only,
         'status': status,
         'latest_run': latest_run.to_dict() if latest_run else None,
         'stats': {
             'total_active_jobs': stats.get('total_active_jobs', 0),
-            'total_ai_proof_jobs': stats.get('total_ai_proof_jobs', 0),
-            'ai_proof_percentage': stats.get('ai_proof_percentage', 0),
         },
         'jobs': [job.to_dict() for job in jobs],
     })

@@ -119,5 +119,4 @@ class Job(db.Model):
         }
 
     def __repr__(self):
-        ai_flag = "✓" if self.is_ai_proof else "✗"
-        return f'<Job {self.company} - {self.title} [AI-Proof: {ai_flag}]>'
+        return f'<Job {self.company} - {self.title}>'

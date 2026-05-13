@@ -12,7 +12,7 @@ from flask_login import current_user, login_required
 from services.slides_service import (
     Deck,
     get_deck,
-    list_decks,
+    list_sections,
     render_watermarked_png,
     slide_path,
 )
@@ -35,8 +35,7 @@ def _viewer_label() -> str:
 @slides_bp.route("/")
 @login_required
 def index():
-    decks = list_decks()
-    return render_template("slides_index.html", decks=decks)
+    return render_template("slides_index.html", sections=list_sections())
 
 
 @slides_bp.route("/<slug>/")
