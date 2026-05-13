@@ -85,6 +85,7 @@ def create_app():
     from routes.payment_routes import payment_bp, stripe_webhook
     from routes.outreach_routes import outreach_bp
     from routes.coffee_chat_routes import coffee_chat_bp
+    from routes.slides import slides_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
@@ -94,6 +95,7 @@ def create_app():
     app.register_blueprint(payment_bp)
     app.register_blueprint(outreach_bp)
     app.register_blueprint(coffee_chat_bp)
+    app.register_blueprint(slides_bp)
 
     # Exempt endpoints from CSRF
     csrf.exempt(stripe_webhook)

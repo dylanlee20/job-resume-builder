@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block title %}Slides — NewWhale Career{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-1">Banking Slides</h1>
+    <p class="text-muted mb-4">Institutional-grade IB interview prep curriculum. View only — downloads disabled.</p>
+    <div class="row g-3">
+        {% for deck in decks %}
+        <div class="col-md-6 col-lg-4">
+            <a href="{{ url_for('slides.deck_redirect', slug=deck.slug) }}" class="text-decoration-none">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">{{ deck.section }}</div>
+                        <h5 class="card-title mb-2">{{ deck.title }}</h5>
+                        <div class="text-muted small">{{ deck.slide_count }} slides</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
