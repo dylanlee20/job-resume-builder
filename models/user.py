@@ -18,7 +18,12 @@ class User(UserMixin, db.Model):
 
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
-    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    # 'active' (login OK), 'frozen' (temporarily blocked), 'disabled' (revoked).
+    status = db.Column(db.String(20), default='active', nullable=False, index=True)
+
+    # Kept on the model for legacy DB schemas, but never enforced anymore —
+    # email verification was disabled when the app moved to admin-issued accounts.
+    email_verified = db.Column(db.Boolean, default=True, nullable=False)
     email_verified_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -26,7 +31,7 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime, nullable=True)
 
     def __repr__(self):
-        return f'<User {self.username} verified={self.email_verified}>'
+        return f'<User {self.username} status={self.status}>'
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -39,7 +44,20 @@ class User(UserMixin, db.Model):
         self.email_verified_at = datetime.utcnow()
 
     def needs_email_verification(self) -> bool:
-        return not self.email_verified and not self.is_admin
+        # Email verification was retired in favor of admin-issued accounts.
+        return False
+
+    @property
+    def is_active_account(self) -> bool:
+        return (self.status or 'active') == 'active'
+
+    @property
+    def is_frozen(self) -> bool:
+        return self.status == 'frozen'
+
+    @property
+    def is_disabled(self) -> bool:
+        return self.status == 'disabled'
 
     def record_login(self) -> None:
         self.last_login = datetime.utcnow()
@@ -50,7 +68,7 @@ class User(UserMixin, db.Model):
             'username': self.username,
             'email': self.email,
             'is_admin': self.is_admin,
-            'email_verified': self.email_verified,
+            'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
         }

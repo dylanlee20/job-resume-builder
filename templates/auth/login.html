@@ -9,7 +9,7 @@
       <div class="card shadow-sm border-0">
         <div class="card-body p-4">
           <h4 class="card-title mb-1 fw-bold">Sign in to NewWhale</h4>
-          <p class="text-muted small mb-4">AI-proof your finance career</p>
+          <p class="text-muted small mb-4">Accounts are issued by your administrator.</p>
 
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
@@ -59,20 +59,9 @@
             </div>
           </form>
 
-          {% if show_resend is defined and show_resend %}
-          <div class="alert alert-info mt-3 small">
-            Need a new verification link?
-            <a href="{{ url_for('auth.resend_verification') }}?email={{ resend_email | urlencode }}">Resend it here</a>.
-          </div>
-          {% endif %}
-
           <hr class="my-3">
-          <p class="text-center small mb-0">
-            Don't have an account?
-            <a href="{{ url_for('auth.register') }}">Register for free</a>
-          </p>
-          <p class="text-center small mt-2 mb-0">
-            <a href="{{ url_for('auth.resend_verification') }}">Resend verification email</a>
+          <p class="text-center small mb-0 text-muted">
+            Need an account? Contact your administrator.
           </p>
         </div>
       </div>

@@ -9,6 +9,9 @@ from models.job import Job
 from services.job_service import JobService
 from datetime import datetime, timedelta
 import os
+import re
+import secrets
+import string
 import sys
 import subprocess
 
@@ -25,25 +28,125 @@ def admin_required(f):
     return decorated_function
 
 
+_PASSWORD_ALPHABET = string.ascii_letters + string.digits + "!@#$%^&*"
+
+
+def _generate_password(length: int = 14) -> str:
+    return ''.join(secrets.choice(_PASSWORD_ALPHABET) for _ in range(length))
+
+
+def _normalize_username(raw: str) -> str:
+    return re.sub(r'\s+', '', (raw or '').strip())
+
+
 @admin_bp.route('/users')
 @admin_required
 def users():
-    """Admin user management — list all users"""
+    """Admin user management — list all users."""
     all_users = User.query.order_by(User.created_at.desc()).all()
-    return render_template('admin/users.html', users=all_users)
+    # One-shot password from POST flow lives in the session via a flashed pair.
+    issued_credentials = request.args.get('issued')
+    issued_username = request.args.get('username')
+    return render_template(
+        'admin/users.html',
+        users=all_users,
+        issued_credentials=issued_credentials,
+        issued_username=issued_username,
+    )
+
+
+@admin_bp.route('/users/create', methods=['POST'])
+@admin_required
+def create_user():
+    """Create a new account with an admin-generated password (shown once)."""
+    username = _normalize_username(request.form.get('username', ''))
+    email = (request.form.get('email', '') or '').strip().lower()
+    make_admin = request.form.get('is_admin') == 'on'
+    explicit_password = (request.form.get('password', '') or '').strip()
+
+    errors = []
+    if len(username) < 3:
+        errors.append('Username must be at least 3 characters.')
+    if '@' not in email or len(email) < 5:
+        errors.append('A valid email is required.')
+    if explicit_password and len(explicit_password) < 8:
+        errors.append('Custom password must be at least 8 characters.')
+    if User.query.filter(db.func.lower(User.username) == username.lower()).first():
+        errors.append(f"Username '{username}' is already taken.")
+    if User.query.filter(db.func.lower(User.email) == email).first():
+        errors.append(f"Email '{email}' is already in use.")
+
+    if errors:
+        for e in errors:
+            flash(e, 'danger')
+        return redirect(url_for('admin.users'))
+
+    password = explicit_password or _generate_password()
+    user = User(
+        username=username,
+        email=email,
+        is_admin=make_admin,
+        status='active',
+        email_verified=True,
+        email_verified_at=datetime.utcnow(),
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    # Pass the one-shot password back via the URL so the admin can copy it
+    # out of the page and share it with the user. After they navigate away
+    # it's gone.
+    return redirect(url_for('admin.users', issued=password, username=username))
+
+
+def _set_status(user_id: int, new_status: str, label: str):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('You cannot change your own status.', 'danger')
+        return redirect(url_for('admin.users'))
+    user.status = new_status
+    db.session.commit()
+    flash(f"User '{user.username}' is now {label}.", 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/users/<int:user_id>/freeze', methods=['POST'])
+@admin_required
+def freeze_user(user_id):
+    return _set_status(user_id, 'frozen', 'frozen')
+
+
+@admin_bp.route('/users/<int:user_id>/disable', methods=['POST'])
+@admin_required
+def disable_user(user_id):
+    return _set_status(user_id, 'disabled', 'disabled')
+
+
+@admin_bp.route('/users/<int:user_id>/reactivate', methods=['POST'])
+@admin_required
+def reactivate_user(user_id):
+    return _set_status(user_id, 'active', 'active')
+
+
+@admin_bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
+@admin_required
+def reset_password(user_id):
+    user = User.query.get_or_404(user_id)
+    new_password = _generate_password()
+    user.set_password(new_password)
+    db.session.commit()
+    return redirect(url_for('admin.users', issued=new_password, username=user.username))
 
 
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
-@login_required
 @admin_required
 def delete_user(user_id):
-    """Delete a user account (admin cannot delete themselves)"""
+    """Delete a user account (admin cannot delete themselves)."""
     user = User.query.get_or_404(user_id)
-
     if user.id == current_user.id:
         flash('You cannot delete your own admin account.', 'danger')
         return redirect(url_for('admin.users'))
-
     username = user.username
     db.session.delete(user)
     db.session.commit()

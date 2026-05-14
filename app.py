@@ -2,7 +2,7 @@
 NewWhale Career v2 - Application Factory
 AI-Proof Industries Job Tracker with Resume Assessment
 """
-from flask import Flask, request as flask_request, redirect, url_for, flash, jsonify
+from flask import Flask, request as flask_request, redirect, url_for, flash, jsonify, render_template
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from models.database import db, init_db
@@ -42,6 +42,20 @@ def create_app():
 
     # Initialize database
     init_db(app)
+
+    # Idempotent in-place migration: add users.status column if it's missing.
+    # The deployed SQLite was created before admin freeze/disable existed.
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            cols = {c['name'] for c in insp.get_columns('users')} if 'users' in insp.get_table_names() else set()
+            if cols and 'status' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'active' NOT NULL"))
+                logger.info("Migrated: added users.status column.")
+        except Exception as exc:
+            logger.warning(f"Status-column migration skipped: {exc}")
     
     # Initialize CSRF protection
     csrf = CSRFProtect(app)
@@ -79,41 +93,30 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(slides_bp)
 
-    # ------------------------------------------------------------------
-    # Verification gate: block unverified users from protected routes
-    # ------------------------------------------------------------------
-    # Routes that unverified (or unauthenticated) users are allowed to access
-    _PUBLIC_ENDPOINTS = frozenset({
-        'auth.register', 'auth.login', 'auth.logout',
-        'auth.verify_email', 'auth.resend_verification',
-        'auth.check_username', 'auth.check_email',
-        'static',
-    })
+    # Old /slides/* URLs (from prior deploys / cached pages) -> new /curriculum/*
+    @app.route('/slides/', defaults={'rest': ''})
+    @app.route('/slides/<path:rest>')
+    def _slides_legacy_redirect(rest):
+        return redirect('/curriculum/' + rest, code=301)
 
+    # ------------------------------------------------------------------
+    # Account-status gate: block frozen / disabled accounts
+    # ------------------------------------------------------------------
     @app.before_request
-    def enforce_email_verification():
-        """Return 403 for authenticated users whose email is not verified."""
+    def enforce_account_status():
         if not current_user.is_authenticated:
-            return  # Let Flask-Login handle redirect to login
-        if not current_user.needs_email_verification():
-            return  # Verified or admin — allow through
-        endpoint = flask_request.endpoint or ''
-        if endpoint in _PUBLIC_ENDPOINTS:
-            return  # Auth-related routes are always accessible
-
-        # Unverified user trying to access a protected route
+            return
+        if current_user.is_admin or current_user.is_active_account:
+            return
+        # Frozen or disabled — log them out and bounce to login.
         if flask_request.accept_mimetypes.best == 'application/json':
-            return jsonify({
-                'error': 'Email not verified',
-                'code': 'EMAIL_NOT_VERIFIED',
-            }), 403
-
+            return jsonify({'error': 'Account inactive', 'status': current_user.status}), 403
+        status = current_user.status
         logout_user()
-        flash(
-            'Please verify your email address before accessing the site. '
-            'Check your inbox for a verification link.',
-            'warning',
-        )
+        msg = ('Your account has been frozen. Contact an admin to reactivate.'
+               if status == 'frozen'
+               else 'Your account has been disabled.')
+        flash(msg, 'warning')
         return redirect(url_for('auth.login'))
     
     # Initialize job scheduler
@@ -143,8 +146,10 @@ def create_app():
     def not_found(error):
         if flask_request.accept_mimetypes.best == 'application/json':
             return jsonify({'error': 'Not found'}), 404
-        flash('Page not found.', 'error')
-        return redirect(url_for('web.dashboard'))
+        # Render a real 404 — no flash (it persists across redirects and
+        # showed up as a permanent pink banner whenever a stale URL like
+        # /resume/hub or /pricing came in from a cached page).
+        return render_template('404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(error):

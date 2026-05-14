@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block title %}{{ track_label }} | NewWhale Education{% endblock %}
+{% block content %}
+<style>
+    .edu-header { padding: 1.25rem 0 0.5rem; }
+    .edu-header h1 { color: var(--nw-navy); font-weight: 700; margin-bottom: 0.15rem; font-size: 1.6rem; }
+    .edu-header .edu-track { color: var(--nw-text-light); font-size: 0.95rem; }
+    .edu-header .edu-subtitle { color: var(--nw-text-light); font-size: 0.85rem; margin-top: 0.4rem; }
+
+    .deck-section { margin-top: 1.5rem; }
+    .deck-section .section-head {
+        display: flex; align-items: baseline; gap: 0.75rem;
+        padding: 0.55rem 0.75rem; background: var(--nw-navy); color: #fff;
+        border-radius: 6px 6px 0 0; cursor: pointer; user-select: none;
+    }
+    .deck-section .section-head .caret { transition: transform 0.15s; font-size: 0.85rem; opacity: 0.85; }
+    .deck-section.collapsed .section-head .caret { transform: rotate(-90deg); }
+    .deck-section .section-head .section-name { font-weight: 600; font-size: 0.95rem; flex: 1; }
+    .deck-section .section-head .section-meta { color: rgba(255,255,255,0.75); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+    .deck-list {
+        background: #fff; border: 1px solid var(--nw-border); border-top: 0;
+        border-radius: 0 0 6px 6px; overflow: hidden;
+    }
+    .deck-section.collapsed .deck-list { display: none; }
+    .deck-row {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--nw-border);
+        font-size: 0.92rem; cursor: pointer; user-select: none;
+        transition: background-color 0.1s;
+    }
+    .deck-row:last-child { border-bottom: 0; }
+    .deck-row:hover { background: #f3f6fb; }
+    .deck-row.focused { background: #e2ecfa; }
+    .deck-row .deck-icon { color: var(--nw-blue); flex-shrink: 0; opacity: 0.7; }
+    .deck-row .deck-title { flex: 1; color: var(--nw-text); }
+    .deck-row .deck-count { color: var(--nw-text-light); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+    .deck-row .deck-hint { color: var(--nw-text-light); font-size: 0.72rem; opacity: 0; transition: opacity 0.15s; }
+    .deck-row:hover .deck-hint { opacity: 1; }
+
+    .empty-state {
+        background: #fff; border: 1px dashed var(--nw-border); border-radius: 8px;
+        padding: 2rem; text-align: center; color: var(--nw-text-light);
+    }
+</style>
+
+<div class="container">
+    <div class="edu-header">
+        <h1>NewWhale Education</h1>
+        <div class="edu-track">{{ track_label }}</div>
+        <div class="edu-subtitle">View Only</div>
+    </div>
+
+    {% for section in sections %}
+    <div class="deck-section" data-section="{{ section.section_slug }}">
+        <div class="section-head" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="caret"><i class="bi bi-chevron-down"></i></span>
+            <span class="section-name">{{ section.section_title }}</span>
+            <span class="section-meta">{{ section.deck_count }} decks &middot; {{ section.slide_count }} slides</span>
+        </div>
+        <div class="deck-list">
+            {% for deck in section.decks %}
+            <div class="deck-row"
+                 data-href="{{ url_for('slides.deck_redirect', slug=deck.slug) }}"
+                 tabindex="0">
+                <i class="bi bi-easel deck-icon"></i>
+                <span class="deck-title">{{ deck.title }}</span>
+                <span class="deck-count">{{ deck.slide_count }} slides</span>
+                <span class="deck-hint">double click to open</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state mt-4">
+        No curriculum decks have been published in this track yet.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    const rows = document.querySelectorAll(".deck-row");
+    rows.forEach(row => {
+        row.addEventListener("click", () => {
+            rows.forEach(r => r.classList.remove("focused"));
+            row.classList.add("focused");
+        });
+        row.addEventListener("dblclick", () => {
+            const url = row.dataset.href;
+            if (url) window.location.href = url;
+        });
+        row.addEventListener("keydown", e => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = row.dataset.href;
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,16 +1,22 @@
-"""Slides blueprint: deck index + per-slide viewer + watermarked PNG stream.
+"""Curriculum blueprint: deck index + per-slide viewer + watermarked PNG.
 
-All routes require login. Source PNGs are never served directly — every
-image request runs through Pillow to burn in the viewer's identity.
+Two index pages share the same deck-viewer URL:
+  /curriculum/behavioral  -> section 01 only
+  /curriculum/technical   -> sections 02-05
+  /curriculum/<slug>/<n>  -> deck viewer (any deck)
+  /curriculum/<slug>/<n>/image.png  -> watermarked stream
+
+The viewer's "back" arrow points at whichever index the deck belongs to.
 """
 
 from __future__ import annotations
 
-from flask import Blueprint, Response, abort, render_template, request
+from flask import Blueprint, Response, abort, render_template, request, redirect, url_for
 from flask_login import current_user, login_required
 
 from services.slides_service import (
     Deck,
+    deck_track,
     get_deck,
     list_sections,
     render_watermarked_png,
@@ -18,7 +24,7 @@ from services.slides_service import (
 )
 
 
-slides_bp = Blueprint("slides", __name__, url_prefix="/slides")
+slides_bp = Blueprint("slides", __name__, url_prefix="/curriculum")
 
 
 def _client_ip() -> str:
@@ -35,7 +41,29 @@ def _viewer_label() -> str:
 @slides_bp.route("/")
 @login_required
 def index():
-    return render_template("slides_index.html", sections=list_sections())
+    return redirect(url_for("slides.behavioral"))
+
+
+@slides_bp.route("/behavioral")
+@login_required
+def behavioral():
+    return render_template(
+        "curriculum_index.html",
+        sections=list_sections(track="behavioral"),
+        track="behavioral",
+        track_label="Behavioral Curriculum",
+    )
+
+
+@slides_bp.route("/technical")
+@login_required
+def technical():
+    return render_template(
+        "curriculum_index.html",
+        sections=list_sections(track="technical"),
+        track="technical",
+        track_label="Technical Curriculums",
+    )
 
 
 @slides_bp.route("/<slug>/")
@@ -55,12 +83,16 @@ def view_slide(slug: str, slide_number: int):
         abort(404)
     if not 1 <= slide_number <= deck.slide_count:
         abort(404)
+    track = deck_track(deck)
+    back_endpoint = "slides.behavioral" if track == "behavioral" else "slides.technical"
     return render_template(
         "slide_viewer.html",
         deck=deck,
         slide_number=slide_number,
         total=deck.slide_count,
         viewer_email=_viewer_label(),
+        back_url=url_for(back_endpoint),
+        back_label="Behavioral Curriculum" if track == "behavioral" else "Technical Curriculums",
     )
 
 

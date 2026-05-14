@@ -48,11 +48,29 @@ class _CatalogCache:
 
 _cache = _CatalogCache()
 _cache_lock = threading.Lock()
-_CACHE_TTL = 5.0  # seconds
+# 1318 PNGs across 5 sections — scanning the tree on every request is wasteful.
+# A 5-minute cache is fine because deck folders only change on deploy.
+_CACHE_TTL = 300.0  # seconds
+
+# Section 01 is the Behavioral curriculum, everything else is Technical.
+BEHAVIORAL_SECTION_SLUG = "01-behavioral-and-fit"
+
+# Hand-curated display names for section folders. Anything not listed
+# falls back to the slug-humanizer.
+SECTION_TITLE_OVERRIDES = {
+    "01-behavioral-and-fit": "Behavioral Curriculum",
+    "02-technical-generalist": "Investment Banking Technical Curriculum",
+    "03-industry-specific": "Industry Specific Curriculum",
+    "04-sales-and-trading": "Sales and Trading Technical Curriculum",
+    "05-quant": "Quantitative Technical Curriculum",
+}
 
 
 def _humanize(slug: str) -> str:
-    """'01-behavioral-and-fit' -> '01 — Behavioral and Fit'."""
+    """'01-behavioral-and-fit' -> '01 Behavioral and Fit'.
+    'b07-understanding-banking' -> 'B07 Understanding Banking'.
+    No em dashes (user rule).
+    """
     parts = slug.split("-")
     if not parts:
         return slug
@@ -61,12 +79,16 @@ def _humanize(slug: str) -> str:
     if re.fullmatch(r"\d{1,3}", prefix):
         head = prefix
         tail = " ".join(p.capitalize() for p in parts[1:])
-        return f"{head} — {tail}" if tail else head
+        return f"{head} {tail}".strip() if tail else head
     if re.fullmatch(r"[a-z]\d{1,3}", prefix):
         head = prefix.upper()
         tail = " ".join(p.capitalize() for p in parts[1:])
-        return f"{head} — {tail}" if tail else head
+        return f"{head} {tail}".strip() if tail else head
     return " ".join(p.capitalize() for p in parts)
+
+
+def _section_title(slug: str) -> str:
+    return SECTION_TITLE_OVERRIDES.get(slug, _humanize(slug))
 
 
 def _build_catalog() -> None:
@@ -92,7 +114,7 @@ def _build_catalog() -> None:
                 slug=deck_dir.name,
                 section_slug=section_slug,
                 title=_humanize(deck_dir.name),
-                section_title=_humanize(section_slug),
+                section_title=_section_title(section_slug),
                 slide_count=len(slides),
             )
             catalog[deck.slug] = deck
@@ -112,25 +134,34 @@ def list_decks() -> List[Deck]:
     return list(_cache.catalog.values())
 
 
-def list_sections() -> List[Dict]:
-    """Return list of {section_slug, section_title, decks: [Deck]} grouped."""
+def list_sections(track: Optional[str] = None) -> List[Dict]:
+    """Return decks grouped by section. ``track`` filters: 'behavioral' or 'technical'."""
     _ensure_catalog()
     grouped: Dict[str, List[Deck]] = {}
     for deck in _cache.catalog.values():
         grouped.setdefault(deck.section_slug, []).append(deck)
     out = []
     for section_slug in _cache.sections:
+        if track == "behavioral" and section_slug != BEHAVIORAL_SECTION_SLUG:
+            continue
+        if track == "technical" and section_slug == BEHAVIORAL_SECTION_SLUG:
+            continue
         decks = grouped.get(section_slug, [])
         if not decks:
             continue
         out.append({
             "section_slug": section_slug,
-            "section_title": _humanize(section_slug),
+            "section_title": _section_title(section_slug),
             "decks": decks,
             "deck_count": len(decks),
             "slide_count": sum(d.slide_count for d in decks),
         })
     return out
+
+
+def deck_track(deck: Deck) -> str:
+    """'behavioral' for section-01 decks, 'technical' otherwise."""
+    return "behavioral" if deck.section_slug == BEHAVIORAL_SECTION_SLUG else "technical"
 
 
 def get_deck(slug: str) -> Optional[Deck]:

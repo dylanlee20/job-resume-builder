@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 style="font-size: 3rem; color: var(--nw-navy); margin-bottom: 0.5rem;">404</h1>
+    <p class="text-muted mb-4">That page doesn't exist.</p>
+    <a class="btn btn-primary" href="{{ url_for('web.dashboard') if current_user.is_authenticated else '/' }}">
+        <i class="bi bi-house"></i> Go home
+    </a>
+</div>
+{% endblock %}

@@ -11,8 +11,8 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-water"></i> NewWhale
+            <a class="navbar-brand d-flex align-items-center" href="/" aria-label="NewWhale">
+                <img src="{{ url_for('static', filename='img/newwhale_mark.png') }}" alt="NewWhale" style="height: 30px; width: auto; display: block;">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -21,11 +21,21 @@
                 {% if current_user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('web.dashboard') }}"><i class="bi bi-briefcase"></i> Jobs</a>
+                        <a class="nav-link" href="{{ url_for('web.dashboard') }}"><i class="bi bi-briefcase"></i> Job Tracker</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('slides.index') }}">
-                            <i class="bi bi-easel"></i> Slides
+                        <a class="nav-link" href="{{ url_for('slides.behavioral') }}">
+                            <i class="bi bi-person-lines-fill"></i> Behavioral Curriculum
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('slides.technical') }}">
+                            <i class="bi bi-easel"></i> Technical Curriculums
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/macro/" target="_blank" rel="noopener">
+                            <i class="bi bi-graph-up-arrow"></i> Macro Monitor
                         </a>
                     </li>
                 </ul>
@@ -54,10 +64,7 @@
                 </div>
                 {% else %}
                 <div class="d-flex gap-2 ms-auto">
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-light">Sign In</a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-warning" style="color: var(--nw-navy); font-weight: 600;">
-                        Get Started Free
-                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-warning" style="color: var(--nw-navy); font-weight: 600;">Sign In</a>
                 </div>
                 {% endif %}
             </div>
@@ -86,9 +93,11 @@
                     <strong><i class="bi bi-water"></i> NewWhale Career</strong>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <a href="{{ url_for('web.dashboard') if current_user.is_authenticated else '/' }}" class="me-3">Jobs</a>
+                    <a href="{{ url_for('web.dashboard') if current_user.is_authenticated else '/' }}" class="me-3">Job Tracker</a>
                     {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('slides.index') }}">Slides</a>
+                    <a href="{{ url_for('slides.behavioral') }}" class="me-3">Behavioral</a>
+                    <a href="{{ url_for('slides.technical') }}" class="me-3">Technical</a>
+                    <a href="/macro/" target="_blank" rel="noopener">Macro</a>
                     {% endif %}
                 </div>
             </div>
