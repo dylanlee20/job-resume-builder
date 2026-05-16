@@ -9,7 +9,7 @@ BRANCH="master"
 LOG_FILE="/var/log/newwhale-deploy.log"
 LOCK_FILE="/var/run/newwhale-deploy.lock"
 SERVICE_NAME="newwhale"
-HEALTH_URL="http://127.0.0.1:5002/login"
+HEALTH_URL="http://127.0.0.1:5002/auth/login"
 
 exec 9>"$LOCK_FILE"
 if ! flock -w 600 9; then
