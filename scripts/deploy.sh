@@ -28,8 +28,9 @@ run() {
 log "deploy started (pid $$)"
 cd "$APP_DIR"
 
-run git fetch origin "$BRANCH"
-run git reset --hard "origin/$BRANCH"
+# Note: the GH Actions workflow git-pulls the repo BEFORE invoking this
+# script (so this script is always the latest version). We just record
+# the current SHA here for logging.
 GIT_SHA=$(git rev-parse --short HEAD)
 log "at $GIT_SHA"
 

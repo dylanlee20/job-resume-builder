@@ -23,8 +23,13 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           command_timeout: 10m
+          # Pull the latest deploy.sh FIRST so this run always uses the newest
+          # version (avoids the "deploy.sh updates itself mid-run" race where
+          # bash holds the old script in memory after git reset --hard).
           script: |
             set -e
             cd /opt/app
+            git fetch origin master
+            git reset --hard origin/master
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
