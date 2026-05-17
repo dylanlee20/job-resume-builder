@@ -1,58 +1,120 @@
 {% extends "layout.html" %}
-{% block title %}NewWhale Career — Live finance jobs + interview prep{% endblock %}
+{% block title %}NewWhale Career Portal{% endblock %}
+
 {% block content %}
 <style>
-    .landing-hero { padding: 4rem 1rem 3rem; text-align: center; }
-    .landing-hero h1 { font-size: 2.6rem; font-weight: 800; color: var(--nw-navy); margin-bottom: 1rem; }
-    .landing-hero p.lead { font-size: 1.15rem; color: var(--nw-text-light); max-width: 640px; margin: 0 auto 2rem; }
-    .hero-cta .btn { font-size: 1rem; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 600; }
-    .stat-box { padding: 1rem 1.5rem; text-align: center; }
-    .stat-box .number { display: block; font-size: 2.4rem; font-weight: 800; color: var(--nw-accent); }
-    .stat-box .label { display: block; font-size: 0.9rem; color: var(--nw-text-light); margin-top: 0.25rem; }
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-top: 2rem; }
-    .feature-card { background: #fff; border: 1px solid var(--nw-border); border-radius: 10px; padding: 1.5rem; }
-    .feature-card h5 { color: var(--nw-navy); margin-bottom: 0.5rem; }
-    .feature-card p { color: var(--nw-text-light); margin-bottom: 0; font-size: 0.95rem; }
+  .landing-wrap {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  /* The whale is a div sized to the PNG aspect ratio, with the PNG
+     used as a CSS mask. Anything painted underneath only shows where
+     the whale silhouette has alpha. */
+  .whale {
+    position: relative;
+    width: min(560px, 80vw);
+    aspect-ratio: 696 / 400;
+    -webkit-mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
+            mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
+    -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+            mask-position: center;
+    -webkit-mask-size: contain;
+            mask-size: contain;
+    -webkit-mask-mode: alpha;
+            mask-mode: alpha;
+    background: var(--nw-navy);
+    filter: drop-shadow(0 18px 40px rgba(26, 39, 68, 0.18));
+  }
+
+  /* Each cloud is a soft radial gradient blob, blurred for the
+     'smoke' feel. Slow keyframe animations drift them around inside
+     the whale; the mask clips everything outside the silhouette. */
+  .cloud {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(34px);
+    opacity: 0.92;
+    mix-blend-mode: screen;
+  }
+  .cloud.c1 { width: 60%; height: 80%; left: -10%; top: -15%;
+              background: radial-gradient(circle at 30% 30%, #5b8bec 0%, transparent 70%);
+              animation: drift1 14s ease-in-out infinite; }
+  .cloud.c2 { width: 55%; height: 75%; left: 35%; top: -10%;
+              background: radial-gradient(circle at 50% 50%, #e8a838 0%, transparent 65%);
+              animation: drift2 17s ease-in-out infinite; }
+  .cloud.c3 { width: 70%; height: 90%; left: -5%; top: 20%;
+              background: radial-gradient(circle at 40% 60%, #b06ab3 0%, transparent 70%);
+              animation: drift3 19s ease-in-out infinite; }
+  .cloud.c4 { width: 55%; height: 70%; left: 45%; top: 25%;
+              background: radial-gradient(circle at 60% 40%, #3b6bcc 0%, transparent 65%);
+              animation: drift4 13s ease-in-out infinite; }
+  .cloud.c5 { width: 45%; height: 60%; left: 25%; top: 40%;
+              background: radial-gradient(circle at 50% 50%, #4ec5b4 0%, transparent 70%);
+              animation: drift5 21s ease-in-out infinite; }
+  .cloud.c6 { width: 40%; height: 55%; left: 55%; top: 10%;
+              background: radial-gradient(circle at 50% 50%, #ff8a65 0%, transparent 70%);
+              animation: drift6 16s ease-in-out infinite; }
+
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.05); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6%, 9%) scale(1.07); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(7%, -6%) scale(1.04); } }
+  @keyframes drift4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9%, -5%) scale(1.06); } }
+  @keyframes drift5 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%, 8%) scale(1.08); } }
+  @keyframes drift6 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7%, 4%) scale(1.05); } }
+
+  .landing-title {
+    margin-top: 2.5rem;
+    font-size: clamp(1.7rem, 4vw, 2.6rem);
+    font-weight: 800;
+    color: var(--nw-navy);
+    letter-spacing: -0.01em;
+  }
+  .landing-sub {
+    margin-top: 0.75rem;
+    color: var(--nw-text-light);
+    font-size: 1.05rem;
+  }
+  .landing-cta {
+    margin-top: 2rem;
+  }
+  .landing-cta .btn {
+    padding: 0.7rem 2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cloud { animation: none !important; }
+  }
 </style>
 
-<section class="landing-hero">
-    <h1>Live finance jobs, refreshed daily.</h1>
-    <p class="lead">
-        Job listings across 40+ banks, asset managers, and consultancies, plus institutional-grade interview prep slides — all in one place.
-    </p>
-    <div class="hero-cta">
-        <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-lg" style="color: var(--nw-navy);">
-            <i class="bi bi-box-arrow-in-right"></i> Sign In
-        </a>
-    </div>
-    <div class="row mt-5 justify-content-center">
-        <div class="col-auto"><div class="stat-box">
-            <span class="number">{{ stats.total_active_jobs or '4,000+' }}</span>
-            <span class="label">Active Jobs</span>
-        </div></div>
-        <div class="col-auto"><div class="stat-box">
-            <span class="number">40+</span>
-            <span class="label">Firms Tracked</span>
-        </div></div>
-        <div class="col-auto"><div class="stat-box">
-            <span class="number">900+</span>
-            <span class="label">Prep Slides</span>
-        </div></div>
-    </div>
-</section>
+<div class="landing-wrap">
+  <div class="whale" aria-hidden="true">
+    <span class="cloud c1"></span>
+    <span class="cloud c2"></span>
+    <span class="cloud c3"></span>
+    <span class="cloud c4"></span>
+    <span class="cloud c5"></span>
+    <span class="cloud c6"></span>
+  </div>
 
-<section class="py-5">
-    <div class="container">
-        <div class="feature-grid">
-            <div class="feature-card">
-                <h5><i class="bi bi-briefcase"></i> Job Tracker</h5>
-                <p>Daily-refreshed listings from 40+ firms across IB, S&T, asset management, consulting, and more. Filter by company, location, and job type.</p>
-            </div>
-            <div class="feature-card">
-                <h5><i class="bi bi-easel"></i> Interview Prep Slides</h5>
-                <p>900+ slides of institutional-grade banking interview content — behavioral, technical, and industry-specific. View-only, watermarked per user.</p>
-            </div>
-        </div>
-    </div>
-</section>
+  <h1 class="landing-title">NewWhale Career Portal for Students</h1>
+  <p class="landing-sub">Sign in with the credentials your administrator issued.</p>
+
+  <div class="landing-cta">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-warning" style="color: var(--nw-navy);">
+      <i class="bi bi-box-arrow-in-right"></i> Sign in
+    </a>
+  </div>
+</div>
 {% endblock %}
