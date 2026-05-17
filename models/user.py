@@ -26,6 +26,12 @@ class User(UserMixin, db.Model):
     email_verified = db.Column(db.Boolean, default=True, nullable=False)
     email_verified_at = db.Column(db.DateTime, nullable=True)
 
+    # Legacy columns kept NOT NULL in the SQLite schema from an earlier
+    # premium-tier / per-user SMTP era. The features are retired but the
+    # constraints remain, so the model must supply defaults on INSERT.
+    tier = db.Column(db.String(20), default='free', nullable=False)
+    smtp_use_tls = db.Column(db.Boolean, default=True, nullable=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login = db.Column(db.DateTime, nullable=True)
