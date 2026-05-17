@@ -4,208 +4,290 @@
 {% block content %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
 
 <style>
-  .editorial-canvas {
-    --ink: #0F1F3A;
-    --ink-soft: rgba(15, 31, 58, 0.6);
-    --wash: #D6E0EC;
-    --cream: #FAF8F3;
-    --rule: rgba(15, 31, 58, 0.16);
+  .memo-canvas {
+    --paper: #E8DCC4;
+    --paper-deep: #D5C5A2;
+    --ink: #0A1428;
+    --ink-soft: rgba(10, 20, 40, 0.55);
+    --alert: #D14B2C;
 
     position: relative;
     margin: -1.5rem -15px 0;
     min-height: calc(100vh - 80px);
-    background: var(--cream);
+    background: var(--paper);
     color: var(--ink);
-    font-family: 'Instrument Sans', system-ui, sans-serif;
+    font-family: 'IBM Plex Mono', monospace;
     overflow: hidden;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
   }
 
-  /* Subtle paper grain — printed-page feel, not glossy web canvas. */
-  .editorial-canvas::before {
+  /* Paper grain + horizontal scan lines = mimeograph/terminal hybrid */
+  .memo-canvas::before {
     content: "";
-    position: absolute; inset: 0;
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06  0 0 0 0 0.12  0 0 0 0 0.23  0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-    opacity: 0.7;
+    position: absolute;
+    inset: 0;
     pointer-events: none;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06  0 0 0 0 0.10  0 0 0 0 0.18  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 3px,
+        rgba(10, 20, 40, 0.025) 3px,
+        rgba(10, 20, 40, 0.025) 4px
+      );
     z-index: 1;
   }
 
-  .editorial-masthead {
+  /* === MASTHEAD === */
+  .memo-header {
     position: relative;
     z-index: 2;
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    padding: 1.4rem clamp(1.5rem, 5vw, 4rem);
-    border-bottom: 1px solid var(--rule);
-    font-family: 'JetBrains Mono', monospace;
+    align-items: center;
+    padding: 1.15rem clamp(1.5rem, 5vw, 4rem);
+    border-bottom: 3px double var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 0.7rem;
-    letter-spacing: 0.22em;
+    font-weight: 500;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
   }
-  .mast-left  { color: var(--ink); font-weight: 600; }
-  .mast-right { color: var(--ink-soft); font-weight: 400; }
+  .memo-header .h-left {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+  .memo-header .seal {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .memo-header .seal::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    background: var(--alert);
+    border-radius: 50%;
+  }
+  .memo-header .label-mute { color: var(--ink-soft); }
 
-  .editorial-hero {
+  /* === HERO === */
+  .memo-hero {
     position: relative;
     z-index: 2;
     display: grid;
-    grid-template-columns: 1.25fr 1fr;
+    grid-template-columns: 1.15fr 1fr;
     align-items: center;
     gap: clamp(2rem, 4vw, 5rem);
-    padding: clamp(3rem, 8vw, 6.5rem) clamp(1.5rem, 5vw, 4rem);
+    padding: clamp(3rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4rem);
   }
 
-  .editorial-text { max-width: 38rem; }
-  .editorial-text > * { opacity: 0; transform: translateY(14px); animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
-  .editorial-text .label   { animation-delay: 0.10s; }
-  .editorial-text .display { animation-delay: 0.25s; }
-  .editorial-text .rule    { animation-delay: 0.50s; }
-  .editorial-text .body    { animation-delay: 0.65s; }
-  .editorial-text .signin  { animation-delay: 0.80s; }
+  .memo-text { max-width: 38rem; }
+  .memo-text > * {
+    opacity: 0;
+    transform: translateY(12px);
+    animation: rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .memo-text .section-tag { animation-delay: 0.10s; }
+  .memo-text .display     { animation-delay: 0.22s; }
+  .memo-text .rule        { animation-delay: 0.48s; }
+  .memo-text .body        { animation-delay: 0.62s; }
+  .memo-text .signin      { animation-delay: 0.78s; }
 
-  .editorial-text .label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.26em;
+  .memo-text .section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+    border: 1.5px solid var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--ink-soft);
-    margin: 0 0 1.75rem;
+    margin-bottom: 2rem;
   }
-
-  .editorial-text .display {
-    font-family: 'Fraunces', serif;
-    font-variation-settings: 'opsz' 144;
-    font-size: clamp(3.2rem, 7.5vw, 6.2rem);
-    line-height: 0.92;
-    letter-spacing: -0.025em;
-    margin: 0 0 2rem;
-    color: var(--ink);
-  }
-  .editorial-text .display .ital {
-    display: block;
+  .memo-text .section-tag .sigil {
+    font-family: 'IBM Plex Serif', serif;
     font-style: italic;
     font-weight: 400;
-  }
-  .editorial-text .display .reg {
-    display: block;
-    font-weight: 500;
-    margin-top: -0.05em;
+    font-size: 1rem;
+    line-height: 1;
+    letter-spacing: 0;
   }
 
-  .editorial-text .rule {
-    width: 56px;
-    height: 1px;
+  .memo-text .display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: clamp(2.8rem, 7vw, 5.6rem);
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    margin: 0 0 1.75rem;
+    color: var(--ink);
+  }
+  .memo-text .display .slash {
+    color: var(--alert);
+    font-weight: 700;
+    margin: 0 -0.04em;
+  }
+
+  .memo-text .rule {
+    width: 96px;
+    height: 2px;
     background: var(--ink);
     margin: 0 0 1.75rem;
   }
 
-  .editorial-text .body {
+  .memo-text .body {
+    font-family: 'IBM Plex Serif', serif;
+    font-style: italic;
     font-size: 1.05rem;
     line-height: 1.55;
-    color: var(--ink-soft);
-    max-width: 28rem;
+    color: var(--ink);
+    max-width: 26rem;
     margin: 0 0 2.5rem;
   }
 
-  .editorial-text .signin {
+  .memo-text .signin {
     display: inline-flex;
     align-items: center;
     gap: 0.85rem;
-    padding: 0.95rem 1.6rem;
-    background: var(--ink);
-    color: var(--cream);
+    padding: 0.85rem 1.6rem 0.85rem 1.1rem;
+    background: var(--paper);
+    color: var(--ink);
     text-decoration: none;
-    font-family: 'Instrument Sans', sans-serif;
-    font-weight: 500;
-    font-size: 0.95rem;
-    border: 1px solid var(--ink);
-    transition: background 0.25s ease, transform 0.25s ease;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border: 2px solid var(--ink);
+    transition: background 0.2s ease, color 0.2s ease;
   }
-  .editorial-text .signin:hover {
-    background: #000;
-    color: var(--cream);
-    transform: translateY(-1px);
+  .memo-text .signin:hover {
+    background: var(--ink);
+    color: var(--paper);
   }
-  .editorial-text .signin .arrow {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    transition: transform 0.25s ease;
-  }
-  .editorial-text .signin:hover .arrow {
-    transform: translateX(3px);
+  .memo-text .signin .key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.7rem;
+    height: 1.2rem;
+    padding: 0 0.3rem;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    line-height: 1;
   }
 
-  .editorial-mark {
+  /* === FIGURE (halftone whale) === */
+  .memo-figure {
     position: relative;
-    height: 100%;
-    min-height: 22rem;
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
   }
-  .editorial-mark .whale {
-    width: clamp(20rem, 32vw, 34rem);
+  .memo-figure .frame {
+    position: relative;
+    width: clamp(22rem, 32vw, 32rem);
     aspect-ratio: 696 / 400;
+    padding: 0;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    opacity: 0;
+    animation: rise-slow 1.4s ease-out 0.4s forwards;
+  }
+  .memo-figure .corner {
+    position: absolute;
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--ink);
+  }
+  .memo-figure .corner.tl { top: -5px;    left: -5px;  border-right: none; border-bottom: none; }
+  .memo-figure .corner.tr { top: -5px;    right: -5px; border-left: none;  border-bottom: none; }
+  .memo-figure .corner.bl { bottom: -5px; left: -5px;  border-right: none; border-top: none; }
+  .memo-figure .corner.br { bottom: -5px; right: -5px; border-left: none;  border-top: none; }
+
+  /* The whale rendered as a halftone-dot pattern, masked to the
+     silhouette. Two offset radial-gradient layers fake a Bayer-like
+     dot grid — the same trick 70s newspapers used to print photos. */
+  .memo-figure .whale {
+    width: 100%;
+    height: 100%;
     -webkit-mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
             mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
     -webkit-mask-repeat: no-repeat;
             mask-repeat: no-repeat;
-    -webkit-mask-position: right center;
-            mask-position: right center;
+    -webkit-mask-position: center;
+            mask-position: center;
     -webkit-mask-size: contain;
             mask-size: contain;
-    background: var(--wash);
-    opacity: 0;
-    animation: rise-slow 1.6s ease-out 0.4s forwards;
-  }
-  /* A single horizon line: a thin rule sitting at the visual centerline
-     where the whale's spine would be. Editorial conceit — the whale
-     emerges from the rule like a print mark. */
-  .editorial-mark::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: 0;
-    width: clamp(20rem, 32vw, 34rem);
-    height: 1px;
-    background: var(--ink);
-    opacity: 0.18;
+    background:
+      radial-gradient(circle, var(--ink) 1.2px, transparent 1.5px) 0 0/7px 7px,
+      radial-gradient(circle, var(--ink) 1.2px, transparent 1.5px) 3.5px 3.5px/7px 7px;
   }
 
-  @keyframes rise {
-    to { opacity: 1; transform: translateY(0); }
+  .memo-figure .caption {
+    margin-top: 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    opacity: 0;
+    animation: rise-slow 1.4s ease-out 0.65s forwards;
   }
-  @keyframes rise-slow {
-    to { opacity: 1; }
+
+  /* === FOOTER === */
+  .memo-footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem clamp(1.5rem, 5vw, 4rem);
+    border-top: 1.5px solid var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
   }
+  .memo-footer .crosshairs {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .memo-footer .crosshairs span {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border: 1px solid var(--ink);
+    transform: rotate(45deg);
+  }
+
+  @keyframes rise      { to { opacity: 1; transform: translateY(0); } }
+  @keyframes rise-slow { to { opacity: 1; } }
 
   @media (max-width: 900px) {
-    .editorial-hero { grid-template-columns: 1fr; }
-    .editorial-mark {
-      min-height: 16rem;
-      justify-content: center;
-    }
-    .editorial-mark .whale {
-      -webkit-mask-position: center;
-              mask-position: center;
-      width: min(22rem, 70vw);
-    }
-    .editorial-mark::before {
-      width: min(22rem, 70vw);
-      right: 50%;
-      transform: translateX(50%);
-    }
+    .memo-hero { grid-template-columns: 1fr; }
+    .memo-figure { align-items: center; }
+    .memo-figure .frame { width: min(22rem, 75vw); }
+    .memo-header .h-left { gap: 0.85rem; }
+    .memo-header .h-left .label-mute { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .editorial-text > *, .editorial-mark .whale {
+    .memo-text > *, .memo-figure .frame, .memo-figure .caption {
       opacity: 1 !important;
       transform: none !important;
       animation: none !important;
@@ -213,30 +295,47 @@
   }
 </style>
 
-<div class="editorial-canvas">
-  <header class="editorial-masthead">
-    <span class="mast-left">NewWhale Career</span>
-    <span class="mast-right">Student Portal · Access</span>
+<div class="memo-canvas">
+  <header class="memo-header">
+    <div class="h-left">
+      <div class="seal" aria-hidden="true"></div>
+      <span>NewWhale Career</span>
+      <span class="label-mute">Doc. №01</span>
+    </div>
+    <div class="h-right">
+      <span>Access · MMXXVI</span>
+    </div>
   </header>
 
-  <section class="editorial-hero">
-    <div class="editorial-text">
-      <div class="label">Sign In</div>
-      <h1 class="display">
-        <span class="ital">Portal</span>
-        <span class="reg">for Students.</span>
-      </h1>
+  <section class="memo-hero">
+    <div class="memo-text">
+      <div class="section-tag"><span class="sigil">§</span> 01 / Sign In</div>
+      <h1 class="display">Portal<span class="slash">/</span><br>For Students.</h1>
       <div class="rule"></div>
       <p class="body">Sign in with the credentials issued to you by your administrator.</p>
       <a href="{{ url_for('auth.login') }}" class="signin">
-        Sign in
-        <span class="arrow">→</span>
+        <span class="key">&#x21B5;</span>
+        Sign In
       </a>
     </div>
 
-    <div class="editorial-mark">
-      <div class="whale" aria-hidden="true"></div>
+    <div class="memo-figure">
+      <div class="frame">
+        <span class="corner tl" aria-hidden="true"></span>
+        <span class="corner tr" aria-hidden="true"></span>
+        <span class="corner bl" aria-hidden="true"></span>
+        <span class="corner br" aria-hidden="true"></span>
+        <div class="whale" aria-hidden="true"></div>
+      </div>
+      <div class="caption">Fig. 01 · NWC Sigil</div>
     </div>
   </section>
+
+  <footer class="memo-footer">
+    <span>End of document</span>
+    <div class="crosshairs" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+  </footer>
 </div>
 {% endblock %}
