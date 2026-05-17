@@ -88,3 +88,18 @@ def change_password():
         return redirect(url_for('web.index'))
 
     return render_template('auth/change_password.html')
+
+
+@auth_bp.route('/check')
+def check():
+    """Lightweight endpoint for nginx auth_request.
+
+    Returns 200 if the request carries a valid session belonging to an
+    admin or active student, else 401. Used to gate /macro and
+    /competitions (and any other path nginx points at this endpoint).
+    """
+    if not current_user.is_authenticated:
+        return '', 401
+    if current_user.is_admin or current_user.is_active_account:
+        return '', 200
+    return '', 401
