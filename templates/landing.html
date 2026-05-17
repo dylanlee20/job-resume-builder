@@ -2,316 +2,241 @@
 {% block title %}NewWhale Career Portal{% endblock %}
 
 {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
-  /* Dark cosmic canvas, like lu.ma. The radial gradient creates the
-     glow that bleeds from the center outward, dying into near-black
-     at the edges. */
-  .landing-wrap {
+  .editorial-canvas {
+    --ink: #0F1F3A;
+    --ink-soft: rgba(15, 31, 58, 0.6);
+    --wash: #D6E0EC;
+    --cream: #FAF8F3;
+    --rule: rgba(15, 31, 58, 0.16);
+
     position: relative;
-    min-height: calc(100vh - 80px);
     margin: -1.5rem -15px 0;
-    padding: clamp(2rem, 6vw, 5rem) clamp(1.5rem, 6vw, 6rem);
-    background:
-      radial-gradient(ellipse at 35% 50%, #4a1654 0%, #1a0822 32%, #050308 70%),
-      #050308;
-    color: #f1ecf9;
+    min-height: calc(100vh - 80px);
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Instrument Sans', system-ui, sans-serif;
     overflow: hidden;
     display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
-    align-items: center;
-    gap: clamp(2rem, 5vw, 5rem);
-    perspective: 1500px;
+    grid-template-rows: auto 1fr;
   }
 
-  /* The hot-pink halo sits behind the whale and breathes. It's the
-     defining 'lu.ma orb' atmosphere. */
-  .halo {
-    position: absolute;
-    left: clamp(-4rem, -2vw, -2rem);
-    top: 50%;
-    width: clamp(36rem, 55vw, 64rem);
-    aspect-ratio: 1;
-    transform: translateY(-50%);
+  /* Subtle paper grain — printed-page feel, not glossy web canvas. */
+  .editorial-canvas::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06  0 0 0 0 0.12  0 0 0 0 0.23  0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: 0.7;
     pointer-events: none;
-    background:
-      radial-gradient(circle at 45% 45%,
-        rgba(255, 78, 158, 0.55) 0%,
-        rgba(168, 85, 247, 0.32) 22%,
-        rgba(76, 29, 149, 0.18) 42%,
-        transparent 65%);
-    filter: blur(8px);
-    animation: halo-breathe 9s ease-in-out infinite;
-  }
-  @keyframes halo-breathe {
-    0%, 100% { opacity: 0.92; transform: translateY(-50%) scale(1); }
-    50%      { opacity: 1;    transform: translateY(-50%) scale(1.04); }
+    z-index: 1;
   }
 
-  .landing-visual {
+  .editorial-masthead {
     position: relative;
+    z-index: 2;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 1.4rem clamp(1.5rem, 5vw, 4rem);
+    border-bottom: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .mast-left  { color: var(--ink); font-weight: 600; }
+  .mast-right { color: var(--ink-soft); font-weight: 400; }
+
+  .editorial-hero {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
     align-items: center;
+    gap: clamp(2rem, 4vw, 5rem);
+    padding: clamp(3rem, 8vw, 6.5rem) clamp(1.5rem, 5vw, 4rem);
   }
 
-  .tilt-card {
+  .editorial-text { max-width: 38rem; }
+  .editorial-text > * { opacity: 0; transform: translateY(14px); animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+  .editorial-text .label   { animation-delay: 0.10s; }
+  .editorial-text .display { animation-delay: 0.25s; }
+  .editorial-text .rule    { animation-delay: 0.50s; }
+  .editorial-text .body    { animation-delay: 0.65s; }
+  .editorial-text .signin  { animation-delay: 0.80s; }
+
+  .editorial-text .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 1.75rem;
+  }
+
+  .editorial-text .display {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144;
+    font-size: clamp(3.2rem, 7.5vw, 6.2rem);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    margin: 0 0 2rem;
+    color: var(--ink);
+  }
+  .editorial-text .display .ital {
+    display: block;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .editorial-text .display .reg {
+    display: block;
+    font-weight: 500;
+    margin-top: -0.05em;
+  }
+
+  .editorial-text .rule {
+    width: 56px;
+    height: 1px;
+    background: var(--ink);
+    margin: 0 0 1.75rem;
+  }
+
+  .editorial-text .body {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 28rem;
+    margin: 0 0 2.5rem;
+  }
+
+  .editorial-text .signin {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.95rem 1.6rem;
+    background: var(--ink);
+    color: var(--cream);
+    text-decoration: none;
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    border: 1px solid var(--ink);
+    transition: background 0.25s ease, transform 0.25s ease;
+  }
+  .editorial-text .signin:hover {
+    background: #000;
+    color: var(--cream);
+    transform: translateY(-1px);
+  }
+  .editorial-text .signin .arrow {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    transition: transform 0.25s ease;
+  }
+  .editorial-text .signin:hover .arrow {
+    transform: translateX(3px);
+  }
+
+  .editorial-mark {
     position: relative;
-    width: min(640px, 100%);
-    aspect-ratio: 696 / 400;
-    transform-style: preserve-3d;
-    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-    will-change: transform;
-  }
-
-  /* Floating decorative shapes ('emojis' in lu.ma's case). They live
-     above and around the whale at different translateZ depths so the
-     parallax shifts them by different amounts on hover. */
-  .float-deco {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(0.5px);
-    transform: translate3d(
-      calc(var(--mx, 0) * var(--depth, 1) * 1px),
-      calc(var(--my, 0) * var(--depth, 1) * 1px),
-      calc(var(--z, 0) * 1px)
-    );
-    transition: transform 0.3s ease-out;
-    box-shadow:
-      0 8px 24px rgba(0,0,0,0.35),
-      inset 0 -4px 10px rgba(0,0,0,0.25),
-      inset 0 4px 10px rgba(255,255,255,0.35);
-    will-change: transform;
-  }
-  .float-deco.d1 { width: 70px; height: 70px; top: -8%; left: -12%; --depth: 2.0; --z: 80px;
-                   background: radial-gradient(circle at 30% 30%, #ffc7e1, #ff3d8b 70%); animation: bob1 7s ease-in-out infinite; }
-  .float-deco.d2 { width: 56px; height: 56px; top: -16%; right: -2%; --depth: 1.4; --z: 60px;
-                   background: radial-gradient(circle at 35% 35%, #fef3a5, #fbbf24 70%); animation: bob2 8s ease-in-out infinite; }
-  .float-deco.d3 { width: 84px; height: 84px; bottom: -10%; left: 8%; --depth: 1.7; --z: 70px;
-                   background: radial-gradient(circle at 30% 30%, #b9f3ff, #22d3ee 70%); animation: bob3 9s ease-in-out infinite; }
-  .float-deco.d4 { width: 48px; height: 48px; bottom: -4%; right: 12%; --depth: 1.1; --z: 50px;
-                   background: radial-gradient(circle at 30% 30%, #d8c4ff, #a855f7 70%); animation: bob4 10s ease-in-out infinite; }
-  .float-deco.d5 { width: 36px; height: 36px; top: 30%; right: -8%; --depth: 2.4; --z: 90px;
-                   background: radial-gradient(circle at 30% 30%, #ffdac1, #ff7a59 70%); animation: bob1 11s ease-in-out infinite reverse; }
-
-  @keyframes bob1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8px, -10px); } }
-  @keyframes bob2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-6px, -8px); } }
-  @keyframes bob3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(7px, 9px); } }
-  @keyframes bob4 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-9px, 6px); } }
-
-  .whale {
-    position: relative;
-    width: 100%;
     height: 100%;
+    min-height: 22rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .editorial-mark .whale {
+    width: clamp(20rem, 32vw, 34rem);
+    aspect-ratio: 696 / 400;
     -webkit-mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
             mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
     -webkit-mask-repeat: no-repeat;
             mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-            mask-position: center;
+    -webkit-mask-position: right center;
+            mask-position: right center;
     -webkit-mask-size: contain;
             mask-size: contain;
-    -webkit-mask-mode: alpha;
-            mask-mode: alpha;
-    background:
-      radial-gradient(circle at 26% 28%, rgba(255,255,255,0.55) 0%, transparent 38%),
-      conic-gradient(
-        from 90deg at 40% 40%,
-        #ff3d8b 0deg,
-        #ffb000 55deg,
-        #ff7a59 105deg,
-        #a855f7 185deg,
-        #4d7fff 250deg,
-        #22d3ee 315deg,
-        #ff3d8b 360deg
-      );
-    filter:
-      drop-shadow(0 40px 80px rgba(255, 61, 139, 0.5))
-      drop-shadow(0 0 120px rgba(168, 85, 247, 0.45));
-    transform-style: preserve-3d;
+    background: var(--wash);
+    opacity: 0;
+    animation: rise-slow 1.6s ease-out 0.4s forwards;
   }
-
-  /* Cloud layers add motion + parallax on top of the vibrant base. */
-  .cloud-wrap {
+  /* A single horizon line: a thin rule sitting at the visual centerline
+     where the whale's spine would be. Editorial conceit — the whale
+     emerges from the rule like a print mark. */
+  .editorial-mark::before {
+    content: "";
     position: absolute;
-    transform-style: preserve-3d;
-    will-change: transform;
+    top: 50%;
+    right: 0;
+    width: clamp(20rem, 32vw, 34rem);
+    height: 1px;
+    background: var(--ink);
+    opacity: 0.18;
   }
-  .cloud {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    filter: blur(26px);
-    opacity: 0.88;
-    mix-blend-mode: overlay;
-    transform: translate3d(
-      calc(var(--mx, 0) * var(--depth, 0.5) * 1px),
-      calc(var(--my, 0) * var(--depth, 0.5) * 1px),
-      calc(var(--depth, 0.5) * 40px)
-    );
-    transition: transform 0.3s ease-out;
-    will-change: transform;
-  }
-  .cloud-wrap.c1 { width: 60%; height: 80%; left: -8%; top: -16%; animation: drift1 14s ease-in-out infinite; }
-  .cloud-wrap.c1 .cloud { background: radial-gradient(circle at 35% 35%, #ff3d8b 0%, transparent 70%); --depth: 1.0; }
-  .cloud-wrap.c2 { width: 58%; height: 78%; left: 38%; top: -10%; animation: drift2 17s ease-in-out infinite; }
-  .cloud-wrap.c2 .cloud { background: radial-gradient(circle at 50% 50%, #ffb000 0%, transparent 65%); --depth: 0.6; }
-  .cloud-wrap.c3 { width: 70%; height: 90%; left: -4%; top: 22%;  animation: drift3 19s ease-in-out infinite; }
-  .cloud-wrap.c3 .cloud { background: radial-gradient(circle at 40% 60%, #a855f7 0%, transparent 70%); --depth: 1.3; }
-  .cloud-wrap.c4 { width: 56%; height: 70%; left: 48%; top: 26%;  animation: drift4 13s ease-in-out infinite; }
-  .cloud-wrap.c4 .cloud { background: radial-gradient(circle at 60% 40%, #4d7fff 0%, transparent 65%); --depth: 0.8; }
-  .cloud-wrap.c5 { width: 46%; height: 60%; left: 22%; top: 42%;  animation: drift5 21s ease-in-out infinite; }
-  .cloud-wrap.c5 .cloud { background: radial-gradient(circle at 50% 50%, #22d3ee 0%, transparent 72%); --depth: 1.6; }
 
-  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.06); } }
-  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6%, 9%) scale(1.08); } }
-  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(7%, -6%) scale(1.05); } }
-  @keyframes drift4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9%, -5%) scale(1.07); } }
-  @keyframes drift5 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%, 8%) scale(1.09); } }
-
-  .landing-content {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    max-width: 480px;
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
   }
-  .landing-eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: rgba(241, 236, 249, 0.65);
-    margin-bottom: 1.25rem;
-  }
-  .landing-title {
-    font-size: clamp(2rem, 4.4vw, 3.4rem);
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.02em;
-    line-height: 1.08;
-    margin: 0 0 1.25rem;
-    text-shadow: 0 4px 24px rgba(168, 85, 247, 0.35);
-  }
-  .landing-sub {
-    color: rgba(241, 236, 249, 0.75);
-    font-size: clamp(1rem, 1.4vw, 1.15rem);
-    line-height: 1.55;
-    margin: 0 0 2.25rem;
-  }
-  .landing-cta .btn {
-    padding: 0.9rem 2.4rem;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 1rem;
-    background: linear-gradient(135deg, #ff3d8b 0%, #a855f7 100%);
-    color: #ffffff;
-    border: none;
-    box-shadow: 0 12px 30px rgba(255, 61, 139, 0.35), 0 4px 12px rgba(0,0,0,0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .landing-cta .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 38px rgba(255, 61, 139, 0.45), 0 6px 14px rgba(0,0,0,0.35);
-    color: #ffffff;
+  @keyframes rise-slow {
+    to { opacity: 1; }
   }
 
   @media (max-width: 900px) {
-    .landing-wrap {
-      grid-template-columns: 1fr;
-      text-align: center;
+    .editorial-hero { grid-template-columns: 1fr; }
+    .editorial-mark {
+      min-height: 16rem;
+      justify-content: center;
     }
-    .landing-content {
-      align-items: center;
-      text-align: center;
-      max-width: 100%;
+    .editorial-mark .whale {
+      -webkit-mask-position: center;
+              mask-position: center;
+      width: min(22rem, 70vw);
     }
-    .tilt-card { width: min(520px, 80vw); }
-    .halo { width: 30rem; left: 50%; transform: translate(-50%, -50%); }
-    @keyframes halo-breathe {
-      0%, 100% { opacity: 0.92; transform: translate(-50%, -50%) scale(1); }
-      50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.04); }
+    .editorial-mark::before {
+      width: min(22rem, 70vw);
+      right: 50%;
+      transform: translateX(50%);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .cloud-wrap, .float-deco, .halo { animation: none !important; }
-    .tilt-card { transition: none !important; }
-    .landing-cta .btn:hover { transform: none; }
+    .editorial-text > *, .editorial-mark .whale {
+      opacity: 1 !important;
+      transform: none !important;
+      animation: none !important;
+    }
   }
 </style>
 
-<div class="landing-wrap" id="landingScene">
-  <div class="halo" aria-hidden="true"></div>
+<div class="editorial-canvas">
+  <header class="editorial-masthead">
+    <span class="mast-left">NewWhale Career</span>
+    <span class="mast-right">Student Portal · Access</span>
+  </header>
 
-  <div class="landing-visual">
-    <div class="tilt-card" id="tiltCard">
-      <span class="float-deco d1" aria-hidden="true"></span>
-      <span class="float-deco d2" aria-hidden="true"></span>
-      <span class="float-deco d3" aria-hidden="true"></span>
-      <span class="float-deco d4" aria-hidden="true"></span>
-      <span class="float-deco d5" aria-hidden="true"></span>
-
-      <div class="whale" aria-hidden="true">
-        <span class="cloud-wrap c1"><span class="cloud"></span></span>
-        <span class="cloud-wrap c2"><span class="cloud"></span></span>
-        <span class="cloud-wrap c3"><span class="cloud"></span></span>
-        <span class="cloud-wrap c4"><span class="cloud"></span></span>
-        <span class="cloud-wrap c5"><span class="cloud"></span></span>
-      </div>
-    </div>
-  </div>
-
-  <div class="landing-content">
-    <div class="landing-eyebrow">NewWhale Career</div>
-    <h1 class="landing-title">Portal for Students</h1>
-    <p class="landing-sub">Sign in with the credentials your administrator issued.</p>
-    <div class="landing-cta">
-      <a href="{{ url_for('auth.login') }}" class="btn">
-        <i class="bi bi-box-arrow-in-right"></i> Sign in
+  <section class="editorial-hero">
+    <div class="editorial-text">
+      <div class="label">Sign In</div>
+      <h1 class="display">
+        <span class="ital">Portal</span>
+        <span class="reg">for Students.</span>
+      </h1>
+      <div class="rule"></div>
+      <p class="body">Sign in with the credentials issued to you by your administrator.</p>
+      <a href="{{ url_for('auth.login') }}" class="signin">
+        Sign in
+        <span class="arrow">→</span>
       </a>
     </div>
-  </div>
+
+    <div class="editorial-mark">
+      <div class="whale" aria-hidden="true"></div>
+    </div>
+  </section>
 </div>
-
-<script>
-  (function () {
-    var scene = document.getElementById('landingScene');
-    var card = document.getElementById('tiltCard');
-    if (!scene || !card) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    var raf = null;
-    var tMX = 0, tMY = 0, cMX = 0, cMY = 0;
-    var tRX = 0, tRY = 0, cRX = 0, cRY = 0;
-
-    function loop() {
-      cMX += (tMX - cMX) * 0.12;
-      cMY += (tMY - cMY) * 0.12;
-      cRX += (tRX - cRX) * 0.12;
-      cRY += (tRY - cRY) * 0.12;
-      card.style.setProperty('--rx', cRX.toFixed(2) + 'deg');
-      card.style.setProperty('--ry', cRY.toFixed(2) + 'deg');
-      card.style.setProperty('--mx', cMX.toFixed(2));
-      card.style.setProperty('--my', cMY.toFixed(2));
-      raf = requestAnimationFrame(loop);
-    }
-
-    scene.addEventListener('mousemove', function (e) {
-      var rect = scene.getBoundingClientRect();
-      var nx = (e.clientX - rect.left) / rect.width - 0.5;
-      var ny = (e.clientY - rect.top) / rect.height - 0.5;
-      tRX = -ny * 16;
-      tRY = nx * 20;
-      tMX = nx * 80;
-      tMY = ny * 60;
-      if (raf === null) loop();
-    });
-    scene.addEventListener('mouseleave', function () {
-      tMX = 0; tMY = 0; tRX = 0; tRY = 0;
-    });
-  })();
-</script>
 {% endblock %}
