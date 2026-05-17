@@ -3,34 +3,101 @@
 
 {% block content %}
 <style>
+  /* Dark cosmic canvas, like lu.ma. The radial gradient creates the
+     glow that bleeds from the center outward, dying into near-black
+     at the edges. */
   .landing-wrap {
+    position: relative;
     min-height: calc(100vh - 80px);
+    margin: -1.5rem -15px 0;
+    padding: clamp(2rem, 6vw, 5rem) clamp(1.5rem, 6vw, 6rem);
+    background:
+      radial-gradient(ellipse at 35% 50%, #4a1654 0%, #1a0822 32%, #050308 70%),
+      #050308;
+    color: #f1ecf9;
+    overflow: hidden;
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: 1.05fr 0.95fr;
     align-items: center;
     gap: clamp(2rem, 5vw, 5rem);
-    padding: clamp(2rem, 6vw, 5rem) clamp(1.5rem, 6vw, 6rem);
-    overflow: hidden;
-    perspective: 1400px;
+    perspective: 1500px;
+  }
+
+  /* The hot-pink halo sits behind the whale and breathes. It's the
+     defining 'lu.ma orb' atmosphere. */
+  .halo {
+    position: absolute;
+    left: clamp(-4rem, -2vw, -2rem);
+    top: 50%;
+    width: clamp(36rem, 55vw, 64rem);
+    aspect-ratio: 1;
+    transform: translateY(-50%);
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 45% 45%,
+        rgba(255, 78, 158, 0.55) 0%,
+        rgba(168, 85, 247, 0.32) 22%,
+        rgba(76, 29, 149, 0.18) 42%,
+        transparent 65%);
+    filter: blur(8px);
+    animation: halo-breathe 9s ease-in-out infinite;
+  }
+  @keyframes halo-breathe {
+    0%, 100% { opacity: 0.92; transform: translateY(-50%) scale(1); }
+    50%      { opacity: 1;    transform: translateY(-50%) scale(1.04); }
   }
 
   .landing-visual {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
   }
 
-  /* The tilt card is the element that rotates with the mouse.
-     It establishes a 3D space for its children via preserve-3d so
-     the parallax shifts inside the whale read as depth. */
   .tilt-card {
-    width: min(680px, 100%);
+    position: relative;
+    width: min(640px, 100%);
     aspect-ratio: 696 / 400;
     transform-style: preserve-3d;
     transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
     will-change: transform;
   }
+
+  /* Floating decorative shapes ('emojis' in lu.ma's case). They live
+     above and around the whale at different translateZ depths so the
+     parallax shifts them by different amounts on hover. */
+  .float-deco {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(0.5px);
+    transform: translate3d(
+      calc(var(--mx, 0) * var(--depth, 1) * 1px),
+      calc(var(--my, 0) * var(--depth, 1) * 1px),
+      calc(var(--z, 0) * 1px)
+    );
+    transition: transform 0.3s ease-out;
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.35),
+      inset 0 -4px 10px rgba(0,0,0,0.25),
+      inset 0 4px 10px rgba(255,255,255,0.35);
+    will-change: transform;
+  }
+  .float-deco.d1 { width: 70px; height: 70px; top: -8%; left: -12%; --depth: 2.0; --z: 80px;
+                   background: radial-gradient(circle at 30% 30%, #ffc7e1, #ff3d8b 70%); animation: bob1 7s ease-in-out infinite; }
+  .float-deco.d2 { width: 56px; height: 56px; top: -16%; right: -2%; --depth: 1.4; --z: 60px;
+                   background: radial-gradient(circle at 35% 35%, #fef3a5, #fbbf24 70%); animation: bob2 8s ease-in-out infinite; }
+  .float-deco.d3 { width: 84px; height: 84px; bottom: -10%; left: 8%; --depth: 1.7; --z: 70px;
+                   background: radial-gradient(circle at 30% 30%, #b9f3ff, #22d3ee 70%); animation: bob3 9s ease-in-out infinite; }
+  .float-deco.d4 { width: 48px; height: 48px; bottom: -4%; right: 12%; --depth: 1.1; --z: 50px;
+                   background: radial-gradient(circle at 30% 30%, #d8c4ff, #a855f7 70%); animation: bob4 10s ease-in-out infinite; }
+  .float-deco.d5 { width: 36px; height: 36px; top: 30%; right: -8%; --depth: 2.4; --z: 90px;
+                   background: radial-gradient(circle at 30% 30%, #ffdac1, #ff7a59 70%); animation: bob1 11s ease-in-out infinite reverse; }
+
+  @keyframes bob1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8px, -10px); } }
+  @keyframes bob2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-6px, -8px); } }
+  @keyframes bob3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(7px, 9px); } }
+  @keyframes bob4 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-9px, 6px); } }
 
   .whale {
     position: relative;
@@ -46,31 +113,25 @@
             mask-size: contain;
     -webkit-mask-mode: alpha;
             mask-mode: alpha;
-    /* Vibrant base: a conic gradient cycles through the same electric
-       palette the clouds use, so the whale is colorful even in the
-       gaps between clouds. The clouds then add motion + parallax on
-       top via mix-blend-mode: overlay (which intensifies the base
-       rather than washing it out the way screen would). */
     background:
-      radial-gradient(circle at 28% 32%, rgba(255,255,255,0.45) 0%, transparent 36%),
+      radial-gradient(circle at 26% 28%, rgba(255,255,255,0.55) 0%, transparent 38%),
       conic-gradient(
-        from 90deg at 38% 38%,
+        from 90deg at 40% 40%,
         #ff3d8b 0deg,
-        #ffb000 60deg,
-        #ff7a59 110deg,
-        #a855f7 195deg,
-        #4d7fff 255deg,
+        #ffb000 55deg,
+        #ff7a59 105deg,
+        #a855f7 185deg,
+        #4d7fff 250deg,
         #22d3ee 315deg,
         #ff3d8b 360deg
       );
-    filter: drop-shadow(0 30px 60px rgba(168, 85, 247, 0.32))
-            drop-shadow(0 0 80px rgba(255, 61, 139, 0.22));
+    filter:
+      drop-shadow(0 40px 80px rgba(255, 61, 139, 0.5))
+      drop-shadow(0 0 120px rgba(168, 85, 247, 0.45));
     transform-style: preserve-3d;
   }
 
-  /* Each .cloud-wrap autonomously drifts (CSS keyframes).
-     Inside it, .cloud parallaxes with the mouse via CSS variables
-     so the two motions compose without overriding each other. */
+  /* Cloud layers add motion + parallax on top of the vibrant base. */
   .cloud-wrap {
     position: absolute;
     transform-style: preserve-3d;
@@ -80,49 +141,37 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    filter: blur(28px);
-    opacity: 0.96;
+    filter: blur(26px);
+    opacity: 0.88;
     mix-blend-mode: overlay;
     transform: translate3d(
-        calc(var(--mx, 0) * var(--depth, 0.3) * 1px),
-        calc(var(--my, 0) * var(--depth, 0.3) * 1px),
-        calc(var(--depth, 0.3) * 40px)
+      calc(var(--mx, 0) * var(--depth, 0.5) * 1px),
+      calc(var(--my, 0) * var(--depth, 0.5) * 1px),
+      calc(var(--depth, 0.5) * 40px)
     );
-    transition: transform 0.25s ease-out;
+    transition: transform 0.3s ease-out;
     will-change: transform;
   }
-
-  /* Vibrant electric palette, with each cloud at a different depth
-     so they layer and parallax independently. */
-  .cloud-wrap.c1 { width: 62%; height: 82%; left: -10%; top: -18%;  animation: drift1 14s ease-in-out infinite; }
-  .cloud-wrap.c1 .cloud { background: radial-gradient(circle at 35% 35%, #ff3d8b 0%, transparent 70%); --depth: 0.9; }
-
-  .cloud-wrap.c2 { width: 58%; height: 78%; left: 36%; top: -12%;  animation: drift2 17s ease-in-out infinite; }
-  .cloud-wrap.c2 .cloud { background: radial-gradient(circle at 50% 50%, #ffb000 0%, transparent 65%); --depth: 0.5; }
-
-  .cloud-wrap.c3 { width: 72%; height: 92%; left: -5%; top: 20%;   animation: drift3 19s ease-in-out infinite; }
-  .cloud-wrap.c3 .cloud { background: radial-gradient(circle at 40% 60%, #a855f7 0%, transparent 70%); --depth: 1.2; }
-
-  .cloud-wrap.c4 { width: 56%; height: 72%; left: 46%; top: 25%;   animation: drift4 13s ease-in-out infinite; }
-  .cloud-wrap.c4 .cloud { background: radial-gradient(circle at 60% 40%, #4d7fff 0%, transparent 65%); --depth: 0.7; }
-
-  .cloud-wrap.c5 { width: 46%; height: 62%; left: 22%; top: 42%;   animation: drift5 21s ease-in-out infinite; }
-  .cloud-wrap.c5 .cloud { background: radial-gradient(circle at 50% 50%, #22d3ee 0%, transparent 72%); --depth: 1.5; }
-
-  .cloud-wrap.c6 { width: 42%; height: 58%; left: 56%; top: 8%;    animation: drift6 16s ease-in-out infinite; }
-  .cloud-wrap.c6 .cloud { background: radial-gradient(circle at 50% 50%, #ff7a59 0%, transparent 70%); --depth: 0.4; }
-
-  .cloud-wrap.c7 { width: 38%; height: 50%; left: 10%; top: 35%;   animation: drift1 18s ease-in-out infinite reverse; }
-  .cloud-wrap.c7 .cloud { background: radial-gradient(circle at 50% 50%, #fbbf24 0%, transparent 70%); --depth: 1.8; }
+  .cloud-wrap.c1 { width: 60%; height: 80%; left: -8%; top: -16%; animation: drift1 14s ease-in-out infinite; }
+  .cloud-wrap.c1 .cloud { background: radial-gradient(circle at 35% 35%, #ff3d8b 0%, transparent 70%); --depth: 1.0; }
+  .cloud-wrap.c2 { width: 58%; height: 78%; left: 38%; top: -10%; animation: drift2 17s ease-in-out infinite; }
+  .cloud-wrap.c2 .cloud { background: radial-gradient(circle at 50% 50%, #ffb000 0%, transparent 65%); --depth: 0.6; }
+  .cloud-wrap.c3 { width: 70%; height: 90%; left: -4%; top: 22%;  animation: drift3 19s ease-in-out infinite; }
+  .cloud-wrap.c3 .cloud { background: radial-gradient(circle at 40% 60%, #a855f7 0%, transparent 70%); --depth: 1.3; }
+  .cloud-wrap.c4 { width: 56%; height: 70%; left: 48%; top: 26%;  animation: drift4 13s ease-in-out infinite; }
+  .cloud-wrap.c4 .cloud { background: radial-gradient(circle at 60% 40%, #4d7fff 0%, transparent 65%); --depth: 0.8; }
+  .cloud-wrap.c5 { width: 46%; height: 60%; left: 22%; top: 42%;  animation: drift5 21s ease-in-out infinite; }
+  .cloud-wrap.c5 .cloud { background: radial-gradient(circle at 50% 50%, #22d3ee 0%, transparent 72%); --depth: 1.6; }
 
   @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.06); } }
   @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6%, 9%) scale(1.08); } }
   @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(7%, -6%) scale(1.05); } }
   @keyframes drift4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9%, -5%) scale(1.07); } }
   @keyframes drift5 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%, 8%) scale(1.09); } }
-  @keyframes drift6 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7%, 4%) scale(1.06); } }
 
   .landing-content {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -131,37 +180,42 @@
   }
   .landing-eyebrow {
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--nw-text-light);
+    color: rgba(241, 236, 249, 0.65);
     margin-bottom: 1.25rem;
   }
   .landing-title {
     font-size: clamp(2rem, 4.4vw, 3.4rem);
     font-weight: 800;
-    color: var(--nw-navy);
+    color: #ffffff;
     letter-spacing: -0.02em;
-    line-height: 1.1;
+    line-height: 1.08;
     margin: 0 0 1.25rem;
+    text-shadow: 0 4px 24px rgba(168, 85, 247, 0.35);
   }
   .landing-sub {
-    color: var(--nw-text-light);
+    color: rgba(241, 236, 249, 0.75);
     font-size: clamp(1rem, 1.4vw, 1.15rem);
     line-height: 1.55;
     margin: 0 0 2.25rem;
   }
   .landing-cta .btn {
-    padding: 0.85rem 2.2rem;
+    padding: 0.9rem 2.4rem;
     border-radius: 999px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1rem;
-    box-shadow: 0 8px 20px rgba(26, 39, 68, 0.12);
+    background: linear-gradient(135deg, #ff3d8b 0%, #a855f7 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 12px 30px rgba(255, 61, 139, 0.35), 0 4px 12px rgba(0,0,0,0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .landing-cta .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 26px rgba(26, 39, 68, 0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 18px 38px rgba(255, 61, 139, 0.45), 0 6px 14px rgba(0,0,0,0.35);
+    color: #ffffff;
   }
 
   @media (max-width: 900px) {
@@ -175,26 +229,37 @@
       max-width: 100%;
     }
     .tilt-card { width: min(520px, 80vw); }
+    .halo { width: 30rem; left: 50%; transform: translate(-50%, -50%); }
+    @keyframes halo-breathe {
+      0%, 100% { opacity: 0.92; transform: translate(-50%, -50%) scale(1); }
+      50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.04); }
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .cloud-wrap { animation: none !important; }
+    .cloud-wrap, .float-deco, .halo { animation: none !important; }
     .tilt-card { transition: none !important; }
     .landing-cta .btn:hover { transform: none; }
   }
 </style>
 
 <div class="landing-wrap" id="landingScene">
+  <div class="halo" aria-hidden="true"></div>
+
   <div class="landing-visual">
     <div class="tilt-card" id="tiltCard">
+      <span class="float-deco d1" aria-hidden="true"></span>
+      <span class="float-deco d2" aria-hidden="true"></span>
+      <span class="float-deco d3" aria-hidden="true"></span>
+      <span class="float-deco d4" aria-hidden="true"></span>
+      <span class="float-deco d5" aria-hidden="true"></span>
+
       <div class="whale" aria-hidden="true">
         <span class="cloud-wrap c1"><span class="cloud"></span></span>
         <span class="cloud-wrap c2"><span class="cloud"></span></span>
         <span class="cloud-wrap c3"><span class="cloud"></span></span>
         <span class="cloud-wrap c4"><span class="cloud"></span></span>
         <span class="cloud-wrap c5"><span class="cloud"></span></span>
-        <span class="cloud-wrap c6"><span class="cloud"></span></span>
-        <span class="cloud-wrap c7"><span class="cloud"></span></span>
       </div>
     </div>
   </div>
@@ -204,7 +269,7 @@
     <h1 class="landing-title">Portal for Students</h1>
     <p class="landing-sub">Sign in with the credentials your administrator issued.</p>
     <div class="landing-cta">
-      <a href="{{ url_for('auth.login') }}" class="btn btn-warning" style="color: var(--nw-navy);">
+      <a href="{{ url_for('auth.login') }}" class="btn">
         <i class="bi bi-box-arrow-in-right"></i> Sign in
       </a>
     </div>
@@ -216,42 +281,36 @@
     var scene = document.getElementById('landingScene');
     var card = document.getElementById('tiltCard');
     if (!scene || !card) return;
-
-    // Respect the user-s reduced-motion preference.
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     var raf = null;
-    var targetMX = 0, targetMY = 0, currentMX = 0, currentMY = 0;
-    var targetRX = 0, targetRY = 0, currentRX = 0, currentRY = 0;
+    var tMX = 0, tMY = 0, cMX = 0, cMY = 0;
+    var tRX = 0, tRY = 0, cRX = 0, cRY = 0;
 
     function loop() {
-      // Eased follow for buttery motion (no abrupt snaps on fast pointers).
-      currentMX += (targetMX - currentMX) * 0.12;
-      currentMY += (targetMY - currentMY) * 0.12;
-      currentRX += (targetRX - currentRX) * 0.12;
-      currentRY += (targetRY - currentRY) * 0.12;
-      card.style.setProperty('--rx', currentRX.toFixed(2) + 'deg');
-      card.style.setProperty('--ry', currentRY.toFixed(2) + 'deg');
-      card.style.setProperty('--mx', currentMX.toFixed(2));
-      card.style.setProperty('--my', currentMY.toFixed(2));
+      cMX += (tMX - cMX) * 0.12;
+      cMY += (tMY - cMY) * 0.12;
+      cRX += (tRX - cRX) * 0.12;
+      cRY += (tRY - cRY) * 0.12;
+      card.style.setProperty('--rx', cRX.toFixed(2) + 'deg');
+      card.style.setProperty('--ry', cRY.toFixed(2) + 'deg');
+      card.style.setProperty('--mx', cMX.toFixed(2));
+      card.style.setProperty('--my', cMY.toFixed(2));
       raf = requestAnimationFrame(loop);
     }
 
     scene.addEventListener('mousemove', function (e) {
       var rect = scene.getBoundingClientRect();
-      var nx = (e.clientX - rect.left) / rect.width - 0.5;   // -0.5 .. 0.5
+      var nx = (e.clientX - rect.left) / rect.width - 0.5;
       var ny = (e.clientY - rect.top) / rect.height - 0.5;
-      // Rotation (X axis flipped so the card tilts toward the cursor, not away).
-      targetRX = -ny * 14;
-      targetRY = nx * 18;
-      // Parallax shift in px (cloud --depth multiplier amplifies per layer).
-      targetMX = nx * 70;
-      targetMY = ny * 50;
+      tRX = -ny * 16;
+      tRY = nx * 20;
+      tMX = nx * 80;
+      tMY = ny * 60;
       if (raf === null) loop();
     });
-
     scene.addEventListener('mouseleave', function () {
-      targetMX = 0; targetMY = 0; targetRX = 0; targetRY = 0;
+      tMX = 0; tMY = 0; tRX = 0; tRY = 0;
     });
   })();
 </script>
