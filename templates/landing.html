@@ -11,6 +11,7 @@
     gap: clamp(2rem, 5vw, 5rem);
     padding: clamp(2rem, 6vw, 5rem) clamp(1.5rem, 6vw, 6rem);
     overflow: hidden;
+    perspective: 1400px;
   }
 
   .landing-visual {
@@ -19,10 +20,22 @@
     align-items: center;
   }
 
+  /* The tilt card is the element that rotates with the mouse.
+     It establishes a 3D space for its children via preserve-3d so
+     the parallax shifts inside the whale read as depth. */
+  .tilt-card {
+    width: min(680px, 100%);
+    aspect-ratio: 696 / 400;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+  }
+
   .whale {
     position: relative;
-    width: min(640px, 100%);
-    aspect-ratio: 696 / 400;
+    width: 100%;
+    height: 100%;
     -webkit-mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
             mask-image: url('{{ url_for("static", filename="img/newwhale_mark.png") }}');
     -webkit-mask-repeat: no-repeat;
@@ -33,42 +46,64 @@
             mask-size: contain;
     -webkit-mask-mode: alpha;
             mask-mode: alpha;
-    background: var(--nw-navy);
-    filter: drop-shadow(0 30px 60px rgba(26, 39, 68, 0.18));
+    background: #0c1730;
+    filter: drop-shadow(0 30px 60px rgba(26, 39, 68, 0.22));
+    transform-style: preserve-3d;
   }
 
-  .cloud {
+  /* Each .cloud-wrap autonomously drifts (CSS keyframes).
+     Inside it, .cloud parallaxes with the mouse via CSS variables
+     so the two motions compose without overriding each other. */
+  .cloud-wrap {
     position: absolute;
-    border-radius: 50%;
-    filter: blur(36px);
-    opacity: 0.94;
-    mix-blend-mode: screen;
+    transform-style: preserve-3d;
+    will-change: transform;
   }
-  .cloud.c1 { width: 60%; height: 80%; left: -10%; top: -15%;
-              background: radial-gradient(circle at 30% 30%, #5b8bec 0%, transparent 70%);
-              animation: drift1 14s ease-in-out infinite; }
-  .cloud.c2 { width: 55%; height: 75%; left: 35%; top: -10%;
-              background: radial-gradient(circle at 50% 50%, #e8a838 0%, transparent 65%);
-              animation: drift2 17s ease-in-out infinite; }
-  .cloud.c3 { width: 70%; height: 90%; left: -5%; top: 20%;
-              background: radial-gradient(circle at 40% 60%, #b06ab3 0%, transparent 70%);
-              animation: drift3 19s ease-in-out infinite; }
-  .cloud.c4 { width: 55%; height: 70%; left: 45%; top: 25%;
-              background: radial-gradient(circle at 60% 40%, #3b6bcc 0%, transparent 65%);
-              animation: drift4 13s ease-in-out infinite; }
-  .cloud.c5 { width: 45%; height: 60%; left: 25%; top: 40%;
-              background: radial-gradient(circle at 50% 50%, #4ec5b4 0%, transparent 70%);
-              animation: drift5 21s ease-in-out infinite; }
-  .cloud.c6 { width: 40%; height: 55%; left: 55%; top: 10%;
-              background: radial-gradient(circle at 50% 50%, #ff8a65 0%, transparent 70%);
-              animation: drift6 16s ease-in-out infinite; }
+  .cloud {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    filter: blur(38px);
+    opacity: 0.96;
+    mix-blend-mode: screen;
+    transform: translate3d(
+        calc(var(--mx, 0) * var(--depth, 0.3) * 1px),
+        calc(var(--my, 0) * var(--depth, 0.3) * 1px),
+        calc(var(--depth, 0.3) * 40px)
+    );
+    transition: transform 0.25s ease-out;
+    will-change: transform;
+  }
 
-  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.05); } }
-  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6%, 9%) scale(1.07); } }
-  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(7%, -6%) scale(1.04); } }
-  @keyframes drift4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9%, -5%) scale(1.06); } }
-  @keyframes drift5 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%, 8%) scale(1.08); } }
-  @keyframes drift6 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7%, 4%) scale(1.05); } }
+  /* Vibrant electric palette, with each cloud at a different depth
+     so they layer and parallax independently. */
+  .cloud-wrap.c1 { width: 62%; height: 82%; left: -10%; top: -18%;  animation: drift1 14s ease-in-out infinite; }
+  .cloud-wrap.c1 .cloud { background: radial-gradient(circle at 35% 35%, #ff3d8b 0%, transparent 70%); --depth: 0.9; }
+
+  .cloud-wrap.c2 { width: 58%; height: 78%; left: 36%; top: -12%;  animation: drift2 17s ease-in-out infinite; }
+  .cloud-wrap.c2 .cloud { background: radial-gradient(circle at 50% 50%, #ffb000 0%, transparent 65%); --depth: 0.5; }
+
+  .cloud-wrap.c3 { width: 72%; height: 92%; left: -5%; top: 20%;   animation: drift3 19s ease-in-out infinite; }
+  .cloud-wrap.c3 .cloud { background: radial-gradient(circle at 40% 60%, #a855f7 0%, transparent 70%); --depth: 1.2; }
+
+  .cloud-wrap.c4 { width: 56%; height: 72%; left: 46%; top: 25%;   animation: drift4 13s ease-in-out infinite; }
+  .cloud-wrap.c4 .cloud { background: radial-gradient(circle at 60% 40%, #4d7fff 0%, transparent 65%); --depth: 0.7; }
+
+  .cloud-wrap.c5 { width: 46%; height: 62%; left: 22%; top: 42%;   animation: drift5 21s ease-in-out infinite; }
+  .cloud-wrap.c5 .cloud { background: radial-gradient(circle at 50% 50%, #22d3ee 0%, transparent 72%); --depth: 1.5; }
+
+  .cloud-wrap.c6 { width: 42%; height: 58%; left: 56%; top: 8%;    animation: drift6 16s ease-in-out infinite; }
+  .cloud-wrap.c6 .cloud { background: radial-gradient(circle at 50% 50%, #ff7a59 0%, transparent 70%); --depth: 0.4; }
+
+  .cloud-wrap.c7 { width: 38%; height: 50%; left: 10%; top: 35%;   animation: drift1 18s ease-in-out infinite reverse; }
+  .cloud-wrap.c7 .cloud { background: radial-gradient(circle at 50% 50%, #fbbf24 0%, transparent 70%); --depth: 1.8; }
+
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.06); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6%, 9%) scale(1.08); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(7%, -6%) scale(1.05); } }
+  @keyframes drift4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9%, -5%) scale(1.07); } }
+  @keyframes drift5 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%, 8%) scale(1.09); } }
+  @keyframes drift6 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7%, 4%) scale(1.06); } }
 
   .landing-content {
     display: flex;
@@ -105,6 +140,7 @@
     font-weight: 600;
     font-size: 1rem;
     box-shadow: 0 8px 20px rgba(26, 39, 68, 0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .landing-cta .btn:hover {
     transform: translateY(-1px);
@@ -121,24 +157,28 @@
       text-align: center;
       max-width: 100%;
     }
-    .whale { width: min(480px, 80vw); }
+    .tilt-card { width: min(520px, 80vw); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .cloud { animation: none !important; }
+    .cloud-wrap { animation: none !important; }
+    .tilt-card { transition: none !important; }
     .landing-cta .btn:hover { transform: none; }
   }
 </style>
 
-<div class="landing-wrap">
+<div class="landing-wrap" id="landingScene">
   <div class="landing-visual">
-    <div class="whale" aria-hidden="true">
-      <span class="cloud c1"></span>
-      <span class="cloud c2"></span>
-      <span class="cloud c3"></span>
-      <span class="cloud c4"></span>
-      <span class="cloud c5"></span>
-      <span class="cloud c6"></span>
+    <div class="tilt-card" id="tiltCard">
+      <div class="whale" aria-hidden="true">
+        <span class="cloud-wrap c1"><span class="cloud"></span></span>
+        <span class="cloud-wrap c2"><span class="cloud"></span></span>
+        <span class="cloud-wrap c3"><span class="cloud"></span></span>
+        <span class="cloud-wrap c4"><span class="cloud"></span></span>
+        <span class="cloud-wrap c5"><span class="cloud"></span></span>
+        <span class="cloud-wrap c6"><span class="cloud"></span></span>
+        <span class="cloud-wrap c7"><span class="cloud"></span></span>
+      </div>
     </div>
   </div>
 
@@ -153,4 +193,49 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    var scene = document.getElementById('landingScene');
+    var card = document.getElementById('tiltCard');
+    if (!scene || !card) return;
+
+    // Respect the user-s reduced-motion preference.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var raf = null;
+    var targetMX = 0, targetMY = 0, currentMX = 0, currentMY = 0;
+    var targetRX = 0, targetRY = 0, currentRX = 0, currentRY = 0;
+
+    function loop() {
+      // Eased follow for buttery motion (no abrupt snaps on fast pointers).
+      currentMX += (targetMX - currentMX) * 0.12;
+      currentMY += (targetMY - currentMY) * 0.12;
+      currentRX += (targetRX - currentRX) * 0.12;
+      currentRY += (targetRY - currentRY) * 0.12;
+      card.style.setProperty('--rx', currentRX.toFixed(2) + 'deg');
+      card.style.setProperty('--ry', currentRY.toFixed(2) + 'deg');
+      card.style.setProperty('--mx', currentMX.toFixed(2));
+      card.style.setProperty('--my', currentMY.toFixed(2));
+      raf = requestAnimationFrame(loop);
+    }
+
+    scene.addEventListener('mousemove', function (e) {
+      var rect = scene.getBoundingClientRect();
+      var nx = (e.clientX - rect.left) / rect.width - 0.5;   // -0.5 .. 0.5
+      var ny = (e.clientY - rect.top) / rect.height - 0.5;
+      // Rotation (X axis flipped so the card tilts toward the cursor, not away).
+      targetRX = -ny * 14;
+      targetRY = nx * 18;
+      // Parallax shift in px (cloud --depth multiplier amplifies per layer).
+      targetMX = nx * 70;
+      targetMY = ny * 50;
+      if (raf === null) loop();
+    });
+
+    scene.addEventListener('mouseleave', function () {
+      targetMX = 0; targetMY = 0; targetRX = 0; targetRY = 0;
+    });
+  })();
+</script>
 {% endblock %}
