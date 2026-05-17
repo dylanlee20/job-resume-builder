@@ -91,6 +91,7 @@ def create_user():
         email_verified_at=datetime.utcnow(),
     )
     user.set_password(password)
+    user.set_allowed_apps(request.form.getlist('allowed_apps'))
     db.session.add(user)
     db.session.commit()
 
@@ -330,3 +331,18 @@ def api_scraper_status():
         response['current_company'] = latest_run.current_company
 
     return jsonify(response)
+
+
+@admin_bp.route('/users/<int:user_id>/access', methods=['POST'])
+@admin_required
+def set_access(user_id):
+    """Update which apps a user can access (admins bypass and stay full)."""
+    user = User.query.get_or_404(user_id)
+    if user.is_admin:
+        flash('Admin accounts always have access to every app.', 'info')
+        return redirect(url_for('admin.users'))
+    user.set_allowed_apps(request.form.getlist('allowed_apps'))
+    db.session.commit()
+    flash(f"Access for '{user.username}' updated to: {user.allowed_apps or '(none)'}.", 'success')
+    return redirect(url_for('admin.users'))
+

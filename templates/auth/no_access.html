@@ -1,0 +1,45 @@
+{% extends 'layout.html' %}
+
+{% block title %}Access restricted{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <h4 class="card-title fw-bold mb-2">
+            <i class="bi bi-shield-lock"></i> Access restricted
+          </h4>
+          <p class="text-muted">
+            You are signed in, but your account does not have permission to view this
+            section. Contact your administrator if you think this is a mistake.
+          </p>
+
+          {% if apps %}
+            <hr/>
+            <p class="small mb-2"><strong>Sections you can access:</strong></p>
+            <ul class="list-unstyled mb-3">
+              {% if 'main' in apps %}
+                <li><a href="/">Main site</a></li>
+              {% endif %}
+              {% if 'macro' in apps %}
+                <li><a href="/macro">US Macro Monitor</a></li>
+              {% endif %}
+              {% if 'competitions' in apps %}
+                <li><a href="/competitions">Competition Calendar</a></li>
+              {% endif %}
+            </ul>
+          {% else %}
+            <p class="text-muted small">
+              No sections are enabled on your account yet. Reach out to your administrator.
+            </p>
+          {% endif %}
+
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-secondary">Sign out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

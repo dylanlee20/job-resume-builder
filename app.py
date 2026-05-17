@@ -54,6 +54,10 @@ def create_app():
                 with db.engine.begin() as conn:
                     conn.execute(text("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'active' NOT NULL"))
                 logger.info("Migrated: added users.status column.")
+            if cols and 'allowed_apps' not in cols:
+                with db.engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN allowed_apps VARCHAR(100) DEFAULT '' NOT NULL"))
+                logger.info("Migrated: added users.allowed_apps column.")
         except Exception as exc:
             logger.warning(f"Status-column migration skipped: {exc}")
     

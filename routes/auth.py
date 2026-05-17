@@ -51,7 +51,7 @@ def login():
         next_page = request.args.get('next')
         if next_page and next_page.startswith('/'):
             return redirect(next_page)
-        return redirect(url_for('web.index'))
+        return _post_login_redirect()
 
     return render_template('auth/login.html')
 
@@ -90,16 +90,51 @@ def change_password():
     return render_template('auth/change_password.html')
 
 
+def _post_login_redirect():
+    """Send the user to a section they actually have access to."""
+    if current_user.is_admin or current_user.has_app('main'):
+        return redirect(url_for('web.index'))
+    if current_user.has_app('macro'):
+        return redirect('/macro')
+    if current_user.has_app('competitions'):
+        return redirect('/competitions')
+    return redirect(url_for('auth.no_access'))
+
+
+def _app_code_for_path(path: str) -> str:
+    """Map an incoming request path to an app code for permission checks."""
+    if path.startswith('/macro'):
+        return 'macro'
+    if path.startswith('/competitions'):
+        return 'competitions'
+    return 'main'
+
+
 @auth_bp.route('/check')
 def check():
-    """Lightweight endpoint for nginx auth_request.
+    """Endpoint nginx auth_request calls before serving /macro and /competitions.
 
-    Returns 200 if the request carries a valid session belonging to an
-    admin or active student, else 401. Used to gate /macro and
-    /competitions (and any other path nginx points at this endpoint).
+    Returns:
+      - 401 if the visitor is not logged in (nginx 302s them to /auth/login)
+      - 403 if the visitor is logged in but lacks the app they're hitting
+             (nginx 302s them to /no-access via error_page)
+      - 200 if access is granted
     """
     if not current_user.is_authenticated:
         return '', 401
-    if current_user.is_admin or current_user.is_active_account:
+    if not (current_user.is_admin or current_user.is_active_account):
+        return '', 401
+    original = request.headers.get('X-Original-URI', '/')
+    code = _app_code_for_path(original)
+    if current_user.has_app(code):
         return '', 200
-    return '', 401
+    return '', 403
+
+
+@auth_bp.route('/no-access')
+def no_access():
+    """Friendly landing for users who hit a section they don’t have access to."""
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+    apps = sorted(current_user.app_set) if not current_user.is_admin else list(current_user.APP_CODES)
+    return render_template('auth/no_access.html', apps=apps), 403

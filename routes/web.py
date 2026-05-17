@@ -6,6 +6,20 @@ from services.job_service import JobService
 web_bp = Blueprint('web', __name__)
 
 
+@web_bp.before_request
+def gate_main_app():
+    """Block students without 'main' access from any page served by web_bp.
+
+    Anonymous users pass through (per-route @login_required handles login).
+    Admins always pass. Active students without 'main' get the no-access page.
+    """
+    if not current_user.is_authenticated:
+        return None
+    if current_user.is_admin or current_user.has_app('main'):
+        return None
+    return redirect(url_for('auth.no_access'))
+
+
 @web_bp.route('/')
 def index():
     """Landing page for guests, redirect to dashboard for logged-in users."""

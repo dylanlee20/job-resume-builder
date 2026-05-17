@@ -32,6 +32,12 @@ class User(UserMixin, db.Model):
     tier = db.Column(db.String(20), default='free', nullable=False)
     smtp_use_tls = db.Column(db.Boolean, default=True, nullable=False)
 
+    # Comma-separated list of app codes the user can reach. Empty = no
+    # access to any gated app. Admins bypass this check entirely. See
+    # nginx auth_request flow for how this is enforced on /macro and
+    # /competitions; the main Flask app gates itself via before_request.
+    allowed_apps = db.Column(db.String(100), default='', nullable=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login = db.Column(db.DateTime, nullable=True)
@@ -65,6 +71,23 @@ class User(UserMixin, db.Model):
     def is_disabled(self) -> bool:
         return self.status == 'disabled'
 
+    APP_CODES = ('main', 'macro', 'competitions')
+
+    @property
+    def app_set(self) -> set:
+        return {a.strip() for a in (self.allowed_apps or '').split(',') if a.strip()}
+
+    def has_app(self, code: str) -> bool:
+        if self.is_admin:
+            return True
+        if not self.is_active_account:
+            return False
+        return code in self.app_set
+
+    def set_allowed_apps(self, codes) -> None:
+        clean = sorted({c for c in codes if c in self.APP_CODES})
+        self.allowed_apps = ','.join(clean)
+
     def record_login(self) -> None:
         self.last_login = datetime.utcnow()
 
@@ -74,6 +97,7 @@ class User(UserMixin, db.Model):
             'username': self.username,
             'email': self.email,
             'is_admin': self.is_admin,
+            'allowed_apps': sorted(self.app_set),
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
