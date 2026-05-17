@@ -46,8 +46,25 @@
             mask-size: contain;
     -webkit-mask-mode: alpha;
             mask-mode: alpha;
-    background: #0c1730;
-    filter: drop-shadow(0 30px 60px rgba(26, 39, 68, 0.22));
+    /* Vibrant base: a conic gradient cycles through the same electric
+       palette the clouds use, so the whale is colorful even in the
+       gaps between clouds. The clouds then add motion + parallax on
+       top via mix-blend-mode: overlay (which intensifies the base
+       rather than washing it out the way screen would). */
+    background:
+      radial-gradient(circle at 28% 32%, rgba(255,255,255,0.45) 0%, transparent 36%),
+      conic-gradient(
+        from 90deg at 38% 38%,
+        #ff3d8b 0deg,
+        #ffb000 60deg,
+        #ff7a59 110deg,
+        #a855f7 195deg,
+        #4d7fff 255deg,
+        #22d3ee 315deg,
+        #ff3d8b 360deg
+      );
+    filter: drop-shadow(0 30px 60px rgba(168, 85, 247, 0.32))
+            drop-shadow(0 0 80px rgba(255, 61, 139, 0.22));
     transform-style: preserve-3d;
   }
 
@@ -63,9 +80,9 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    filter: blur(38px);
+    filter: blur(28px);
     opacity: 0.96;
-    mix-blend-mode: screen;
+    mix-blend-mode: overlay;
     transform: translate3d(
         calc(var(--mx, 0) * var(--depth, 0.3) * 1px),
         calc(var(--my, 0) * var(--depth, 0.3) * 1px),
