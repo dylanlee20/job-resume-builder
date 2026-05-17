@@ -45,9 +45,20 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center">
-                    <span class="navbar-text me-3">
-                        <i class="bi bi-person-circle"></i> {{ current_user.username }}
-                    </span>
+                    <div class="dropdown me-2">
+                        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">
+                                <i class="bi bi-key"></i> Change password
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Sign out
+                            </a></li>
+                        </ul>
+                    </div>
                     {% if current_user.is_admin %}
                     <div class="dropdown me-2">
                         <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="adminDropdown" data-bs-toggle="dropdown">
@@ -63,9 +74,6 @@
                         </ul>
                     </div>
                     {% endif %}
-                    <a class="btn btn-sm btn-outline-light" href="{{ url_for('auth.logout') }}">
-                        <i class="bi bi-box-arrow-right"></i> Logout
-                    </a>
                 </div>
                 {% else %}
                 <div class="d-flex gap-2 ms-auto">
