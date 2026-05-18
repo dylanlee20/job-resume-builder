@@ -22,14 +22,10 @@ def gate_main_app():
 
 @web_bp.route('/')
 def index():
-    """Landing page for guests, redirect to dashboard for logged-in users."""
+    """Auth users go to dashboard, everyone else sees the login page."""
     if current_user.is_authenticated:
         return redirect(url_for('web.dashboard'))
-    try:
-        stats = JobService.get_statistics()
-    except Exception:
-        stats = {'total_active_jobs': 0}
-    return render_template('landing.html', stats=stats)
+    return redirect(url_for('auth.login'))
 
 
 @web_bp.route('/dashboard')
