@@ -1,14 +1,22 @@
 """Job service for business logic and data access"""
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from sqlalchemy import or_, func, case
 
 from models.database import db
 from models.job import Job
+from models.scraper_run import ScraperRun
 from utils.job_utils import normalize_location, parse_country_city
 
 logger = logging.getLogger(__name__)
+
+
+FRESHNESS_WINDOWS = {
+    "24h": timedelta(hours=24),
+    "3d": timedelta(days=3),
+    "7d": timedelta(days=7),
+}
 
 
 class JobService:
@@ -105,7 +113,12 @@ class JobService:
 
         if filters.get('is_important'):
             query = query.filter_by(is_important=True)
-        
+
+        freshness = (filters.get('freshness') or '').strip()
+        if freshness in FRESHNESS_WINDOWS:
+            cutoff = datetime.utcnow() - FRESHNESS_WINDOWS[freshness]
+            query = query.filter(Job.first_seen >= cutoff)
+
         # Sorting
         sort_by = filters.get('sort_by', 'newest')
         if sort_by in ('newest', 'first_seen', 'first_seen_desc'):
@@ -241,3 +254,26 @@ class JobService:
         ordered_defaults = [v for v in ('Internship', 'Full Time') if v in values]
         remaining = sorted(values - set(ordered_defaults))
         return ordered_defaults + remaining
+
+    @staticmethod
+    def get_freshness_counts():
+        """Active-job counts in each freshness window, plus total. Single query per window."""
+        now = datetime.utcnow()
+        counts = {'all': Job.query.filter_by(status='active').count()}
+        for key, delta in FRESHNESS_WINDOWS.items():
+            counts[key] = Job.query.filter(
+                Job.status == 'active',
+                Job.first_seen >= now - delta,
+            ).count()
+        return counts
+
+    @staticmethod
+    def get_last_updated_at():
+        """Completed_at of the most recent successful scraper run, or None."""
+        latest = (
+            ScraperRun.query
+            .filter(ScraperRun.status == 'completed', ScraperRun.completed_at.isnot(None))
+            .order_by(ScraperRun.completed_at.desc())
+            .first()
+        )
+        return latest.completed_at if latest else None

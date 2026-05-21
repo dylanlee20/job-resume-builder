@@ -28,12 +28,18 @@ def index():
     return redirect(url_for('auth.login'))
 
 
+_VALID_FRESHNESS = {'', '24h', '3d', '7d'}
+
+
 @web_bp.route('/dashboard')
 @login_required
 def dashboard():
     """Main job listings page (logged-in users)."""
     country = request.args.get('country', '').strip()
     location = request.args.get('location', '').strip()
+    freshness = request.args.get('freshness', '').strip()
+    if freshness not in _VALID_FRESHNESS:
+        freshness = ''
     filters = {
         'q': request.args.get('q', '').strip(),
         'company': request.args.get('company', ''),
@@ -43,6 +49,7 @@ def dashboard():
         'job_type': request.args.get('job_type', '').strip(),
         'sort_by': request.args.get('sort_by', 'newest'),
         'is_important': request.args.get('starred') == '1',
+        'freshness': freshness,
     }
 
     page = request.args.get('page', 1, type=int)
@@ -55,6 +62,8 @@ def dashboard():
     cities = JobService.get_all_cities(country=country or None)
     job_types = JobService.get_all_job_types()
     stats = JobService.get_statistics()
+    freshness_counts = JobService.get_freshness_counts()
+    last_updated_at = JobService.get_last_updated_at()
 
     pagination_params = {
         key: value for key, value in request.args.items()
@@ -62,6 +71,20 @@ def dashboard():
     }
     prev_url = url_for('web.dashboard', page=page - 1, **pagination_params) if result['has_prev'] else None
     next_url = url_for('web.dashboard', page=page + 1, **pagination_params) if result['has_next'] else None
+
+    tab_params = {k: v for k, v in pagination_params.items() if k != 'freshness'}
+    freshness_tabs = [
+        {'key': '', 'label': 'All', 'count': freshness_counts['all']},
+        {'key': '24h', 'label': "What's New · 24h", 'count': freshness_counts['24h']},
+        {'key': '3d', 'label': '3 days', 'count': freshness_counts['3d']},
+        {'key': '7d', 'label': '7 days', 'count': freshness_counts['7d']},
+    ]
+    for tab in freshness_tabs:
+        params = dict(tab_params)
+        if tab['key']:
+            params['freshness'] = tab['key']
+        tab['url'] = url_for('web.dashboard', **params)
+        tab['is_active'] = tab['key'] == freshness
 
     return render_template(
         'index.html',
@@ -80,4 +103,6 @@ def dashboard():
         filters=filters,
         prev_url=prev_url,
         next_url=next_url,
+        freshness_tabs=freshness_tabs,
+        last_updated_at=last_updated_at,
     )
