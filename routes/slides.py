@@ -5,13 +5,15 @@ Two index pages share the same deck-viewer URL:
   /curriculum/technical   -> sections 02-05
   /curriculum/<slug>/<n>  -> deck viewer (any deck)
   /curriculum/<slug>/<n>/image.png  -> watermarked stream
-
-The viewer's "back" arrow points at whichever index the deck belongs to.
+  /curriculum/files/<section_slug>/<filename>  -> companion artifact download
 """
 
 from __future__ import annotations
 
-from flask import Blueprint, Response, abort, render_template, request, redirect, url_for
+import re
+from pathlib import Path
+
+from flask import Blueprint, Response, abort, render_template, request, redirect, send_from_directory, url_for
 from flask_login import current_user, login_required
 
 from services.slides_service import (
@@ -22,6 +24,11 @@ from services.slides_service import (
     render_watermarked_png,
     slide_path,
 )
+
+
+_FILES_ROOT = Path(__file__).resolve().parent.parent / "slides_data" / "files"
+_SAFE_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+_ALLOWED_EXTS = {".pdf", ".ipynb", ".csv", ".xlsx", ".py", ".md", ".txt"}
 
 
 slides_bp = Blueprint("slides", __name__, url_prefix="/curriculum")
@@ -94,6 +101,38 @@ def view_slide(slug: str, slide_number: int):
         back_url=url_for(back_endpoint),
         back_label="Behavioral Curriculum" if track == "behavioral" else "Technical Curriculums",
     )
+
+
+@slides_bp.route("/files/<section_slug>/<path:filename>")
+@login_required
+def companion_file(section_slug: str, filename: str):
+    """Serve a companion artifact (PDF, notebook, CSV, etc) for a deck.
+
+    Path traversal defenses: both the section slug and the filename are
+    validated against a strict allowlist regex, the resolved path is then
+    checked to be inside _FILES_ROOT, and the extension is allowlisted.
+    """
+    if not _SAFE_NAME.fullmatch(section_slug):
+        abort(404)
+    # filename may contain a single subdirectory (e.g. qm02-xs-momentum/notebook.ipynb)
+    parts = filename.split("/")
+    if not (1 <= len(parts) <= 2):
+        abort(404)
+    for part in parts:
+        if not _SAFE_NAME.fullmatch(part):
+            abort(404)
+    leaf = parts[-1]
+    ext = ("." + leaf.rsplit(".", 1)[-1].lower()) if "." in leaf else ""
+    if ext not in _ALLOWED_EXTS:
+        abort(404)
+    candidate = (_FILES_ROOT / section_slug / Path(*parts)).resolve()
+    try:
+        candidate.relative_to(_FILES_ROOT.resolve())
+    except ValueError:
+        abort(404)
+    if not candidate.is_file():
+        abort(404)
+    return send_from_directory(candidate.parent, candidate.name, as_attachment=False)
 
 
 @slides_bp.route("/<slug>/<int:slide_number>/image.png")

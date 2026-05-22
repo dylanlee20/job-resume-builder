@@ -63,6 +63,7 @@ SECTION_TITLE_OVERRIDES = {
     "03-industry-specific": "Industry Specific Curriculum",
     "04-sales-and-trading": "Sales and Trading Technical Curriculum",
     "05-quant": "Quantitative Technical Curriculum",
+    "07-modeling-quant": "Quantitative Hands-On Modeling Curriculum",
 }
 
 
@@ -80,7 +81,7 @@ def _humanize(slug: str) -> str:
         head = prefix
         tail = " ".join(p.capitalize() for p in parts[1:])
         return f"{head} {tail}".strip() if tail else head
-    if re.fullmatch(r"[a-z]\d{1,3}", prefix):
+    if re.fullmatch(r"[a-z]{1,3}\d{1,3}", prefix):
         head = prefix.upper()
         tail = " ".join(p.capitalize() for p in parts[1:])
         return f"{head} {tail}".strip() if tail else head
