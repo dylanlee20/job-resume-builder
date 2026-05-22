@@ -168,6 +168,55 @@ def update_user_tier(user, new_tier):
     user.tier = new_tier  # Mutates without returning
 ```
 
+## Curriculum Module (slides + companion artifacts)
+
+The site hosts the NewWhale Career interview-prep curriculum. PNGs and companion files are served from `slides_data/` and produced by a sibling repo.
+
+### How it fits together
+- **Source of truth for slides:** `dylanlee20/NewWhale-Career-Slides` (the "Banking Slides" repo). JSON specs render to PPTX and PNG via a frozen v1.3 Python engine. Read its `STATUS.md` and `docs/QM-SERIES-PLAYBOOK.md` before adding decks.
+- **Live serving:** this repo. `services/slides_service.py` auto-discovers any deck dropped into `slides_data/decks/<section_slug>/<deck_slug>/slide_NNN.png` (3-digit, `slide_` prefix). 5-minute in-process cache.
+
+### Folder layout under `slides_data/`
+```
+slides_data/
+├── decks/
+│   ├── 01-behavioral-and-fit/         B01-B10
+│   ├── 02-technical-generalist/       N01-N13 (IB technical)
+│   ├── 03-industry-specific/          I01-I18
+│   ├── 04-sales-and-trading/          s01-s12
+│   ├── 05-quant/                      q01-q15 (concept decks)
+│   └── 07-modeling-quant/             qm01+ (hands-on Quant Modeling, in progress)
+│       └── qm01-strategy-concepts/
+│           ├── slide_001.png
+│           └── ...slide_NNN.png
+└── files/
+    └── 07-modeling-quant/             companion artifacts per deck
+        └── qm01-strategy-card.pdf
+```
+
+### Slug conventions
+- Section slug: `NN-words-with-dashes` (e.g. `07-modeling-quant`). Display title is overridden in `SECTION_TITLE_OVERRIDES` (`services/slides_service.py`); falls back to slug humanization.
+- Deck slug: `<prefix><N>-words-with-dashes` (e.g. `qm01-strategy-concepts`). Prefix is 1-3 lowercase letters followed by 1-3 digits, validated by `_humanize` regex `[a-z]{1,3}\d{1,3}`. Display title becomes `QM01 Strategy Concepts`.
+- Slide filenames: `slide_NNN.png` (3-digit, `slide_` prefix). The Banking Slides engine emits `page_NN.png`; rename on deploy.
+
+### Routes (all auth-required)
+- `/curriculum/behavioral` - section 01 only
+- `/curriculum/technical` - sections 02-07
+- `/curriculum/<deck_slug>/<n>` - deck viewer (any deck, any section)
+- `/curriculum/<deck_slug>/<n>/image.png` - watermarked PNG stream
+- `/curriculum/files/<section_slug>/<filename>` - companion artifact download (PDF, ipynb, csv, xlsx, py, md, txt only; path-traversal blocked; max one subdirectory)
+
+### Adding a new deck
+1. Author the spec in the Banking Slides repo (`spec/<CODE>.json`)
+2. Render and QA there (`python -m engine.render spec/<CODE>.json`, then inspect)
+3. Copy the resulting PNGs into `slides_data/decks/<section>/<deck-slug>/`, renaming `page_NN.png` to `slide_NNN.png`
+4. Drop companion artifacts (if any) into `slides_data/files/<section>/`
+5. If the section is new, add a `SECTION_TITLE_OVERRIDES` entry in `services/slides_service.py`
+6. Commit and push to `master`. GitHub Action auto-deploys to VPS.
+
+### Watermarking
+PNGs are watermarked per-request with the viewer's email and client IP via `render_watermarked_png()`. Companion files are not watermarked (they are meant to be carryable references). Treat PDFs as low-IP-risk material; do not put answer keys or model solutions in the companion file path.
+
 ## Current Status
 ✅ Phase 1: Foundation complete
 ✅ Phase 2: AI-Proof filtering complete (core logic)
