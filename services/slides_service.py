@@ -28,6 +28,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 SLIDES_ROOT = Path(__file__).resolve().parent.parent / "slides_data" / "decks"
+FILES_ROOT = Path(__file__).resolve().parent.parent / "slides_data" / "files"
+# Companion artifact extensions that are surfaced in the curriculum index.
+_COMPANION_EXTS = {".pdf", ".ipynb", ".csv", ".xlsx", ".py", ".md", ".txt"}
 
 
 @dataclass(frozen=True)
@@ -136,6 +139,25 @@ def list_decks() -> List[Deck]:
     return list(_cache.catalog.values())
 
 
+def list_section_files(section_slug: str) -> List[Dict]:
+    """Companion artifacts for a section, as [{filename, label, ext}].
+
+    Files live under slides_data/files/<section_slug>/. Only allowlisted
+    extensions are surfaced. Label is a humanized version of the filename stem.
+    """
+    section_dir = FILES_ROOT / section_slug
+    if not section_dir.is_dir():
+        return []
+    out = []
+    for f in sorted(section_dir.iterdir()):
+        if not f.is_file() or f.suffix.lower() not in _COMPANION_EXTS:
+            continue
+        label = f.stem.replace("-", " ").replace("_", " ").strip()
+        label = " ".join(w.capitalize() for w in label.split())
+        out.append({"filename": f.name, "label": label, "ext": f.suffix.lstrip(".").upper()})
+    return out
+
+
 def list_sections(track: Optional[str] = None) -> List[Dict]:
     """Return decks grouped by section. ``track`` filters: 'behavioral' or 'technical'."""
     _ensure_catalog()
@@ -157,6 +179,7 @@ def list_sections(track: Optional[str] = None) -> List[Dict]:
             "decks": decks,
             "deck_count": len(decks),
             "slide_count": sum(d.slide_count for d in decks),
+            "files": list_section_files(section_slug),
         })
     return out
 

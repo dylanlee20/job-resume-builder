@@ -38,6 +38,20 @@
     .deck-row .deck-hint { color: var(--nw-text-light); font-size: 0.72rem; opacity: 0; transition: opacity 0.15s; }
     .deck-row:hover .deck-hint { opacity: 1; }
 
+    .files-row {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+        padding: 0.6rem 0.85rem; background: #f7f9fc;
+    }
+    .files-row .files-label { color: var(--nw-text-light); font-size: 0.78rem; font-weight: 600; margin-right: 0.25rem; }
+    .file-chip {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.25rem 0.6rem; background: #fff; border: 1px solid var(--nw-border);
+        border-radius: 999px; font-size: 0.8rem; color: var(--nw-blue); text-decoration: none;
+        transition: background-color 0.1s, border-color 0.1s;
+    }
+    .file-chip:hover { background: #eef3fb; border-color: var(--nw-blue); }
+    .file-chip .file-ext { color: var(--nw-text-light); font-size: 0.68rem; font-variant-numeric: tabular-nums; }
+
     .empty-state {
         background: #fff; border: 1px dashed var(--nw-border); border-radius: 8px;
         padding: 2rem; text-align: center; color: var(--nw-text-light);
@@ -69,6 +83,16 @@
                 <span class="deck-hint">double click to open</span>
             </div>
             {% endfor %}
+            {% if section.files %}
+            <div class="files-row">
+                <span class="files-label"><i class="bi bi-paperclip"></i> Companion resources</span>
+                {% for f in section.files %}
+                <a class="file-chip"
+                   href="{{ url_for('slides.companion_file', section_slug=section.section_slug, filename=f.filename) }}"
+                   target="_blank" rel="noopener">{{ f.label }} <span class="file-ext">{{ f.ext }}</span></a>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </div>
     {% else %}
