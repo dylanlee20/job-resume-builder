@@ -137,9 +137,12 @@ pytest tests/ -v --cov=. --cov-report=html
 ```
 
 ## Deployment
-- VPS: 167.71.209.9
-- Domain: newwhaletech.com
-- Port: 5002 (configurable via FLASK_PORT)
+- VPS: 164.90.134.159 (hostname `rebuilt-ssh-newwhale`), app at `/opt/app`, systemd service `newwhale`
+- This is the `/` app of a 3-app site; `/macro` and `/competitions` are separate apps on the same droplet
+- Domain: newwhaletech.com (behind Cloudflare)
+- Port: 5002 (gunicorn bound 127.0.0.1:5002, behind nginx)
+- Auto-deploy: push to `master` -> GitHub Actions (`.github/workflows/deploy.yml`) SSHes in, `git reset --hard origin/master`, runs `scripts/deploy.sh`
+- (Old IPs 167.71.209.9 and 165.227.103.197 are stale/dead; do not use)
 
 ## Testing Strategy
 - Unit tests for all models (target 85%+ coverage)
@@ -185,13 +188,15 @@ slides_data/
 │   ├── 03-industry-specific/          I01-I18
 │   ├── 04-sales-and-trading/          s01-s12
 │   ├── 05-quant/                      q01-q15 (concept decks)
-│   └── 07-modeling-quant/             qm01+ (hands-on Quant Modeling, in progress)
-│       └── qm01-strategy-concepts/
-│           ├── slide_001.png
-│           └── ...slide_NNN.png
+│   ├── 07-modeling-quant/             qm01+ (hands-on Quant Modeling, in progress)
+│   │   └── qm01-strategy-concepts/
+│   │       ├── slide_001.png
+│   │       └── ...slide_NNN.png
+│   └── 08-consulting/                 c01-c13 (Consulting Technical Curriculum, 234 slides)
 └── files/
-    └── 07-modeling-quant/             companion artifacts per deck
-        └── qm01-strategy-card.pdf
+    ├── 07-modeling-quant/             companion artifacts per deck
+    │   └── qm01-strategy-card.pdf
+    └── 08-consulting/                 consulting companion PDFs (drills, structuring bank, worked case, econ card)
 ```
 
 ### Slug conventions
@@ -213,6 +218,9 @@ slides_data/
 4. Drop companion artifacts (if any) into `slides_data/files/<section>/`
 5. If the section is new, add a `SECTION_TITLE_OVERRIDES` entry in `services/slides_service.py`
 6. Commit and push to `master`. GitHub Action auto-deploys to VPS.
+
+### Companion file discovery
+Companion files in `slides_data/files/<section_slug>/` are now auto-surfaced in the curriculum index as a "Companion resources" row per section (via `slides_service.list_section_files()` + `curriculum_index.html`). Drop an allowlisted file into the section's files folder and it appears as a download chip. No per-deck wiring needed.
 
 ### Watermarking
 PNGs are watermarked per-request with the viewer's email and client IP via `render_watermarked_png()`. Companion files are not watermarked (they are meant to be carryable references). Treat PDFs as low-IP-risk material; do not put answer keys or model solutions in the companion file path.
