@@ -148,12 +148,15 @@ def list_section_files(section_slug: str) -> List[Dict]:
     section_dir = FILES_ROOT / section_slug
     if not section_dir.is_dir():
         return []
+    acronyms = {"dcf", "lbo", "ev", "ebitda", "ib", "ecm", "dcm", "fig", "tmt",
+                "reit", "reits", "fsg", "mece", "ols", "pei", "fx", "npv", "irr",
+                "wacc", "moic", "ipo", "pe", "vc", "ai", "us", "uk"}
     out = []
     for f in sorted(section_dir.iterdir()):
         if not f.is_file() or f.suffix.lower() not in _COMPANION_EXTS:
             continue
-        label = f.stem.replace("-", " ").replace("_", " ").strip()
-        label = " ".join(w.capitalize() for w in label.split())
+        words = f.stem.replace("-", " ").replace("_", " ").strip().split()
+        label = " ".join(w.upper() if w.lower() in acronyms else w.capitalize() for w in words)
         out.append({"filename": f.name, "label": label, "ext": f.suffix.lstrip(".").upper()})
     return out
 
