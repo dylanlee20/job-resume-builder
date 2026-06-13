@@ -64,6 +64,7 @@ SECTION_TITLE_OVERRIDES = {
     "04-sales-and-trading": "Sales and Trading Technical Curriculum",
     "05-quant": "Quantitative Technical Curriculum",
     "07-modeling-quant": "Quantitative Hands-On Modeling Curriculum",
+    "08-consulting": "Consulting Technical Curriculum",
 }
 
 
