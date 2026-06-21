@@ -10,9 +10,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from migrations import add_student_columns, seed_student_roster
+from migrations._dbapp import masked_target
 
 
 def main():
+    print(f"== migrations: target DB = {masked_target()} ==")
     print("== migrations: add_student_columns ==")
     add_student_columns.migrate()
     print("== migrations: seed_student_roster ==")

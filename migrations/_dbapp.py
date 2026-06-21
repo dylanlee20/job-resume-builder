@@ -15,13 +15,31 @@ import ssl as ssl_lib
 import sys
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, _PROJECT_ROOT)
+
+# The deploy shell can carry a stray DATABASE_URL (e.g. a managed-DB "defaultdb"
+# injected into root's environment). load_dotenv() does NOT override an already
+# set var, so the migration would hit the wrong database. Force the app's own
+# /opt/app/.env to win — that is exactly what the live systemd service uses.
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"), override=True)
 
 from flask import Flask
 
 from config import Config
 from models.database import db
 import models  # noqa: F401  (registers every model on db's metadata)
+
+
+def masked_target() -> str:
+    """A credential-free description of the resolved DB target, for logging."""
+    uri = Config.SQLALCHEMY_DATABASE_URI or ""
+    parts = urlsplit(uri)
+    host = parts.hostname or "(local)"
+    db_name = (parts.path or "").lstrip("/") or "(default)"
+    return f"{parts.scheme.split('+')[0]}://{host}/{db_name}"
 
 _SSL_MODE_KEYS = {"ssl-mode", "ssl_mode", "sslmode"}
 
