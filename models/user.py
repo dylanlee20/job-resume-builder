@@ -42,6 +42,16 @@ class User(UserMixin, db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login = db.Column(db.DateTime, nullable=True)
 
+    # Student-roster profile fields (surfaced in the admin User Management page).
+    college = db.Column(db.String(120), nullable=True)
+    major = db.Column(db.String(200), nullable=True)
+    graduation_year = db.Column(db.Integer, nullable=True)
+    # Coaching-session progress, stored as the raw "done/total" string (e.g. "28/50").
+    sessions = db.Column(db.String(40), nullable=True)
+    # Whether the student is placed/finished; if so, `offers` lists the firms.
+    is_done = db.Column(db.Boolean, default=False, nullable=False)
+    offers = db.Column(db.String(255), nullable=True)
+
     def __repr__(self):
         return f'<User {self.username} status={self.status}>'
 

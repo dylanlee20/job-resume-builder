@@ -125,18 +125,25 @@
             <div class="card">
                 <div class="card-header">All Users</div>
                 <div class="card-body" style="padding: 0;">
-                    <table class="table table-sm table-hover mb-0">
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0" style="white-space: nowrap;">
                         <thead>
                             <tr>
                                 <th style="width: 50px;">ID</th>
                                 <th>Username</th>
                                 <th>Email</th>
+                                <th>College</th>
+                                <th>Major</th>
+                                <th style="width: 70px;">Grad Yr</th>
                                 <th style="width: 90px;">Status</th>
                                 <th style="width: 80px;">Role</th>
                                 <th style="width: 150px;">Created</th>
                                 <th style="width: 150px;">Last Login</th>
+                                <th style="width: 80px;">Sessions</th>
+                                <th style="width: 70px;">Done?</th>
+                                <th>Offers</th>
                                 <th style="width: 240px;">Access</th>
-                                <th style="width: 250px;">Actions</th>
+                                <th style="width: 290px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -145,6 +152,9 @@
                                 <td>{{ user.id }}</td>
                                 <td><strong>{{ user.username }}</strong></td>
                                 <td style="font-size: 0.85rem;">{{ user.email }}</td>
+                                <td style="font-size: 0.82rem;">{{ user.college or '' }}</td>
+                                <td style="font-size: 0.82rem;">{{ user.major or '' }}</td>
+                                <td style="font-size: 0.82rem;">{{ user.graduation_year or '' }}</td>
                                 <td>
                                     {% if user.is_active_account %}
                                         <span class="badge" style="background-color: #27ae60 !important;">active</span>
@@ -171,6 +181,15 @@
                                         <span class="text-muted">never</span>
                                     {% endif %}
                                 </td>
+                                <td style="font-size: 0.82rem;">{{ user.sessions or '' }}</td>
+                                <td>
+                                    {% if user.is_done %}
+                                        <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                        <span class="text-muted small">No</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 0.82rem;">{{ user.offers or '' }}</td>
                                 <td style="font-size: 0.8rem;">
                                     {% if user.is_admin %}
                                         <span class="text-muted small">all (admin)</span>
@@ -199,6 +218,14 @@
                                         <span class="text-muted small">protected</span>
                                     {% else %}
                                     <div class="d-flex gap-1 flex-wrap">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm js-edit-profile"
+                                            data-id="{{ user.id }}" data-username="{{ user.username }}"
+                                            data-college="{{ user.college or '' }}" data-major="{{ user.major or '' }}"
+                                            data-grad="{{ user.graduation_year or '' }}" data-sessions="{{ user.sessions or '' }}"
+                                            data-done="{{ '1' if user.is_done else '' }}" data-offers="{{ user.offers or '' }}"
+                                            data-bs-toggle="modal" data-bs-target="#editProfileModal" title="Edit student profile">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
                                         {% if user.is_active_account %}
                                         <form method="POST" action="{{ url_for('admin.freeze_user', user_id=user.id) }}" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -241,14 +268,76 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="9" class="text-center text-muted">No users yet. Issue one above.</td>
+                                <td colspan="15" class="text-center text-muted">No users yet. Issue one above.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                  </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Edit student profile modal (shared; populated via JS from the clicked row) -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="editProfileForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="modal-header">
+          <h5 class="modal-title">Edit profile &mdash; <span id="epUsername"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label small mb-0">College</label>
+            <input type="text" name="college" id="epCollege" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Major</label>
+            <input type="text" name="major" id="epMajor" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Graduation Year</label>
+            <input type="number" name="graduation_year" id="epGrad" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Sessions</label>
+            <input type="text" name="sessions" id="epSessions" class="form-control form-control-sm" placeholder="e.g. 28/50">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Offers</label>
+            <input type="text" name="offers" id="epOffers" class="form-control form-control-sm" placeholder="e.g. GS S&amp;T + JPM IBD">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_done" id="epDone">
+            <label class="form-check-label small" for="epDone">Done (placed / has offer)</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.js-edit-profile').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var d = btn.dataset;
+    document.getElementById('editProfileForm').action = '/admin/users/' + d.id + '/profile';
+    document.getElementById('epUsername').textContent = d.username;
+    document.getElementById('epCollege').value = d.college || '';
+    document.getElementById('epMajor').value = d.major || '';
+    document.getElementById('epGrad').value = d.grad || '';
+    document.getElementById('epSessions').value = d.sessions || '';
+    document.getElementById('epOffers').value = d.offers || '';
+    document.getElementById('epDone').checked = (d.done === '1');
+  });
+});
+</script>
 {% endblock %}

@@ -346,3 +346,30 @@ def set_access(user_id):
     flash(f"Access for '{user.username}' updated to: {user.allowed_apps or '(none)'}.", 'success')
     return redirect(url_for('admin.users'))
 
+
+@admin_bp.route('/users/<int:user_id>/profile', methods=['POST'])
+@admin_required
+def update_profile(user_id):
+    """Update a user's student-roster fields (college, major, grad year, etc.)."""
+    user = User.query.get_or_404(user_id)
+
+    user.college = (request.form.get('college', '') or '').strip() or None
+    user.major = (request.form.get('major', '') or '').strip() or None
+    user.sessions = (request.form.get('sessions', '') or '').strip() or None
+    user.offers = (request.form.get('offers', '') or '').strip() or None
+    user.is_done = request.form.get('is_done') == 'on'
+
+    grad_raw = (request.form.get('graduation_year', '') or '').strip()
+    if grad_raw:
+        try:
+            user.graduation_year = int(grad_raw)
+        except ValueError:
+            flash('Graduation year must be a number.', 'danger')
+            return redirect(url_for('admin.users'))
+    else:
+        user.graduation_year = None
+
+    db.session.commit()
+    flash(f"Profile updated for '{user.username}'.", 'success')
+    return redirect(url_for('admin.users'))
+
