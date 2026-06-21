@@ -48,11 +48,55 @@ def _create_flask_app() -> Flask:
     return app
 
 
+def _refresh_csv_from_source(csv_path) -> bool:
+    """Download the latest jobs CSV produced by the job-scraper GitHub Action.
+
+    Configured via env:
+      JOBS_CSV_URL   – full URL to the CSV. For the private job-scraper repo use
+                       the contents API, e.g.
+                       https://api.github.com/repos/dylanlee20/job-scraper/contents/jobs_finance.csv?ref=master
+      JOBS_CSV_TOKEN – optional GitHub token (required for a private repo).
+
+    Returns True if the local file was refreshed. Non-fatal: on any failure we
+    log and fall back to whatever CSV is already on disk, so a transient network
+    hiccup never aborts the import.
+    """
+    url = os.environ.get("JOBS_CSV_URL")
+    if not url:
+        return False
+
+    import requests  # already a project dependency
+
+    headers = {"User-Agent": "newwhale-importer/1.0"}
+    token = os.environ.get("JOBS_CSV_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        if "api.github.com" in url:
+            headers["Accept"] = "application/vnd.github.raw"
+
+    try:
+        resp = requests.get(url, headers=headers, timeout=60)
+        resp.raise_for_status()
+        if not resp.content.strip():
+            logger.warning("CSV source returned empty body; keeping existing file")
+            return False
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = csv_path.with_suffix(csv_path.suffix + ".tmp")
+        tmp.write_bytes(resp.content)
+        tmp.replace(csv_path)
+        logger.info(f"Refreshed CSV from source ({len(resp.content)} bytes) -> {csv_path}")
+        return True
+    except Exception as exc:
+        logger.warning(f"Could not refresh CSV from {url}: {exc}. Using existing file.")
+        return False
+
+
 def run_all_scrapers(trigger: str = 'scheduled', skip_scraped_today: bool = False):
     """Single-source-of-truth ingest. Reads the WhaleStreet CSV, records a ScraperRun row."""
     app = _create_flask_app()
     with app.app_context():
         csv_path = resolve_csv_path()
+        _refresh_csv_from_source(csv_path)
         logger.info("=" * 80)
         logger.info(f"Starting CSV import (trigger={trigger}, source={csv_path})")
         logger.info("=" * 80)
