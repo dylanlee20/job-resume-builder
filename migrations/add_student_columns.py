@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from sqlalchemy import inspect, text
 
-from app import create_app
+from migrations._dbapp import create_db_app
 from models.database import db
 
 # column name -> SQL type clause used in ALTER TABLE ADD COLUMN
@@ -26,7 +26,7 @@ NEW_COLUMNS = {
 
 
 def migrate():
-    app, _ = create_app()
+    app = create_db_app()
     with app.app_context():
         existing = {c["name"] for c in inspect(db.engine).get_columns("users")}
         added = []

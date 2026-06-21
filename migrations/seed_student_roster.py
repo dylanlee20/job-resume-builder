@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from app import create_app
+from migrations._dbapp import create_db_app
 from models.database import db
 from models.user import User
 
@@ -97,7 +97,7 @@ def _random_recent_login(now: datetime) -> datetime:
 
 
 def seed():
-    app, _ = create_app()
+    app = create_db_app()
     created, updated = 0, 0
     with app.app_context():
         now = datetime.utcnow()
