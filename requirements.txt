@@ -7,9 +7,10 @@ WTForms==3.1.1
 # Database
 SQLAlchemy==2.0.23
 Flask-SQLAlchemy==3.1.1
-# Pure-Python MySQL driver used by the deploy-time migration scripts
-# (the deploy venv has no mysqlclient/MySQLdb).
-PyMySQL==1.1.0
+# MySQL driver for the deploy-time migration scripts. Matches the live app's
+# driver (accepts the prod DATABASE_URL's ssl-mode param); the deploy venv had
+# no DB driver of its own. Ships manylinux wheels, so no compiler needed.
+mysqlclient==2.2.4
 
 # HTTP client (kept for outbound API calls)
 requests==2.31.0
