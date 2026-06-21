@@ -110,7 +110,7 @@
                                     <label class="form-check-label small" for="newAdmin">Admin (full access)</label>
                                 </div>
                                 <button class="btn btn-sm btn-primary" type="submit">
-                                    <i class="bi bi-person-plus"></i> Create User
+                                    <i class="bi bi-person-plus"></i> Issue
                                 </button>
                             </div>
                         </div>
@@ -125,63 +125,107 @@
             <div class="card">
                 <div class="card-header">All Users</div>
                 <div class="card-body" style="padding: 0;">
+                  <style>
+                    #usersTable td, #usersTable th { padding: 3px 8px; font-size: 0.8rem; vertical-align: middle; }
+                    #usersTable tbody td { height: 30px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                    #usersTable tbody tr { cursor: context-menu; }
+                    .user-ctx-menu { display: none; position: fixed; z-index: 1080; min-width: 240px; max-width: 280px;
+                      background: #fff; border: 1px solid #d0d0d0; border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+                      padding: 10px; white-space: normal; text-align: left; }
+                    .user-ctx-menu.show { display: block; }
+                    .user-ctx-menu .form-check { margin-bottom: 2px; }
+                  </style>
                   <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0" style="white-space: nowrap;">
+                    <table id="usersTable" class="table table-sm table-hover mb-0 align-middle">
                         <thead>
                             <tr>
                                 <th style="width: 50px;">ID</th>
-                                <th>Username</th>
-                                <th>Email</th>
+                                <th>Username <i class="bi bi-mouse text-muted" title="Right-click a row for access &amp; actions"></i></th>
                                 <th>College</th>
                                 <th>Major</th>
                                 <th style="width: 70px;">Grad Yr</th>
-                                <th style="width: 90px;">Status</th>
-                                <th style="width: 80px;">Role</th>
-                                <th style="width: 150px;">Created</th>
-                                <th style="width: 150px;">Last Login</th>
+                                <th style="width: 130px;">Last Login</th>
                                 <th style="width: 80px;">Sessions</th>
-                                <th style="width: 70px;">Done?</th>
+                                <th style="width: 60px;">Done?</th>
                                 <th>Offers</th>
-                                <th style="width: 240px;">Access</th>
-                                <th style="width: 290px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for user in users %}
-                            <tr>
+                            <tr class="user-row" data-menu="ctxmenu-{{ user.id }}">
                                 <td>{{ user.id }}</td>
-                                <td><strong>{{ user.username }}</strong></td>
-                                <td style="font-size: 0.85rem;">{{ user.email }}</td>
-                                <td style="font-size: 0.82rem;">{{ user.college or '' }}</td>
-                                <td style="font-size: 0.82rem;">{{ user.major or '' }}</td>
-                                <td style="font-size: 0.82rem;">{{ user.graduation_year or '' }}</td>
                                 <td>
-                                    {% if user.is_active_account %}
-                                        <span class="badge" style="background-color: #27ae60 !important;">active</span>
-                                    {% elif user.is_frozen %}
-                                        <span class="badge" style="background-color: #f0a000 !important;">frozen</span>
-                                    {% else %}
-                                        <span class="badge" style="background-color: #c0392b !important;">disabled</span>
-                                    {% endif %}
+                                    <strong>{{ user.username }}</strong>
+                                    <i class="bi bi-three-dots-vertical text-muted"></i>
+                                    <div class="user-ctx-menu" id="ctxmenu-{{ user.id }}">
+                                        <div class="pb-2 mb-2 border-bottom small fw-bold text-truncate">
+                                            {{ user.username }}
+                                            {% if user.is_admin %}<span class="badge bg-danger ms-1">admin</span>
+                                            {% elif user.is_active_account %}<span class="badge bg-success ms-1">active</span>
+                                            {% elif user.is_frozen %}<span class="badge bg-warning text-dark ms-1">frozen</span>
+                                            {% else %}<span class="badge bg-secondary ms-1">disabled</span>{% endif %}
+                                        </div>
+                                        {% if user.is_admin %}
+                                        <div class="text-muted small">Admin &mdash; full access. Protected account.</div>
+                                        {% else %}
+                                        <form method="POST" action="{{ url_for('admin.set_access', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            {% set apps = user.app_set %}
+                                            <div class="small text-muted mb-1">Access</div>
+                                            <div class="form-check"><input class="form-check-input" type="checkbox" name="allowed_apps" value="main" id="acc{{ user.id }}main" {% if 'main' in apps %}checked{% endif %}><label class="form-check-label small" for="acc{{ user.id }}main">Main site (/)</label></div>
+                                            <div class="form-check"><input class="form-check-input" type="checkbox" name="allowed_apps" value="macro" id="acc{{ user.id }}macro" {% if 'macro' in apps %}checked{% endif %}><label class="form-check-label small" for="acc{{ user.id }}macro">US Macro (/macro)</label></div>
+                                            <div class="form-check"><input class="form-check-input" type="checkbox" name="allowed_apps" value="competitions" id="acc{{ user.id }}comp" {% if 'competitions' in apps %}checked{% endif %}><label class="form-check-label small" for="acc{{ user.id }}comp">Competitions (/competitions)</label></div>
+                                            <button class="btn btn-outline-secondary btn-sm w-100 mt-1" type="submit">Save access</button>
+                                        </form>
+                                        <hr class="my-2">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1 js-edit-profile"
+                                            data-id="{{ user.id }}" data-username="{{ user.username }}"
+                                            data-college="{{ user.college or '' }}" data-major="{{ user.major or '' }}"
+                                            data-grad="{{ user.graduation_year or '' }}" data-sessions="{{ user.sessions or '' }}"
+                                            data-done="{{ '1' if user.is_done else '' }}" data-offers="{{ user.offers or '' }}"
+                                            data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                                            <i class="bi bi-pencil"></i> Edit profile
+                                        </button>
+                                        {% if user.is_active_account %}
+                                        <form method="POST" action="{{ url_for('admin.freeze_user', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-warning btn-sm w-100 mb-1" type="submit"><i class="bi bi-snow"></i> Freeze</button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('admin.disable_user', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-danger btn-sm w-100 mb-1" type="submit"
+                                                    onclick="return confirm('Disable {{ user.username }}? They will be logged out.');"><i class="bi bi-x-octagon"></i> Disable</button>
+                                        </form>
+                                        {% else %}
+                                        <form method="POST" action="{{ url_for('admin.reactivate_user', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-success btn-sm w-100 mb-1" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Reactivate</button>
+                                        </form>
+                                        {% endif %}
+                                        <form method="POST" action="{{ url_for('admin.reset_password', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-primary btn-sm w-100 mb-1" type="submit"
+                                                    onclick="return confirm('Reset password for {{ user.username }}? A new one will be shown above.');"><i class="bi bi-key"></i> Reset password</button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-danger btn-sm w-100" type="submit"
+                                                    onclick="return confirm('Permanently delete {{ user.username }}? This cannot be undone.');"><i class="bi bi-trash"></i> Delete</button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
                                 </td>
+                                <td title="{{ user.college or '' }}">{{ user.college or '' }}</td>
+                                <td title="{{ user.major or '' }}">{{ user.major or '' }}</td>
+                                <td>{{ user.graduation_year or '' }}</td>
                                 <td>
-                                    {% if user.is_admin %}
-                                        <span class="badge" style="background-color: #e74c3c !important;">admin</span>
-                                    {% else %}
-                                        <span class="text-muted small">user</span>
-                                    {% endif %}
-                                </td>
-                                <td style="font-size: 0.82rem;">
-                                    {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '&ndash;'|safe }}
-                                </td>
-                                <td style="font-size: 0.82rem;">
                                     {% if user.last_login %}
                                         {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
                                     {% else %}
                                         <span class="text-muted">never</span>
                                     {% endif %}
                                 </td>
-                                <td style="font-size: 0.82rem;">{{ user.sessions or '' }}</td>
+                                <td>{{ user.sessions or '' }}</td>
                                 <td>
                                     {% if user.is_done %}
                                         <span class="badge bg-success">Yes</span>
@@ -189,86 +233,11 @@
                                         <span class="text-muted small">No</span>
                                     {% endif %}
                                 </td>
-                                <td style="font-size: 0.82rem;">{{ user.offers or '' }}</td>
-                                <td style="font-size: 0.8rem;">
-                                    {% if user.is_admin %}
-                                        <span class="text-muted small">all (admin)</span>
-                                    {% else %}
-                                    <form method="POST" action="{{ url_for('admin.set_access', user_id=user.id) }}" class="d-flex flex-wrap gap-2 align-items-center">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                        {% set apps = user.app_set %}
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input class="form-check-input" type="checkbox" name="allowed_apps" value="main" id="acc{{ user.id }}main" {% if 'main' in apps %}checked{% endif %}>
-                                            <label class="form-check-label small" for="acc{{ user.id }}main">/</label>
-                                        </div>
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input class="form-check-input" type="checkbox" name="allowed_apps" value="macro" id="acc{{ user.id }}macro" {% if 'macro' in apps %}checked{% endif %}>
-                                            <label class="form-check-label small" for="acc{{ user.id }}macro">macro</label>
-                                        </div>
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input class="form-check-input" type="checkbox" name="allowed_apps" value="competitions" id="acc{{ user.id }}comp" {% if 'competitions' in apps %}checked{% endif %}>
-                                            <label class="form-check-label small" for="acc{{ user.id }}comp">comps</label>
-                                        </div>
-                                        <button class="btn btn-outline-secondary btn-sm py-0" type="submit">Save</button>
-                                    </form>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if user.is_admin %}
-                                        <span class="text-muted small">protected</span>
-                                    {% else %}
-                                    <div class="d-flex gap-1 flex-wrap">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm js-edit-profile"
-                                            data-id="{{ user.id }}" data-username="{{ user.username }}"
-                                            data-college="{{ user.college or '' }}" data-major="{{ user.major or '' }}"
-                                            data-grad="{{ user.graduation_year or '' }}" data-sessions="{{ user.sessions or '' }}"
-                                            data-done="{{ '1' if user.is_done else '' }}" data-offers="{{ user.offers or '' }}"
-                                            data-bs-toggle="modal" data-bs-target="#editProfileModal" title="Edit student profile">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        {% if user.is_active_account %}
-                                        <form method="POST" action="{{ url_for('admin.freeze_user', user_id=user.id) }}" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                            <button class="btn btn-outline-warning btn-sm" type="submit" title="Freeze">
-                                                <i class="bi bi-snow"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('admin.disable_user', user_id=user.id) }}" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                            <button class="btn btn-outline-danger btn-sm" type="submit"
-                                                    onclick="return confirm('Disable {{ user.username }}? They will be logged out.');" title="Disable">
-                                                <i class="bi bi-x-octagon"></i>
-                                            </button>
-                                        </form>
-                                        {% else %}
-                                        <form method="POST" action="{{ url_for('admin.reactivate_user', user_id=user.id) }}" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                            <button class="btn btn-outline-success btn-sm" type="submit" title="Reactivate">
-                                                <i class="bi bi-arrow-counterclockwise"></i>
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                        <form method="POST" action="{{ url_for('admin.reset_password', user_id=user.id) }}" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                            <button class="btn btn-outline-primary btn-sm" type="submit"
-                                                    onclick="return confirm('Reset password for {{ user.username }}? A new one will be shown above.');" title="Reset password">
-                                                <i class="bi bi-key"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                            <button class="btn btn-outline-danger btn-sm" type="submit"
-                                                    onclick="return confirm('Permanently delete {{ user.username }}? This cannot be undone.');" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                    {% endif %}
-                                </td>
+                                <td title="{{ user.offers or '' }}">{{ user.offers or '' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="15" class="text-center text-muted">No users yet. Issue one above.</td>
+                                <td colspan="9" class="text-center text-muted">No users yet. Issue one above.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -326,8 +295,39 @@
 </div>
 
 <script>
+// --- Right-click context menu for user rows (Access + Actions) ---
+(function () {
+  function hideAll() {
+    document.querySelectorAll('.user-ctx-menu.show').forEach(function (m) { m.classList.remove('show'); });
+  }
+  document.querySelectorAll('tr.user-row').forEach(function (row) {
+    row.addEventListener('contextmenu', function (e) {
+      if (e.target.closest('.user-ctx-menu')) return;   // right-click inside the menu: leave it
+      e.preventDefault();
+      hideAll();
+      var menu = document.getElementById(row.dataset.menu);
+      if (!menu) return;
+      menu.classList.add('show');                       // show first so we can measure it
+      var mw = menu.offsetWidth, mh = menu.offsetHeight;
+      var x = Math.min(e.clientX, window.innerWidth - mw - 8);
+      var y = Math.min(e.clientY, window.innerHeight - mh - 8);
+      menu.style.left = Math.max(8, x) + 'px';
+      menu.style.top = Math.max(8, y) + 'px';
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.user-ctx-menu')) return;     // keep open while interacting with it
+    hideAll();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideAll(); });
+  window.addEventListener('scroll', hideAll, true);
+  window.__hideUserMenus = hideAll;
+})();
+
+// --- Populate the shared edit-profile modal from the clicked button ---
 document.querySelectorAll('.js-edit-profile').forEach(function (btn) {
   btn.addEventListener('click', function () {
+    if (window.__hideUserMenus) window.__hideUserMenus();
     var d = btn.dataset;
     document.getElementById('editProfileForm').action = '/admin/users/' + d.id + '/profile';
     document.getElementById('epUsername').textContent = d.username;
