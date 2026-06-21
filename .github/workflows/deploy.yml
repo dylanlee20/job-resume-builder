@@ -17,12 +17,18 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          JOBS_CSV_URL: ${{ secrets.JOBS_CSV_URL }}
+          JOBS_CSV_TOKEN: ${{ secrets.JOBS_CSV_TOKEN }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           command_timeout: 10m
+          # Forward the scraper-feed secrets into the remote shell so the step
+          # below can upsert them into /opt/app/.env (the file load_dotenv reads).
+          envs: JOBS_CSV_URL,JOBS_CSV_TOKEN
           # Pull the latest deploy.sh FIRST so this run always uses the newest
           # version (avoids the "deploy.sh updates itself mid-run" race where
           # bash holds the old script in memory after git reset --hard).
@@ -31,5 +37,15 @@ jobs:
             cd /opt/app
             git fetch origin master
             git reset --hard origin/master
+            # Upsert the scraper-feed vars into .env (idempotent; skips if unset).
+            if [ -n "${JOBS_CSV_URL:-}" ] && [ -n "${JOBS_CSV_TOKEN:-}" ]; then
+              touch .env
+              grep -vE '^(JOBS_CSV_URL|JOBS_CSV_TOKEN)=' .env > .env.tmp || true
+              printf 'JOBS_CSV_URL=%s\n' "$JOBS_CSV_URL" >> .env.tmp
+              printf 'JOBS_CSV_TOKEN=%s\n' "$JOBS_CSV_TOKEN" >> .env.tmp
+              mv .env.tmp .env
+              chmod 600 .env
+              echo "scraper-feed env upserted into /opt/app/.env"
+            fi
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
