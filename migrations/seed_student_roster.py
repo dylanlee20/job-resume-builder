@@ -96,11 +96,25 @@ def _random_recent_login(now: datetime) -> datetime:
     return now - timedelta(seconds=random.randint(0, 3 * 24 * 3600))
 
 
+def _gen_member_no(used: set) -> str:
+    """A random 6-digit member number not already in `used`."""
+    while True:
+        candidate = f"{random.randint(100000, 999999)}"
+        if candidate not in used:
+            used.add(candidate)
+            return candidate
+
+
 def seed():
     app = create_db_app()
     created, updated = 0, 0
     with app.app_context():
         now = datetime.utcnow()
+        used_nos = {
+            u.member_no
+            for u in User.query.filter(User.member_no.isnot(None)).all()
+            if u.member_no
+        }
         for name, college, major, grad, sessions, offers in ROSTER:
             username = _slug(name)
             is_done = bool(offers)
@@ -111,6 +125,8 @@ def seed():
                 user = User(
                     username=username,
                     email=f"{username}@{EMAIL_DOMAIN}",
+                    full_name=name,
+                    member_no=_gen_member_no(used_nos),
                     is_admin=False,
                     status="disabled",          # display-only roster, no login
                     email_verified=True,
@@ -141,10 +157,34 @@ def seed():
                 if not user.offers and offers_val:
                     user.offers = offers_val
                     user.is_done = is_done
+                if not user.full_name:
+                    user.full_name = name
+                if not user.member_no:
+                    user.member_no = _gen_member_no(used_nos)
                 updated += 1
 
         db.session.commit()
         print(f"OK: Roster seed complete: {created} created, {updated} updated.")
+
+
+def backfill_member_numbers():
+    """Assign a random 6-digit member_no to any remaining user (e.g. admins)."""
+    app = create_db_app()
+    with app.app_context():
+        used_nos = {
+            u.member_no
+            for u in User.query.filter(User.member_no.isnot(None)).all()
+            if u.member_no
+        }
+        count = 0
+        rows = User.query.filter(
+            (User.member_no.is_(None)) | (User.member_no == "")
+        ).all()
+        for u in rows:
+            u.member_no = _gen_member_no(used_nos)
+            count += 1
+        db.session.commit()
+        print(f"OK: Backfilled member_no for {count} users.")
 
 
 if __name__ == "__main__":

@@ -28,6 +28,99 @@
     </div>
     {% endif %}
 
+    <style>
+      .star-input { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; }
+      .star-input input { display: none; }
+      .star-input label { color: #ccc; font-size: 1.4rem; cursor: pointer; padding: 0 1px; line-height: 1; }
+      .star-input input:checked ~ label,
+      .star-input label:hover,
+      .star-input label:hover ~ label { color: #d4af37; }
+    </style>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-journal-text"></i> Session History</span>
+            <span class="text-muted small">{{ recent_sessions|length }} recent</span>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.create_session') }}" class="row g-2 align-items-end mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="col-md-2">
+                    <label class="form-label small mb-0">Student</label>
+                    <select name="student_id" class="form-select form-select-sm">
+                        <option value="">&mdash; none &mdash;</option>
+                        {% for s in student_choices %}
+                        <option value="{{ s.id }}">{{ s.full_name or s.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-0">Mentor</label>
+                    <input type="text" name="mentor_name" class="form-control form-control-sm" required autocomplete="off">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-0">Type</label>
+                    <select name="session_type" class="form-select form-select-sm" required>
+                        {% for t in session_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-0">Topic</label>
+                    <input type="text" name="topic" class="form-control form-control-sm" autocomplete="off">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-0 d-block">Rating</label>
+                    <div class="star-input">
+                        <input type="radio" name="rating" value="5" id="star5"><label for="star5" title="5 stars">&#9733;</label>
+                        <input type="radio" name="rating" value="4" id="star4"><label for="star4" title="4 stars">&#9733;</label>
+                        <input type="radio" name="rating" value="3" id="star3"><label for="star3" title="3 stars">&#9733;</label>
+                        <input type="radio" name="rating" value="2" id="star2"><label for="star2" title="2 stars">&#9733;</label>
+                        <input type="radio" name="rating" value="1" id="star1"><label for="star1" title="1 star">&#9733;</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small mb-0">Feedback</label>
+                    <textarea name="feedback" class="form-control form-control-sm" rows="2"
+                              placeholder="What was covered, how the student did, next steps..."></textarea>
+                </div>
+                <div class="col-12 text-end">
+                    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Log session</button>
+                </div>
+            </form>
+
+            <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 130px;">When</th>
+                            <th>Student</th>
+                            <th>Mentor</th>
+                            <th style="width: 90px;">Type</th>
+                            <th>Topic</th>
+                            <th style="width: 92px;">Rating</th>
+                            <th>Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for sr in recent_sessions %}
+                        <tr>
+                            <td class="small text-muted">{{ sr.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="small">{{ (sr.student.full_name or sr.student.username) if sr.student else '—' }}</td>
+                            <td class="small">{{ sr.mentor_name }}</td>
+                            <td><span class="badge bg-secondary">{{ sr.session_type }}</span></td>
+                            <td class="small">{{ sr.topic or '' }}</td>
+                            <td style="color: #d4af37; letter-spacing: 1px; white-space: nowrap;">{{ sr.stars if sr.rating else '' }}</td>
+                            <td class="small text-truncate" style="max-width: 260px;" title="{{ sr.feedback or '' }}">{{ sr.feedback or '' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="7" class="text-center text-muted small py-3">No sessions logged yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="row mb-4 g-3">
         <div class="col-md-3">
             <div class="card admin-stat-card">
@@ -134,18 +227,27 @@
                       padding: 10px; white-space: normal; text-align: left; }
                     .user-ctx-menu.show { display: block; }
                     .user-ctx-menu .form-check { margin-bottom: 2px; }
+                    /* Sessions progress bar + plan badge */
+                    .sess-cell { display: flex; align-items: center; gap: 6px; }
+                    .sess-plan { font-size: 0.62rem; font-weight: 600; padding: 1px 5px; border-radius: 4px; white-space: nowrap; line-height: 1.3; }
+                    .plan-Obsidian { background: #0b1f3a; color: #fff; }
+                    .plan-Gold { background: #d4af37; color: #1a1a1a; }
+                    .plan-Platinum { background: #cfd2d6; color: #1a1a1a; }
+                    .sess-bar { position: relative; flex: 1 1 auto; min-width: 56px; height: 15px; background: #e8e8e8; border-radius: 8px; overflow: hidden; }
+                    .sess-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #000; }
+                    .sess-num { position: absolute; top: 0; left: 0; right: 0; line-height: 15px; text-align: center; font-size: 0.66rem; font-weight: 700; color: #d4af37; }
                   </style>
                   <div class="table-responsive">
                     <table id="usersTable" class="table table-sm table-hover mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">ID</th>
-                                <th>Username <i class="bi bi-mouse text-muted" title="Right-click a row for access &amp; actions"></i></th>
+                                <th style="width: 70px;">ID</th>
+                                <th>Name <i class="bi bi-mouse text-muted" title="Right-click a row for access &amp; actions"></i></th>
                                 <th>College</th>
                                 <th>Major</th>
                                 <th style="width: 70px;">Grad Yr</th>
                                 <th style="width: 130px;">Last Login</th>
-                                <th style="width: 80px;">Sessions</th>
+                                <th style="width: 170px;">Sessions</th>
                                 <th style="width: 60px;">Done?</th>
                                 <th>Offers</th>
                             </tr>
@@ -153,9 +255,9 @@
                         <tbody>
                             {% for user in users %}
                             <tr class="user-row" data-menu="ctxmenu-{{ user.id }}">
-                                <td>{{ user.id }}</td>
+                                <td>{{ user.member_no or user.id }}</td>
                                 <td>
-                                    <strong>{{ user.username }}</strong>
+                                    <strong>{{ user.full_name or user.username }}</strong>
                                     <i class="bi bi-three-dots-vertical text-muted"></i>
                                     <div class="user-ctx-menu" id="ctxmenu-{{ user.id }}">
                                         <div class="pb-2 mb-2 border-bottom small fw-bold text-truncate">
@@ -225,7 +327,15 @@
                                         <span class="text-muted">never</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ user.sessions or '' }}</td>
+                                <td>
+                                    <div class="sess-cell">
+                                        <span class="sess-plan plan-{{ user.plan }}">{{ user.plan }}</span>
+                                        <div class="sess-bar" title="{{ user.sessions or ('0/' ~ user.sessions_total) }}">
+                                            <div class="sess-fill" style="width: {{ user.sessions_pct }}%;"></div>
+                                            <span class="sess-num">{{ user.sessions or ('0/' ~ user.sessions_total) }}</span>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td>
                                     {% if user.is_done %}
                                         <span class="badge bg-success">Yes</span>

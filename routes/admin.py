@@ -5,6 +5,7 @@ from functools import wraps
 from models.database import db
 from models.user import User
 from models.scraper_run import ScraperRun
+from models.session_record import SessionRecord, SESSION_TYPES
 from models.job import Job
 from services.job_service import JobService
 from datetime import datetime, timedelta
@@ -47,12 +48,80 @@ def users():
     # One-shot password from POST flow lives in the session via a flashed pair.
     issued_credentials = request.args.get('issued')
     issued_username = request.args.get('username')
+
+    recent_sessions = (
+        SessionRecord.query.order_by(SessionRecord.created_at.desc()).limit(30).all()
+    )
+    # Students to choose from when logging a session (named roster first).
+    student_choices = sorted(
+        [u for u in all_users if not u.is_admin],
+        key=lambda u: (u.full_name or u.username).lower(),
+    )
+
     return render_template(
         'admin/users.html',
         users=all_users,
         issued_credentials=issued_credentials,
         issued_username=issued_username,
+        recent_sessions=recent_sessions,
+        student_choices=student_choices,
+        session_types=SESSION_TYPES,
     )
+
+
+@admin_bp.route('/sessions/create', methods=['POST'])
+@admin_required
+def create_session():
+    """Log a coaching/mentoring session from the Session History panel."""
+    mentor_name = (request.form.get('mentor_name', '') or '').strip()
+    session_type = (request.form.get('session_type', '') or '').strip()
+    topic = (request.form.get('topic', '') or '').strip()
+    feedback = (request.form.get('feedback', '') or '').strip()
+    student_id_raw = (request.form.get('student_id', '') or '').strip()
+
+    errors = []
+    if not mentor_name:
+        errors.append('Mentor name is required.')
+    if session_type not in SESSION_TYPES:
+        errors.append('Pick a valid session type.')
+
+    rating = None
+    rating_raw = (request.form.get('rating', '') or '').strip()
+    if rating_raw:
+        try:
+            rating = int(rating_raw)
+            if not 1 <= rating <= 5:
+                raise ValueError
+        except ValueError:
+            errors.append('Rating must be between 1 and 5.')
+
+    student_id = None
+    if student_id_raw:
+        try:
+            student_id = int(student_id_raw)
+            if not User.query.get(student_id):
+                errors.append('Selected student no longer exists.')
+                student_id = None
+        except ValueError:
+            errors.append('Invalid student.')
+
+    if errors:
+        for e in errors:
+            flash(e, 'danger')
+        return redirect(url_for('admin.users'))
+
+    record = SessionRecord(
+        student_id=student_id,
+        mentor_name=mentor_name,
+        session_type=session_type,
+        topic=topic or None,
+        rating=rating,
+        feedback=feedback or None,
+    )
+    db.session.add(record)
+    db.session.commit()
+    flash('Session logged.', 'success')
+    return redirect(url_for('admin.users'))
 
 
 @admin_bp.route('/users/create', methods=['POST'])

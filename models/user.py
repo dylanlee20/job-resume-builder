@@ -51,9 +51,44 @@ class User(UserMixin, db.Model):
     # Whether the student is placed/finished; if so, `offers` lists the firms.
     is_done = db.Column(db.Boolean, default=False, nullable=False)
     offers = db.Column(db.String(255), nullable=True)
+    # Real display name and a public-facing 6-digit member number shown in the
+    # admin roster instead of the raw sequential DB id.
+    full_name = db.Column(db.String(120), nullable=True)
+    member_no = db.Column(db.String(6), nullable=True, index=True)
 
     def __repr__(self):
         return f'<User {self.username} status={self.status}>'
+
+    # --- Session-progress / plan helpers (admin roster display) ---
+    # The sessions denominator encodes the plan tier; blank defaults to Obsidian.
+    _PLAN_BY_TOTAL = {50: 'Obsidian', 35: 'Platinum', 15: 'Gold'}
+
+    def _session_parts(self):
+        raw = (self.sessions or '').strip()
+        if '/' in raw:
+            done_s, total_s = raw.split('/', 1)
+            try:
+                return int(done_s), int(total_s)
+            except ValueError:
+                return None, None
+        return None, None
+
+    @property
+    def sessions_total(self) -> int:
+        _, total = self._session_parts()
+        return total or 50  # blank -> Obsidian (50 sessions)
+
+    @property
+    def sessions_pct(self) -> int:
+        done, total = self._session_parts()
+        if not total:
+            return 0
+        return max(0, min(100, round(100 * (done or 0) / total)))
+
+    @property
+    def plan(self) -> str:
+        _, total = self._session_parts()
+        return self._PLAN_BY_TOTAL.get(total or 50, 'Obsidian')
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)

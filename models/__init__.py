@@ -5,6 +5,7 @@ from .job import Job
 from .job_snapshot import JobSnapshot
 from .scraper_run import ScraperRun
 from .email_verification_token import EmailVerificationToken
+from .session_record import SessionRecord
 
 __all__ = [
     'db',
@@ -16,4 +17,5 @@ __all__ = [
     'JobSnapshot',
     'ScraperRun',
     'EmailVerificationToken',
+    'SessionRecord',
 ]

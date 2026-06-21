@@ -22,6 +22,8 @@ NEW_COLUMNS = {
     "sessions": "VARCHAR(40)",
     "is_done": "BOOLEAN NOT NULL DEFAULT 0",
     "offers": "VARCHAR(255)",
+    "full_name": "VARCHAR(120)",
+    "member_no": "VARCHAR(6)",
 }
 
 
