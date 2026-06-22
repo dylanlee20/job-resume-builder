@@ -6,16 +6,6 @@
     .edu-header h1 { color: var(--nw-navy); font-weight: 700; margin-bottom: 0.15rem; font-size: 1.6rem; }
     .edu-header .edu-track { color: var(--nw-text-light); font-size: 0.95rem; }
     .edu-header .edu-subtitle { color: var(--nw-text-light); font-size: 0.85rem; margin-top: 0.4rem; }
-    .edu-knowhow {
-        display: flex; align-items: flex-start; gap: 0.5rem;
-        position: sticky; top: 0; z-index: 20;
-        margin-top: 0.7rem; padding: 0.6rem 0.85rem;
-        background: #eef3fb; border-left: 3px solid var(--nw-blue); border-radius: 4px;
-        color: var(--nw-navy); font-size: 0.85rem; line-height: 1.45;
-        box-shadow: 0 2px 6px rgba(13, 35, 64, 0.08);
-    }
-    .edu-knowhow .knowhow-icon { color: var(--nw-blue); flex-shrink: 0; margin-top: 0.05rem; }
-    .edu-knowhow strong { font-weight: 700; }
 
     .deck-section { margin-top: 1.5rem; }
     .deck-section .section-head {
@@ -73,11 +63,6 @@
         <h1>NewWhale Education</h1>
         <div class="edu-track">{{ track_label }}</div>
         <div class="edu-subtitle">View Only</div>
-        <div class="edu-knowhow">
-            <i class="bi bi-tools knowhow-icon"></i>
-            <span><strong>Built by practitioners, packed with real know-how.</strong>
-            This isn't textbook theory: every deck carries the hands-on tools, key dates, and desk workflows you actually use on the job. Healthcare alone walks you through reading clinical-trial results on ClinicalTrials.gov by NCT number, the Medicare Advantage Star Ratings that move insurer valuations every October, and how to map a full year of catalysts off the JPM Healthcare Conference.</span>
-        </div>
     </div>
 
     {% for section in sections %}
