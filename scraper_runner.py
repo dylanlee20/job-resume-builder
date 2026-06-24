@@ -22,6 +22,12 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Force the app's own .env to win over any stray ambient DATABASE_URL (the deploy
+# shell can carry a managed-DB "defaultdb"); must run before config is imported.
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
+
 from flask import Flask
 
 from config import Config

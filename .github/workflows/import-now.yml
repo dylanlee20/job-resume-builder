@@ -1,0 +1,25 @@
+name: Import jobs now
+
+# Manually trigger a full job import on the production server: fetch the latest
+# scraper CSV from GitHub, ingest it, and expire stale postings. Runs entirely
+# in the cloud (GitHub runner -> SSH -> prod). Click "Run workflow" to use it.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run import via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          command_timeout: 15m
+          script: |
+            set -e
+            cd /opt/app
+            ./venv/bin/python scraper_runner.py manual
