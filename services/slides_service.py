@@ -227,7 +227,7 @@ def render_watermarked_png(
     source: Path,
     viewer_email: str,
     viewer_ip: str = "",
-    show_est: bool = False,
+    show_ip: bool = True,
 ) -> bytes:
     img = Image.open(source).convert("RGBA")
     width, height = img.size
@@ -238,34 +238,37 @@ def render_watermarked_png(
     font_size = max(18, width // 60)
     font = _load_font(font_size)
 
+    # Eastern time only (EST/EDT chosen automatically by the zone); no UTC.
     now = datetime.utcnow()
-    timestamp = now.strftime("%Y-%m-%d %H:%M UTC")
-    if show_est:
-        # Append an Eastern-time tag (EST/EDT picked automatically by the zone).
-        try:
-            from zoneinfo import ZoneInfo
+    try:
+        from zoneinfo import ZoneInfo
 
-            est = now.replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("America/New_York"))
-            timestamp = f"{timestamp}  ·  {est.strftime('%Y-%m-%d %H:%M %Z')}"
-        except Exception:
-            pass
-    label = f"{viewer_email}  ·  {timestamp}"
-    if viewer_ip:
+        eastern = now.replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("America/New_York"))
+        timestamp = eastern.strftime("%Y-%m-%d %H:%M %Z")
+    except Exception:
+        timestamp = now.strftime("%Y-%m-%d %H:%M")
+
+    label = f"NewWhale  ·  {viewer_email}  ·  {timestamp}"
+    if show_ip and viewer_ip:
         label = f"{label}  ·  {viewer_ip}"
 
     bbox = draw.textbbox((0, 0), label, font=font)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
 
-    tile = Image.new("RGBA", (text_w + 80, text_h + 80), (0, 0, 0, 0))
+    # Tighter padding -> tiles sit closer together (more frequent).
+    pad = 24
+    tile = Image.new("RGBA", (text_w + pad * 2, text_h + pad * 2), (0, 0, 0, 0))
     tile_draw = ImageDraw.Draw(tile)
-    tile_draw.text((40, 40), label, font=font, fill=(120, 120, 120, 70))
+    # Slightly denser ink than before (alpha 70 -> 95).
+    tile_draw.text((pad, pad), label, font=font, fill=(120, 120, 120, 95))
 
     rotated = tile.rotate(30, resample=Image.BICUBIC, expand=True)
     rw, rh = rotated.size
 
-    step_x = int(rw * 0.9)
-    step_y = int(rh * 1.4)
+    # Closer spacing -> the watermark shows up more frequently.
+    step_x = int(rw * 0.62)
+    step_y = int(rh * 0.95)
     for y in range(-rh, height + rh, step_y):
         offset = 0 if (y // step_y) % 2 == 0 else step_x // 2
         for x in range(-rw + offset, width + rw, step_x):

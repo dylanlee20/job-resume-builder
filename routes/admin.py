@@ -137,8 +137,7 @@ def question_bank_image(entry_id):
     if not path.is_file():
         abort(404)
     viewer = getattr(current_user, 'email', None) or current_user.username
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
-    png = render_watermarked_png(path, viewer, ip, show_est=True)
+    png = render_watermarked_png(path, viewer, show_ip=False)
     return Response(png, mimetype='image/png')
 
 
