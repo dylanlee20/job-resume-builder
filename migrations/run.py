@@ -26,10 +26,12 @@ def main():
     add_student_columns.migrate()
     print("== migrations: create_session_records ==")
     create_session_records.migrate()
-    print("== migrations: add_job_program_type ==")
-    add_job_program_type.migrate()
+    # Column-adds must run before any migration that ORM-queries `jobs`
+    # (a Job query selects every mapped column, including these new ones).
     print("== migrations: add_job_link_kind ==")
     add_job_link_kind.migrate()
+    print("== migrations: add_job_program_type ==")
+    add_job_program_type.migrate()
     print("== migrations: seed_programs ==")
     seed_programs.seed()
     print("== migrations: seed_student_roster ==")
