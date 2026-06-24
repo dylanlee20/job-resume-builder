@@ -17,13 +17,20 @@ import csv
 import logging
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from models.database import db
 from services.job_service import JobService
+from services.program_classifier import classify_program
 
 logger = logging.getLogger(__name__)
+
+# Active jobs not re-seen within this window are marked inactive on import.
+STALE_AFTER_DAYS = 14
+# Source label for hand-curated program entries (never auto-expired).
+CURATED_SOURCE = "curated-program"
 
 
 DEFAULT_CSV_PATH = Path.home() / "whalestreet" / "services" / "job-scraper" / "jobs_finance.csv"
@@ -65,6 +72,7 @@ def _row_to_job_dict(row: Dict[str, str]) -> Optional[Dict]:
         "deadline": None,
         "source_website": (row.get("source_url") or "").strip() or "whalestreet.ai",
         "job_url": job_url,
+        "program_type": classify_program(title),
     }
 
 
@@ -92,7 +100,8 @@ class CSVImportService:
         with cls._lock:
             cls._state.update(is_running=True, started_at=datetime.utcnow().isoformat(), last_result=None)
 
-        stats = {"total_rows": 0, "ingested": 0, "skipped": 0, "errors": 0}
+        stats = {"total_rows": 0, "ingested": 0, "skipped": 0, "errors": 0, "expired": 0}
+        import_started = datetime.utcnow()
         try:
             with csv_path.open("r", encoding="utf-8", newline="") as fh:
                 reader = csv.DictReader(fh)
@@ -108,15 +117,41 @@ class CSVImportService:
                     except Exception as exc:
                         stats["errors"] += 1
                         logger.warning(f"Row failed ({job_data.get('company')} / {job_data.get('title')}): {exc}")
+
+            stats["expired"] = cls._expire_stale_jobs(import_started)
         finally:
             with cls._lock:
                 cls._state.update(is_running=False, last_result=stats)
 
         logger.info(
             f"CSV import complete. rows={stats['total_rows']} "
-            f"ingested={stats['ingested']} skipped={stats['skipped']} errors={stats['errors']}"
+            f"ingested={stats['ingested']} skipped={stats['skipped']} "
+            f"errors={stats['errors']} expired={stats['expired']}"
         )
         return stats
+
+    @staticmethod
+    def _expire_stale_jobs(import_started: datetime) -> int:
+        """Mark active scraped jobs not re-seen recently as inactive.
+
+        Curated program entries are never expired. Returns the number expired.
+        """
+        from models.job import Job  # local import to avoid a cycle at module load
+
+        cutoff = import_started - timedelta(days=STALE_AFTER_DAYS)
+        stale = Job.query.filter(
+            Job.status == "active",
+            Job.source_website != CURATED_SOURCE,
+            db.or_(Job.last_seen.is_(None), Job.last_seen < cutoff),
+        )
+        count = 0
+        for job in stale.all():
+            job.status = "inactive"
+            count += 1
+        if count:
+            db.session.commit()
+        logger.info(f"Expired {count} stale jobs (last seen before {cutoff.date()}).")
+        return count
 
     @classmethod
     def run_async(cls, app=None) -> bool:

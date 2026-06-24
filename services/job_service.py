@@ -159,6 +159,11 @@ class JobService:
         existing_job = Job.query.filter_by(job_hash=job_hash).first()
         if existing_job:
             existing_job.last_seen = datetime.utcnow()
+            # Re-seeing a previously expired posting reactivates it.
+            if existing_job.status != 'active':
+                existing_job.status = 'active'
+            if job_data.get('program_type') and not existing_job.program_type:
+                existing_job.program_type = job_data.get('program_type')
             db.session.commit()
             return existing_job
 
@@ -173,6 +178,7 @@ class JobService:
             deadline=job_data.get('deadline'),
             source_website=job_data['source_website'],
             job_url=job_data['job_url'],
+            program_type=job_data.get('program_type'),
             status='active',
         )
         db.session.add(new_job)

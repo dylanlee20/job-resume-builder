@@ -31,6 +31,10 @@ class Job(db.Model):
     # Job type classification
     seniority = db.Column(db.String(20), nullable=True, index=True)  # 'Internship' or 'Full Time'
 
+    # Early-career / women-diversity program tag: 'early', 'diversity',
+    # 'early,diversity', or NULL for a normal role.
+    program_type = db.Column(db.String(20), nullable=True, index=True)
+
     # Date information
     post_date = db.Column(db.DateTime, nullable=True)
     deadline = db.Column(db.DateTime, nullable=True)

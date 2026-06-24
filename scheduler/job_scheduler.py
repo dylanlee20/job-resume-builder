@@ -16,15 +16,15 @@ class JobScheduler:
         self._setup_jobs()
 
     def _setup_jobs(self):
-        """Setup scheduled jobs - weekly scraping every Sunday at 2 AM"""
+        """Setup scheduled jobs - daily import at 06:00 (picks up each fresh scrape)."""
         self.scheduler.add_job(
             func=self._run_scrapers,
-            trigger=CronTrigger(day_of_week='sun', hour=2, minute=0),
-            id='weekly_scraper',
-            name='Weekly Job Scraper',
+            trigger=CronTrigger(hour=6, minute=0),
+            id='weekly_scraper',  # id kept for backward compat with /admin status
+            name='Daily Job Import',
             replace_existing=True
         )
-        logger.info("Scheduled weekly scraper job: Every Sunday at 2:00 AM")
+        logger.info("Scheduled daily job import: every day at 06:00")
 
     def _run_scrapers(self):
         """Run all scrapers with app context"""
