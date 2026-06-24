@@ -14,6 +14,7 @@ from migrations import (
     seed_student_roster,
     create_session_records,
     add_job_program_type,
+    seed_programs,
 )
 from migrations._dbapp import masked_target
 
@@ -26,6 +27,8 @@ def main():
     create_session_records.migrate()
     print("== migrations: add_job_program_type ==")
     add_job_program_type.migrate()
+    print("== migrations: seed_programs ==")
+    seed_programs.seed()
     print("== migrations: seed_student_roster ==")
     seed_student_roster.seed()
     print("== migrations: backfill_member_numbers ==")
