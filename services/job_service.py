@@ -111,6 +111,10 @@ class JobService:
         if filters.get('category'):
             query = query.filter_by(category=filters['category'])
 
+        program = (filters.get('program') or '').strip()
+        if program in ('early', 'diversity'):
+            query = query.filter(Job.program_type.ilike(f"%{program}%"))
+
         if filters.get('is_important'):
             query = query.filter_by(is_important=True)
 
@@ -272,6 +276,18 @@ class JobService:
                 Job.first_seen >= now - delta,
             ).count()
         return counts
+
+    @staticmethod
+    def get_program_counts():
+        """Active counts of early-career and women/diversity program postings."""
+        return {
+            'early': Job.query.filter(
+                Job.status == 'active', Job.program_type.ilike('%early%')
+            ).count(),
+            'diversity': Job.query.filter(
+                Job.status == 'active', Job.program_type.ilike('%diversity%')
+            ).count(),
+        }
 
     @staticmethod
     def get_last_updated_at():

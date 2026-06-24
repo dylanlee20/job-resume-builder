@@ -21,6 +21,38 @@
     </div>
 </div>
 
+<!-- Program section tabs (each has its own canonical URL) -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <ul class="nav nav-pills flex-wrap gap-2" role="tablist">
+            {% for ptab in program_tabs %}
+            <li class="nav-item" role="presentation">
+                <a class="nav-link nav-loading-link{% if ptab.is_active %} active{% endif %}"
+                   href="{{ ptab.url }}"
+                   style="font-size: 0.85rem; padding: 6px 16px;{% if not ptab.is_active %} color: var(--nw-text); background: #fff; border: 1px solid var(--nw-border);{% endif %}">
+                    {{ ptab.label }}
+                    {% if ptab.count is defined %}
+                    <span class="badge {% if ptab.is_active %}bg-light text-dark{% else %}bg-secondary{% endif %}" style="font-size: 0.7rem; margin-left: 4px;">{{ ptab.count }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if program_heading %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h5 class="mb-1" style="color: var(--nw-navy);">{{ program_heading }}</h5>
+        <p class="text-muted small mb-0">
+            Curated {{ 'early-career (spring/insight/sophomore)' if program_view == 'early' else 'women & diversity' }}
+            programs across banks, plus any matching live postings. Click a row to open the official page.
+        </p>
+    </div>
+</div>
+{% endif %}
+
 <!-- What's New tabs -->
 <div class="row mb-3">
     <div class="col-md-12">
@@ -156,6 +188,12 @@
                                         {{ job.title }}
                                         {% if job.is_new %}
                                         <span class="badge bg-primary" style="font-size: 0.6rem;">NEW</span>
+                                        {% endif %}
+                                        {% if job.program_type and 'early' in job.program_type %}
+                                        <span class="badge" style="font-size: 0.6rem; background-color: #fff3e0; color: #e65100; border: 1px solid #ffcc80;">Early</span>
+                                        {% endif %}
+                                        {% if job.program_type and 'diversity' in job.program_type %}
+                                        <span class="badge" style="font-size: 0.6rem; background-color: #fce4ec; color: #ad1457; border: 1px solid #f48fb1;">Women/Diversity</span>
                                         {% endif %}
                                     </a>
                                 </td>
