@@ -35,6 +35,11 @@ class Job(db.Model):
     # 'early,diversity', or NULL for a normal role.
     program_type = db.Column(db.String(20), nullable=True, index=True)
 
+    # Whether job_url is a real application/registration page ('direct') or just
+    # a company/program landing page ('site'). NULL = a normal scraped posting
+    # (its ATS url is already a direct link).
+    link_kind = db.Column(db.String(10), nullable=True)
+
     # Date information
     post_date = db.Column(db.DateTime, nullable=True)
     deadline = db.Column(db.DateTime, nullable=True)
@@ -103,6 +108,8 @@ class Job(db.Model):
             'ai_proof_category': self.ai_proof_category,
             'is_ai_proof': self.is_ai_proof,
             'seniority': self.seniority,
+            'program_type': self.program_type,
+            'link_kind': self.link_kind,
             'description': self.description,
             'post_date': self.post_date.isoformat() if self.post_date else None,
             'deadline': self.deadline.isoformat() if self.deadline else None,

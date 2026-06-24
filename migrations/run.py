@@ -14,6 +14,7 @@ from migrations import (
     seed_student_roster,
     create_session_records,
     add_job_program_type,
+    add_job_link_kind,
     seed_programs,
 )
 from migrations._dbapp import masked_target
@@ -27,6 +28,8 @@ def main():
     create_session_records.migrate()
     print("== migrations: add_job_program_type ==")
     add_job_program_type.migrate()
+    print("== migrations: add_job_link_kind ==")
+    add_job_link_kind.migrate()
     print("== migrations: seed_programs ==")
     seed_programs.seed()
     print("== migrations: seed_student_roster ==")
