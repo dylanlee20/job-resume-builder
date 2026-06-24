@@ -16,6 +16,7 @@ from migrations import (
     add_job_program_type,
     add_job_link_kind,
     seed_programs,
+    seed_question_bank,
 )
 from migrations._dbapp import masked_target
 
@@ -38,6 +39,8 @@ def main():
     seed_student_roster.seed()
     print("== migrations: backfill_member_numbers ==")
     seed_student_roster.backfill_member_numbers()
+    print("== migrations: seed_question_bank ==")
+    seed_question_bank.migrate()
     print("== migrations: done ==")
 
 

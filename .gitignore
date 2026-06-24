@@ -93,8 +93,10 @@ coverage.xml
 # User-uploaded files
 uploads/resumes/*
 uploads/templates/*
+uploads/question_bank/*
 !uploads/resumes/.gitkeep
 !uploads/templates/.gitkeep
+!uploads/question_bank/.gitkeep
 
 # Test fixtures (keep these)
 !tests/fixtures/*.pdf

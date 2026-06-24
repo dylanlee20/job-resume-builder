@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block title %}Question Bank | Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding-top: 10px;">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2><i class="bi bi-journal-richtext"></i> Question Bank</h2>
+            <p class="text-muted">
+                {{ entries|length }} entr{{ 'ies' if entries|length != 1 else 'y' }}.
+                Images are served watermarked with the viewer's email, IP, and EST timestamp.
+            </p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Upload a question-bank image</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.question_bank_upload') }}"
+                  enctype="multipart/form-data" class="row g-2 align-items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="col-md-4">
+                    <label class="form-label small mb-0">Title</label>
+                    <input type="text" name="title" class="form-control form-control-sm" required
+                           placeholder="e.g. JPM Interview Questions (Superday)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-0">Student (optional)</label>
+                    <input type="text" name="student" class="form-control form-control-sm" autocomplete="off">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-0">Program / Round (optional)</label>
+                    <input type="text" name="program_round" class="form-control form-control-sm" autocomplete="off">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-0">Image</label>
+                    <input type="file" name="image" class="form-control form-control-sm"
+                           accept=".png,.jpg,.jpeg,.webp" required>
+                </div>
+                <div class="col-12 text-end">
+                    <button class="btn btn-sm btn-primary" type="submit">
+                        <i class="bi bi-upload"></i> Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% for entry in entries %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ entry.title }}</strong>
+                {% if entry.student %}<span class="badge bg-secondary ms-1">{{ entry.student }}</span>{% endif %}
+                {% if entry.program_round %}<span class="badge bg-info text-dark ms-1">{{ entry.program_round }}</span>{% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">{{ entry.created_at.strftime('%Y-%m-%d') }}{% if entry.uploaded_by %} · {{ entry.uploaded_by }}{% endif %}</span>
+                <form method="POST" action="{{ url_for('admin.question_bank_delete', entry_id=entry.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button class="btn btn-sm btn-outline-danger" type="submit"
+                            onclick="return confirm('Delete this question bank entry? This cannot be undone.');"
+                            title="Delete"><i class="bi bi-trash"></i></button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body text-center" style="background: #f7f9fc;">
+            <img src="{{ url_for('admin.question_bank_image', entry_id=entry.id) }}"
+                 alt="{{ entry.title }}" loading="lazy"
+                 style="max-width: 100%; height: auto; border: 1px solid var(--nw-border); border-radius: 6px;">
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">No question bank entries yet. Upload one above.</div>
+    {% endfor %}
+</div>
+{% endblock %}

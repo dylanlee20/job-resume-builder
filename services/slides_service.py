@@ -227,6 +227,7 @@ def render_watermarked_png(
     source: Path,
     viewer_email: str,
     viewer_ip: str = "",
+    show_est: bool = False,
 ) -> bytes:
     img = Image.open(source).convert("RGBA")
     width, height = img.size
@@ -237,7 +238,17 @@ def render_watermarked_png(
     font_size = max(18, width // 60)
     font = _load_font(font_size)
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.utcnow()
+    timestamp = now.strftime("%Y-%m-%d %H:%M UTC")
+    if show_est:
+        # Append an Eastern-time tag (EST/EDT picked automatically by the zone).
+        try:
+            from zoneinfo import ZoneInfo
+
+            est = now.replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("America/New_York"))
+            timestamp = f"{timestamp}  ·  {est.strftime('%Y-%m-%d %H:%M %Z')}"
+        except Exception:
+            pass
     label = f"{viewer_email}  ·  {timestamp}"
     if viewer_ip:
         label = f"{label}  ·  {viewer_ip}"

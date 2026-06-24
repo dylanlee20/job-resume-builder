@@ -1,14 +1,21 @@
 """Admin routes for scraper monitoring and user management"""
-from flask import Blueprint, render_template, redirect, url_for, jsonify, flash, request
+from flask import (
+    Blueprint, render_template, redirect, url_for, jsonify, flash, request,
+    Response, abort,
+)
 from flask_login import login_required, current_user
 from functools import wraps
+from werkzeug.utils import secure_filename
 from models.database import db
 from models.user import User
 from models.scraper_run import ScraperRun
 from models.session_record import SessionRecord, SESSION_TYPES
+from models.question_bank import QuestionBankEntry
 from models.job import Job
 from services.job_service import JobService
+from services.slides_service import render_watermarked_png
 from datetime import datetime, timedelta
+from pathlib import Path
 import os
 import re
 import secrets
@@ -17,6 +24,10 @@ import sys
 import subprocess
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+# Where uploaded question-bank images live (persists across deploys).
+_QB_DIR = Path(__file__).resolve().parent.parent / 'uploads' / 'question_bank'
+_QB_ALLOWED = {'.png', '.jpg', '.jpeg', '.webp'}
 
 
 def admin_required(f):
@@ -67,6 +78,83 @@ def users():
         student_choices=student_choices,
         session_types=SESSION_TYPES,
     )
+
+
+# ---- Question Bank ---------------------------------------------------------
+
+@admin_bp.route('/question-bank')
+@admin_required
+def question_bank():
+    """Admin question bank — list uploaded interview question images."""
+    entries = QuestionBankEntry.query.order_by(QuestionBankEntry.created_at.desc()).all()
+    return render_template('admin/question_bank.html', entries=entries)
+
+
+@admin_bp.route('/question-bank/upload', methods=['POST'])
+@admin_required
+def question_bank_upload():
+    """Upload a question-bank image."""
+    title = (request.form.get('title', '') or '').strip()
+    student = (request.form.get('student', '') or '').strip() or None
+    program_round = (request.form.get('program_round', '') or '').strip() or None
+    file = request.files.get('image')
+
+    if not title:
+        flash('A title is required.', 'danger')
+        return redirect(url_for('admin.question_bank'))
+    if not file or not file.filename:
+        flash('Choose an image to upload.', 'danger')
+        return redirect(url_for('admin.question_bank'))
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in _QB_ALLOWED:
+        flash(f'Unsupported file type {ext}. Use PNG, JPG, or WEBP.', 'danger')
+        return redirect(url_for('admin.question_bank'))
+
+    _QB_DIR.mkdir(parents=True, exist_ok=True)
+    stored = f"{secrets.token_hex(8)}{ext}"
+    file.save(str(_QB_DIR / stored))
+
+    db.session.add(QuestionBankEntry(
+        title=title,
+        student=student,
+        program_round=program_round,
+        original_filename=secure_filename(file.filename),
+        stored_filename=stored,
+        uploaded_by=current_user.username,
+    ))
+    db.session.commit()
+    flash('Question bank image uploaded.', 'success')
+    return redirect(url_for('admin.question_bank'))
+
+
+@admin_bp.route('/question-bank/<int:entry_id>/image')
+@admin_required
+def question_bank_image(entry_id):
+    """Serve a question-bank image watermarked with viewer email + IP + EST."""
+    entry = QuestionBankEntry.query.get_or_404(entry_id)
+    path = _QB_DIR / entry.stored_filename
+    if not path.is_file():
+        abort(404)
+    viewer = getattr(current_user, 'email', None) or current_user.username
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    png = render_watermarked_png(path, viewer, ip, show_est=True)
+    return Response(png, mimetype='image/png')
+
+
+@admin_bp.route('/question-bank/<int:entry_id>/delete', methods=['POST'])
+@admin_required
+def question_bank_delete(entry_id):
+    """Delete a question-bank entry and its file."""
+    entry = QuestionBankEntry.query.get_or_404(entry_id)
+    try:
+        (_QB_DIR / entry.stored_filename).unlink(missing_ok=True)
+    except OSError:
+        pass
+    db.session.delete(entry)
+    db.session.commit()
+    flash('Question bank entry deleted.', 'success')
+    return redirect(url_for('admin.question_bank'))
 
 
 @admin_bp.route('/sessions/create', methods=['POST'])
