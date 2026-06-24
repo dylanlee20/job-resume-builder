@@ -136,8 +136,7 @@ def question_bank_image(entry_id):
     path = _QB_DIR / entry.stored_filename
     if not path.is_file():
         abort(404)
-    viewer = getattr(current_user, 'email', None) or current_user.username
-    png = render_watermarked_png(path, viewer, show_ip=False)
+    png = render_watermarked_png(path, '', show_ip=False, show_email=False)
     return Response(png, mimetype='image/png')
 
 

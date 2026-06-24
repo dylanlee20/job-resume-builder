@@ -228,6 +228,7 @@ def render_watermarked_png(
     viewer_email: str,
     viewer_ip: str = "",
     show_ip: bool = True,
+    show_email: bool = True,
 ) -> bytes:
     img = Image.open(source).convert("RGBA")
     width, height = img.size
@@ -248,9 +249,13 @@ def render_watermarked_png(
     except Exception:
         timestamp = now.strftime("%Y-%m-%d %H:%M")
 
-    label = f"NewWhale  ·  {viewer_email}  ·  {timestamp}"
+    parts = ["NewWhale"]
+    if show_email and viewer_email:
+        parts.append(viewer_email)
+    parts.append(timestamp)
     if show_ip and viewer_ip:
-        label = f"{label}  ·  {viewer_ip}"
+        parts.append(viewer_ip)
+    label = "  ·  ".join(parts)
 
     bbox = draw.textbbox((0, 0), label, font=font)
     text_w = bbox[2] - bbox[0]
