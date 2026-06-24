@@ -21,10 +21,18 @@
     </div>
 </div>
 
+<style>
+  /* Tracker tabs sit on a white background; override the dark-navbar .nav-link
+     white text (which is !important) so the labels are visible. */
+  .jt-tabs .nav-link { color: var(--nw-text) !important; background: #fff; border: 1px solid var(--nw-border); }
+  .jt-tabs .nav-link:hover { color: var(--nw-navy) !important; background: #f1f5fb; }
+  .jt-tabs .nav-link.active { color: #fff !important; background: var(--nw-navy) !important; border-color: var(--nw-navy); }
+</style>
+
 <!-- Program section tabs (each has its own canonical URL) -->
 <div class="row mb-3">
     <div class="col-md-12">
-        <ul class="nav nav-pills flex-wrap gap-2" role="tablist">
+        <ul class="nav nav-pills jt-tabs flex-wrap gap-2" role="tablist">
             {% for ptab in program_tabs %}
             <li class="nav-item" role="presentation">
                 <a class="nav-link nav-loading-link{% if ptab.is_active %} active{% endif %}"
@@ -56,7 +64,7 @@
 <!-- What's New tabs -->
 <div class="row mb-3">
     <div class="col-md-12">
-        <ul class="nav nav-pills nav-fill flex-wrap" role="tablist" style="background: #fff; border: 1px solid var(--nw-border); border-radius: 10px; padding: 6px;">
+        <ul class="nav nav-pills nav-fill jt-tabs flex-wrap" role="tablist" style="background: #fff; border: 1px solid var(--nw-border); border-radius: 10px; padding: 6px;">
             {% for tab in freshness_tabs %}
             <li class="nav-item" role="presentation">
                 <a class="nav-link nav-loading-link{% if tab.is_active %} active{% endif %}"
