@@ -132,19 +132,18 @@ def create_app():
         try:
             scheduler.start()
             logger.info("Job scheduler started successfully")
+            # Stop the scheduler on process EXIT — not per request. The previous
+            # `@app.teardown_appcontext` handler fired at the end of every HTTP
+            # request, so the first visitor after a restart shut the scheduler
+            # down and the daily import never ran again (the tracker froze).
+            # atexit fires once, when the worker process actually exits.
+            import atexit
+            atexit.register(scheduler.stop)
         except Exception as e:
             logger.error(f"Failed to start job scheduler: {e}")
     else:
         logger.info("Scheduler disabled (set DISABLE_SCHEDULER=false to enable)")
-    
-    # Add cleanup on shutdown
-    @app.teardown_appcontext
-    def shutdown_scheduler(exception=None):
-        try:
-            scheduler.stop()
-        except:
-            pass
-    
+
     # Error handlers
     @app.errorhandler(404)
     def not_found(error):
