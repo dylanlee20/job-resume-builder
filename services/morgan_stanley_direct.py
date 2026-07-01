@@ -43,9 +43,22 @@ _UA = (
 _TIMEOUT = 30
 
 
-def _parse_ms_date(raw: Optional[str]) -> Optional[datetime]:
-    """MS dates come as 'Sep 27, 2026'. Return None on anything unparseable."""
-    raw = (raw or "").strip()
+def _parse_ms_date(raw) -> Optional[datetime]:
+    """Parse an MS date. Handles both shapes MS returns:
+
+      - applicationDate: a string like 'Sep 27, 2026'
+      - sortingDate:     epoch milliseconds as an int (e.g. 1798693200000)
+
+    Returns None on anything unparseable. Never raises.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, (int, float)):
+        try:
+            return datetime.utcfromtimestamp(raw / 1000)
+        except (ValueError, OverflowError, OSError):
+            return None
+    raw = str(raw).strip()
     if not raw:
         return None
     for fmt in ("%b %d, %Y", "%Y-%m-%d", "%d %b %Y"):
