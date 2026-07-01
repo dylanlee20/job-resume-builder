@@ -119,6 +119,20 @@ def run_all_scrapers(trigger: str = 'scheduled', skip_scraped_today: bool = Fals
         t0 = time.time()
         try:
             stats = CSVImportService.import_all()
+
+            # Morgan Stanley blocks the WhaleStreet CI IP, so it lands 0 rows in
+            # the CSV. This droplet reaches MS fine — fetch it directly and feed
+            # it through the same ingest path. Runs AFTER import_all so MS roles
+            # keep a fresh last_seen and are not caught by the expiry sweep.
+            # Best-effort: an MS-side failure must never abort the whole import.
+            try:
+                from services.morgan_stanley_direct import ingest_morgan_stanley
+                ms_stats = ingest_morgan_stanley()
+                stats['morgan_stanley'] = ms_stats
+                stats['ingested'] += ms_stats['ingested']
+            except Exception:
+                logger.exception("Morgan Stanley direct ingest failed (non-fatal)")
+
             companies = CSVImportService.get_available_companies()
             run.completed_at = datetime.utcnow()
             run.duration_seconds = time.time() - t0
