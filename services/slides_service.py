@@ -207,6 +207,48 @@ def slide_path(slug: str, slide_number: int) -> Optional[Path]:
     return path if path.is_file() else None
 
 
+def deck_toc(slug: str) -> Optional[List[Dict]]:
+    """Question-unit contents for a deck, or None if it has no toc.json.
+
+    toc.json sits next to the slide PNGs and lists question units:
+    [{key, label, topic, question_slide, answer_slide, end_slide}, ...].
+    Only the question-bank decks ship one; ordinary decks return None.
+    Cached with the same TTL discipline as the catalog (file is tiny, but
+    avoid re-parsing on every keystroke of a 156-slide deck).
+    """
+    deck = get_deck(slug)
+    if deck is None:
+        return None
+    now = time.time()
+    cached = _toc_cache.get(slug)
+    if cached and (now - cached[0]) < _CACHE_TTL:
+        return cached[1]
+    path = SLIDES_ROOT / deck.section_slug / slug / "toc.json"
+    toc: Optional[List[Dict]] = None
+    if path.is_file():
+        try:
+            import json
+
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                toc = [u for u in data if isinstance(u, dict) and u.get("key")]
+        except (ValueError, OSError):
+            toc = None
+    _toc_cache[slug] = (now, toc)
+    return toc
+
+
+def toc_unit_for_slide(toc: List[Dict], slide_number: int) -> Optional[Dict]:
+    """The question unit a slide belongs to, or None for front-matter slides."""
+    for unit in toc:
+        if unit["question_slide"] <= slide_number <= unit["end_slide"]:
+            return unit
+    return None
+
+
+_toc_cache: Dict[str, tuple] = {}
+
+
 def _load_font(size: int) -> ImageFont.FreeTypeFont:
     candidates = [
         "/System/Library/Fonts/Supplemental/Arial.ttf",

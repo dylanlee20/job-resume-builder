@@ -56,51 +56,133 @@
         body * { visibility: hidden !important; }
         body::after { content: "Printing disabled"; visibility: visible; position: fixed; top: 40%; left: 0; right: 0; text-align: center; font-size: 24px; }
     }
+
+    /* ---- Question contents sidebar (question-bank decks only) ---- */
+    .viewer-layout { display: flex; width: 100%; max-width: 1720px; gap: 16px; align-items: flex-start; }
+    .viewer-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+    .toc-panel {
+        flex: 0 0 300px; max-height: calc(100vh - 120px); overflow-y: auto;
+        background: #252c3d; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+        color: #d0d7e3; font-size: 0.85rem;
+        position: sticky; top: 72px;
+    }
+    .toc-panel .toc-head {
+        position: sticky; top: 0; z-index: 2;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 14px; background: #252c3d;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        font-weight: 600;
+    }
+    .toc-panel .toc-head .badge { background: rgba(255,255,255,0.12); }
+    .toc-item {
+        display: flex; align-items: flex-start; gap: 8px;
+        padding: 7px 10px 7px 14px; text-decoration: none; color: #b9c2d0;
+        border-left: 3px solid transparent;
+    }
+    .toc-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .toc-item.active { background: rgba(78,115,223,0.18); border-left-color: #6c8cff; color: #fff; }
+    .toc-item .toc-label { font-weight: 600; white-space: nowrap; }
+    .toc-item .toc-topic {
+        color: #8a96a8; font-size: 0.78rem; line-height: 1.25;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .toc-item.active .toc-topic { color: #b9c2d0; }
+    .toc-item .toc-star { margin-left: auto; flex-shrink: 0; cursor: pointer; color: #6c7687; background: none; border: none; padding: 0 2px; font-size: 0.95rem; }
+    .toc-item .toc-star:hover { color: #ffd766; }
+    .toc-item .toc-star.saved { color: #ffc107; }
+    .save-btn.saved, .save-btn.saved:hover { color: #ffc107; border-color: #ffc107; }
+    #tocToggleBtn { display: none; }
+    @media (max-width: 1100px) {
+        .viewer-layout { flex-direction: column; }
+        .toc-panel { position: static; flex-basis: auto; width: 100%; max-height: 40vh; order: 2; display: none; }
+        .toc-panel.open { display: block; }
+        #tocToggleBtn { display: inline-flex; }
+        .viewer-main { order: 1; width: 100%; }
+    }
 </style>
 <div class="slide-stage" id="slideStage" oncontextmenu="return false;">
-    <div class="slide-toolbar">
-        <div class="toolbar-left">
-            <a class="back-btn" href="{{ back_url }}" title="Back to {{ back_label }}" aria-label="Back">
-                <i class="bi bi-arrow-left"></i>
+    <div class="viewer-layout">
+        {% if toc %}
+        <aside class="toc-panel" id="tocPanel">
+            <div class="toc-head">
+                <span><i class="bi bi-list-ol"></i> 目录 · Contents</span>
+                <span class="badge rounded-pill">{{ toc|length }}</span>
+            </div>
+            {% for unit in toc %}
+            <a class="toc-item {{ 'active' if current_unit and current_unit.key == unit.key }}"
+               id="toc-{{ unit.key }}"
+               href="{{ url_for('slides.view_slide', slug=deck.slug, slide_number=unit.question_slide) }}">
+                <div>
+                    <div class="toc-label">{{ unit.label }}</div>
+                    {% if unit.topic %}<div class="toc-topic">{{ unit.topic }}</div>{% endif %}
+                </div>
+                <span class="toc-star {{ 'saved' if unit.key in saved_keys }}" role="button" tabindex="0"
+                      data-key="{{ unit.key }}" title="Save this question"
+                      aria-label="Save {{ unit.label }}">
+                    <i class="bi {{ 'bi-star-fill' if unit.key in saved_keys else 'bi-star' }}"></i>
+                </span>
             </a>
-            <div class="deck-meta">
-                <div class="deck-section">{{ deck.section_title }}</div>
-                <div class="deck-title">{{ deck.title }}</div>
+            {% endfor %}
+        </aside>
+        {% endif %}
+        <div class="viewer-main">
+            <div class="slide-toolbar">
+                <div class="toolbar-left">
+                    <a class="back-btn" href="{{ back_url }}" title="Back to {{ back_label }}" aria-label="Back">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <div class="deck-meta">
+                        <div class="deck-section">{{ deck.section_title }}</div>
+                        <div class="deck-title">{{ deck.title }}</div>
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    {% if toc %}
+                    <button type="button" class="btn btn-sm btn-outline-light" id="tocToggleBtn" title="Contents">
+                        <i class="bi bi-list-ol"></i> 目录
+                    </button>
+                    {% endif %}
+                    {% if current_unit %}
+                    <button type="button" class="btn btn-sm btn-outline-light save-btn {{ 'saved' if current_unit.key in saved_keys }}"
+                            id="saveBtn" data-key="{{ current_unit.key }}" title="Save {{ current_unit.label }} to My Saved Questions">
+                        <i class="bi {{ 'bi-star-fill' if current_unit.key in saved_keys else 'bi-star' }}"></i>
+                        <span id="saveBtnText">{{ 'Saved' if current_unit.key in saved_keys else 'Save' }}</span>
+                    </button>
+                    {% endif %}
+                    <form class="jump-form" id="jumpForm">
+                        <span class="small text-muted">Slide</span>
+                        <input type="number" class="form-control form-control-sm" min="1" max="{{ total }}" value="{{ slide_number }}" id="jumpInput">
+                        <span class="counter">/ {{ total }}</span>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-light" id="fullscreenBtn" title="Toggle full screen (F)">
+                        <i class="bi bi-arrows-fullscreen"></i> Full screen
+                    </button>
+                </div>
+            </div>
+            <div class="slide-frame" id="slideFrame">
+                <img src="{{ url_for('slides.slide_image', slug=deck.slug, slide_number=slide_number) }}"
+                     alt="Slide {{ slide_number }}"
+                     draggable="false"
+                     oncontextmenu="return false;">
+            </div>
+            <div class="slide-nav">
+                {% if slide_number > 1 %}
+                    <a class="btn btn-light" href="{{ url_for('slides.view_slide', slug=deck.slug, slide_number=slide_number - 1) }}">
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </a>
+                {% else %}
+                    <button class="btn btn-light" disabled><i class="bi bi-chevron-left"></i> Previous</button>
+                {% endif %}
+                <a class="btn btn-outline-light" href="{{ back_url }}">All decks</a>
+                {% if slide_number < total %}
+                    <a class="btn btn-light" href="{{ url_for('slides.view_slide', slug=deck.slug, slide_number=slide_number + 1) }}">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </a>
+                {% else %}
+                    <button class="btn btn-light" disabled>Next <i class="bi bi-chevron-right"></i></button>
+                {% endif %}
             </div>
         </div>
-        <div class="toolbar-right">
-            <form class="jump-form" id="jumpForm">
-                <span class="small text-muted">Slide</span>
-                <input type="number" class="form-control form-control-sm" min="1" max="{{ total }}" value="{{ slide_number }}" id="jumpInput">
-                <span class="counter">/ {{ total }}</span>
-            </form>
-            <button type="button" class="btn btn-sm btn-outline-light" id="fullscreenBtn" title="Toggle full screen (F)">
-                <i class="bi bi-arrows-fullscreen"></i> Full screen
-            </button>
-        </div>
-    </div>
-    <div class="slide-frame" id="slideFrame">
-        <img src="{{ url_for('slides.slide_image', slug=deck.slug, slide_number=slide_number) }}"
-             alt="Slide {{ slide_number }}"
-             draggable="false"
-             oncontextmenu="return false;">
-    </div>
-    <div class="slide-nav">
-        {% if slide_number > 1 %}
-            <a class="btn btn-light" href="{{ url_for('slides.view_slide', slug=deck.slug, slide_number=slide_number - 1) }}">
-                <i class="bi bi-chevron-left"></i> Previous
-            </a>
-        {% else %}
-            <button class="btn btn-light" disabled><i class="bi bi-chevron-left"></i> Previous</button>
-        {% endif %}
-        <a class="btn btn-outline-light" href="{{ back_url }}">All decks</a>
-        {% if slide_number < total %}
-            <a class="btn btn-light" href="{{ url_for('slides.view_slide', slug=deck.slug, slide_number=slide_number + 1) }}">
-                Next <i class="bi bi-chevron-right"></i>
-            </a>
-        {% else %}
-            <button class="btn btn-light" disabled>Next <i class="bi bi-chevron-right"></i></button>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -169,6 +251,67 @@
     });
 
     window.addEventListener("beforeprint", () => { document.body.style.visibility = "hidden"; });
+
+    // ---- Contents sidebar + save-question wiring (question-bank decks) ----
+    const tocPanel = document.getElementById("tocPanel");
+    const tocToggleBtn = document.getElementById("tocToggleBtn");
+    if (tocToggleBtn && tocPanel) {
+        tocToggleBtn.addEventListener("click", () => tocPanel.classList.toggle("open"));
+    }
+    if (tocPanel) {
+        const active = tocPanel.querySelector(".toc-item.active");
+        if (active) active.scrollIntoView({ block: "center" });
+    }
+
+    function applySavedState(key, saved) {
+        const star = tocPanel ? tocPanel.querySelector(`.toc-star[data-key="${key}"]`) : null;
+        if (star) {
+            star.classList.toggle("saved", saved);
+            star.querySelector("i").className = saved ? "bi bi-star-fill" : "bi bi-star";
+        }
+        const saveBtn = document.getElementById("saveBtn");
+        if (saveBtn && saveBtn.dataset.key === key) {
+            saveBtn.classList.toggle("saved", saved);
+            saveBtn.querySelector("i").className = saved ? "bi bi-star-fill" : "bi bi-star";
+            const txt = document.getElementById("saveBtnText");
+            if (txt) txt.textContent = saved ? "Saved" : "Save";
+        }
+    }
+
+    let saveInFlight = false;
+    function toggleSave(key) {
+        if (saveInFlight) return;
+        saveInFlight = true;
+        fetch("{{ url_for('slides.toggle_save_question') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({ deck_slug: "{{ deck.slug }}", question_key: key })
+        })
+        .then(r => { if (!r.ok) throw new Error("save failed"); return r.json(); })
+        .then(data => applySavedState(key, data.saved))
+        .catch(() => alert("Could not update saved questions. Please try again."))
+        .finally(() => { saveInFlight = false; });
+    }
+
+    document.querySelectorAll(".toc-star").forEach(star => {
+        star.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleSave(star.dataset.key);
+        });
+        star.addEventListener("keydown", e => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSave(star.dataset.key);
+            }
+        });
+    });
+    const saveBtn = document.getElementById("saveBtn");
+    if (saveBtn) saveBtn.addEventListener("click", () => toggleSave(saveBtn.dataset.key));
 })();
 </script>
 {% endblock %}

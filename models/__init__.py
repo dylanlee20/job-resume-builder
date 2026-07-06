@@ -7,6 +7,7 @@ from .scraper_run import ScraperRun
 from .email_verification_token import EmailVerificationToken
 from .session_record import SessionRecord
 from .question_bank import QuestionBankEntry
+from .saved_question import SavedQuestion
 
 __all__ = [
     'db',
@@ -20,4 +21,5 @@ __all__ = [
     'EmailVerificationToken',
     'SessionRecord',
     'QuestionBankEntry',
+    'SavedQuestion',
 ]

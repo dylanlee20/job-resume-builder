@@ -1,0 +1,695 @@
+[
+ {
+  "id": "1",
+  "key": "q1",
+  "label": "Question 1",
+  "topic": "Binomial stopping rule / conditional probability",
+  "question_slide": 3,
+  "answer_slide": 4,
+  "end_slide": 4
+ },
+ {
+  "id": "2",
+  "key": "q2",
+  "label": "Question 2",
+  "topic": "Alternating-turn dice game, geometric series",
+  "question_slide": 5,
+  "answer_slide": 6,
+  "end_slide": 6
+ },
+ {
+  "id": "3",
+  "key": "q3",
+  "label": "Question 3",
+  "topic": "Combinatorics: stars and bars",
+  "question_slide": 7,
+  "answer_slide": 8,
+  "end_slide": 8
+ },
+ {
+  "id": "4",
+  "key": "q4",
+  "label": "Question 4",
+  "topic": "Expected value, geometric stopping time, modular arithmetic",
+  "question_slide": 9,
+  "answer_slide": 10,
+  "end_slide": 10
+ },
+ {
+  "id": "5",
+  "key": "q5",
+  "label": "Question 5",
+  "topic": "Combinatorial game theory (subtraction game)",
+  "question_slide": 11,
+  "answer_slide": 12,
+  "end_slide": 12
+ },
+ {
+  "id": "6",
+  "key": "q6",
+  "label": "Question 6",
+  "topic": "Multinomial probability / fair die",
+  "question_slide": 13,
+  "answer_slide": 14,
+  "end_slide": 14
+ },
+ {
+  "id": "7",
+  "key": "q7",
+  "label": "Question 7",
+  "topic": "Parity of binomial count, symmetry",
+  "question_slide": 15,
+  "answer_slide": 16,
+  "end_slide": 16
+ },
+ {
+  "id": "8",
+  "key": "q8",
+  "label": "Question 8",
+  "topic": "Expectation, linearity, round-table seating",
+  "question_slide": 17,
+  "answer_slide": 18,
+  "end_slide": 18
+ },
+ {
+  "id": "9",
+  "key": "q9",
+  "label": "Question 9",
+  "topic": "Relative order / symmetry expectation",
+  "question_slide": 19,
+  "answer_slide": 20,
+  "end_slide": 20
+ },
+ {
+  "id": "10",
+  "key": "q10",
+  "label": "Question 10",
+  "topic": "Optimal stopping / expected value",
+  "question_slide": 21,
+  "answer_slide": 22,
+  "end_slide": 22
+ },
+ {
+  "id": "11",
+  "key": "q11",
+  "label": "Question 11",
+  "topic": "Discrete expected value",
+  "question_slide": 23,
+  "answer_slide": 24,
+  "end_slide": 24
+ },
+ {
+  "id": "12",
+  "key": "q12",
+  "label": "Question 12",
+  "topic": "Expected hitting time, absorbing Markov chain",
+  "question_slide": 25,
+  "answer_slide": 26,
+  "end_slide": 26
+ },
+ {
+  "id": "13",
+  "key": "q13",
+  "label": "Question 13",
+  "topic": "Blindfold coin-flipping puzzle",
+  "question_slide": 27,
+  "answer_slide": 28,
+  "end_slide": 28
+ },
+ {
+  "id": "14",
+  "key": "q14",
+  "label": "Question 14",
+  "topic": "Symmetry of independent normals",
+  "question_slide": 29,
+  "answer_slide": 30,
+  "end_slide": 30
+ },
+ {
+  "id": "15",
+  "key": "q15",
+  "label": "Question 15",
+  "topic": "Probability of one bubble-sort pass sorting a permutation",
+  "question_slide": 31,
+  "answer_slide": 32,
+  "end_slide": 32
+ },
+ {
+  "id": "16",
+  "key": "q16",
+  "label": "Question 16",
+  "topic": "Birthday-style first-repeat on a die roll",
+  "question_slide": 33,
+  "answer_slide": 34,
+  "end_slide": 34
+ },
+ {
+  "id": "17",
+  "key": "q17",
+  "label": "Question 17",
+  "topic": "Conditional probability / Bayes",
+  "question_slide": 35,
+  "answer_slide": 36,
+  "end_slide": 36
+ },
+ {
+  "id": "18",
+  "key": "q18",
+  "label": "Question 18",
+  "topic": "Single-elimination bracket probability",
+  "question_slide": 37,
+  "answer_slide": 38,
+  "end_slide": 38
+ },
+ {
+  "id": "19",
+  "key": "q19",
+  "label": "Question 19",
+  "topic": "Combinatorics: digit constraints counting",
+  "question_slide": 39,
+  "answer_slide": 40,
+  "end_slide": 40
+ },
+ {
+  "id": "20",
+  "key": "q20",
+  "label": "Question 20",
+  "topic": "Card draw probability, symmetry & ties",
+  "question_slide": 41,
+  "answer_slide": 42,
+  "end_slide": 42
+ },
+ {
+  "id": "21",
+  "key": "q21",
+  "label": "Question 21",
+  "topic": "Bayesian update on biased coins",
+  "question_slide": 43,
+  "answer_slide": 44,
+  "end_slide": 44
+ },
+ {
+  "id": "22",
+  "key": "q22",
+  "label": "Question 22",
+  "topic": "Combinatorial game theory (subtraction Nim)",
+  "question_slide": 45,
+  "answer_slide": 46,
+  "end_slide": 46
+ },
+ {
+  "id": "23",
+  "key": "q23",
+  "label": "Question 23",
+  "topic": "Bayes theorem / diagnostic test PPV",
+  "question_slide": 47,
+  "answer_slide": 48,
+  "end_slide": 48
+ },
+ {
+  "id": "24",
+  "key": "q24",
+  "label": "Question 24",
+  "topic": "Combinatorics: counting distinct integer triples",
+  "question_slide": 49,
+  "answer_slide": 50,
+  "end_slide": 50
+ },
+ {
+  "id": "25",
+  "key": "q25",
+  "label": "Question 25",
+  "topic": "stopping-rule sex ratio / expected value",
+  "question_slide": 51,
+  "answer_slide": 52,
+  "end_slide": 52
+ },
+ {
+  "id": "26",
+  "key": "q26",
+  "label": "Question 26",
+  "topic": "Sex ratio / stopping rule expectation",
+  "question_slide": 53,
+  "answer_slide": 54,
+  "end_slide": 54
+ },
+ {
+  "id": "27",
+  "key": "q27",
+  "label": "Question 27",
+  "topic": "Counting / lattice paths in deuce scoring",
+  "question_slide": 55,
+  "answer_slide": 56,
+  "end_slide": 56
+ },
+ {
+  "id": "28",
+  "key": "q28",
+  "label": "Question 28",
+  "topic": "Combinatorics / parity probability",
+  "question_slide": 57,
+  "answer_slide": 58,
+  "end_slide": 58
+ },
+ {
+  "id": "29",
+  "key": "q29",
+  "label": "Question 29",
+  "topic": "Expected value, fair game pricing",
+  "question_slide": 59,
+  "answer_slide": 60,
+  "end_slide": 60
+ },
+ {
+  "id": "30",
+  "key": "q30",
+  "label": "Question 30",
+  "topic": "Order statistics: minimum of uniforms",
+  "question_slide": 61,
+  "answer_slide": 62,
+  "end_slide": 62
+ },
+ {
+  "id": "31",
+  "key": "q31",
+  "label": "Question 31",
+  "topic": "Order statistics; uniform median probability",
+  "question_slide": 63,
+  "answer_slide": 64,
+  "end_slide": 64
+ },
+ {
+  "id": "32",
+  "key": "q32",
+  "label": "Question 32",
+  "topic": "Hilbert's Hotel / countable infinity",
+  "question_slide": 65,
+  "answer_slide": 66,
+  "end_slide": 66
+ },
+ {
+  "id": "33",
+  "key": "q33",
+  "label": "Question 33",
+  "topic": "Modular arithmetic / day-of-week",
+  "question_slide": 67,
+  "answer_slide": 68,
+  "end_slide": 68
+ },
+ {
+  "id": "34",
+  "key": "q34",
+  "label": "Question 34",
+  "topic": "Max-product integer partition",
+  "question_slide": 69,
+  "answer_slide": 70,
+  "end_slide": 70
+ },
+ {
+  "id": "35",
+  "key": "q35",
+  "label": "Question 35",
+  "topic": "Expected steps, random subtree deletion",
+  "question_slide": 71,
+  "answer_slide": 72,
+  "end_slide": 72
+ },
+ {
+  "id": "36",
+  "key": "q36",
+  "label": "Question 36",
+  "topic": "Permutation order of a reversal-pile card shuffle",
+  "question_slide": 73,
+  "answer_slide": 74,
+  "end_slide": 74
+ },
+ {
+  "id": "37",
+  "key": "q37",
+  "label": "Question 37",
+  "topic": "Expected waiting time for consecutive successes",
+  "question_slide": 75,
+  "answer_slide": 76,
+  "end_slide": 76
+ },
+ {
+  "id": "38",
+  "key": "q38",
+  "label": "Question 38",
+  "topic": "Probability: race to k-th success vs collecting a set",
+  "question_slide": 77,
+  "answer_slide": 78,
+  "end_slide": 78
+ },
+ {
+  "id": "39",
+  "key": "q39",
+  "label": "Question 39",
+  "topic": "Expected distinct types (coupon collector)",
+  "question_slide": 79,
+  "answer_slide": 80,
+  "end_slide": 80
+ },
+ {
+  "id": "40",
+  "key": "q40",
+  "label": "Question 40",
+  "topic": "OLS slope reversal via covariance",
+  "question_slide": 81,
+  "answer_slide": 82,
+  "end_slide": 82
+ },
+ {
+  "id": "41",
+  "key": "q41",
+  "label": "Question 41",
+  "topic": "Put-call parity / straddle decomposition",
+  "question_slide": 83,
+  "answer_slide": 84,
+  "end_slide": 84
+ },
+ {
+  "id": "42",
+  "key": "q42",
+  "label": "Question 42",
+  "topic": "RANSAC outlier-free sample count",
+  "question_slide": 85,
+  "answer_slide": 86,
+  "end_slide": 86
+ },
+ {
+  "id": "43",
+  "key": "q43",
+  "label": "Question 43",
+  "topic": "Cryptography puzzle: double-lock key exchange",
+  "question_slide": 87,
+  "answer_slide": 88,
+  "end_slide": 88
+ },
+ {
+  "id": "44",
+  "key": "q44",
+  "label": "Question 44",
+  "topic": "single-elimination bracket probability",
+  "question_slide": 89,
+  "answer_slide": 90,
+  "end_slide": 90
+ },
+ {
+  "id": "45",
+  "key": "q45",
+  "label": "Question 45",
+  "topic": "Logic riddle: two guards, one truth-teller one liar",
+  "question_slide": 91,
+  "answer_slide": 92,
+  "end_slide": 92
+ },
+ {
+  "id": "46",
+  "key": "q46",
+  "label": "Question 46",
+  "topic": "SQL: second-longest per group, window functions",
+  "question_slide": 93,
+  "answer_slide": 94,
+  "end_slide": 94
+ },
+ {
+  "id": "47",
+  "key": "q47",
+  "label": "Question 47",
+  "topic": "Conditional probability (Bayes, at-least-one)",
+  "question_slide": 95,
+  "answer_slide": 96,
+  "end_slide": 96
+ },
+ {
+  "id": "48",
+  "key": "q48",
+  "label": "Question 48",
+  "topic": "Black-Scholes limit: perpetual European call",
+  "question_slide": 97,
+  "answer_slide": 98,
+  "end_slide": 98
+ },
+ {
+  "id": "49",
+  "key": "q49",
+  "label": "Question 49",
+  "topic": "Binomial coin counts equality",
+  "question_slide": 99,
+  "answer_slide": 100,
+  "end_slide": 100
+ },
+ {
+  "id": "50",
+  "key": "q50",
+  "label": "Question 50",
+  "topic": "Order of first appearances / coupon collector",
+  "question_slide": 101,
+  "answer_slide": 102,
+  "end_slide": 102
+ },
+ {
+  "id": "51",
+  "key": "q51",
+  "label": "Question 51",
+  "topic": "Expected number of distinct stops (linearity)",
+  "question_slide": 103,
+  "answer_slide": 104,
+  "end_slide": 104
+ },
+ {
+  "id": "52",
+  "key": "q52",
+  "label": "Question 52",
+  "topic": "Conditional expectation, geometric stopping",
+  "question_slide": 105,
+  "answer_slide": 106,
+  "end_slide": 106
+ },
+ {
+  "id": "53",
+  "key": "q53",
+  "label": "Question 53",
+  "topic": "Burning fuse timing puzzle",
+  "question_slide": 107,
+  "answer_slide": 108,
+  "end_slide": 108
+ },
+ {
+  "id": "54",
+  "key": "q54",
+  "label": "Question 54",
+  "topic": "Lattice path counting, inclusion-exclusion",
+  "question_slide": 109,
+  "answer_slide": 110,
+  "end_slide": 110
+ },
+ {
+  "id": "55",
+  "key": "q55",
+  "label": "Question 55",
+  "topic": "Dice matching probability and EV",
+  "question_slide": 111,
+  "answer_slide": 112,
+  "end_slide": 112
+ },
+ {
+  "id": "56",
+  "key": "q56",
+  "label": "Question 56",
+  "topic": "Optimal stopping / dice expected value",
+  "question_slide": 113,
+  "answer_slide": 114,
+  "end_slide": 114
+ },
+ {
+  "id": "57",
+  "key": "q57",
+  "label": "Question 57",
+  "topic": "Bayes theorem, painted cube",
+  "question_slide": 115,
+  "answer_slide": 116,
+  "end_slide": 116
+ },
+ {
+  "id": "58",
+  "key": "q58",
+  "label": "Question 58",
+  "topic": "Geometric probability, ratio of uniforms",
+  "question_slide": 117,
+  "answer_slide": 118,
+  "end_slide": 118
+ },
+ {
+  "id": "59",
+  "key": "q59",
+  "label": "Question 59",
+  "topic": "Expected value of independent dice product",
+  "question_slide": 119,
+  "answer_slide": 120,
+  "end_slide": 120
+ },
+ {
+  "id": "60",
+  "key": "q60",
+  "label": "Question 60",
+  "topic": "Expected value, geometric matching, card pairs",
+  "question_slide": 121,
+  "answer_slide": 122,
+  "end_slide": 122
+ },
+ {
+  "id": "61",
+  "key": "q61",
+  "label": "Question 61",
+  "topic": "Lattice path counting (binomial)",
+  "question_slide": 123,
+  "answer_slide": 124,
+  "end_slide": 124
+ },
+ {
+  "id": "62",
+  "key": "q62",
+  "label": "Question 62",
+  "topic": "Circular permutations / combinatorics",
+  "question_slide": 125,
+  "answer_slide": 126,
+  "end_slide": 126
+ },
+ {
+  "id": "63",
+  "key": "q63",
+  "label": "Question 63",
+  "topic": "Multinomial partition with a restriction",
+  "question_slide": 127,
+  "answer_slide": 128,
+  "end_slide": 128
+ },
+ {
+  "id": "64",
+  "key": "q64",
+  "label": "Question 64",
+  "topic": "Counting / arrangements with monotone blocks",
+  "question_slide": 129,
+  "answer_slide": 130,
+  "end_slide": 130
+ },
+ {
+  "id": "65",
+  "key": "q65",
+  "label": "Question 65",
+  "topic": "Relative-order probability, inclusion-exclusion",
+  "question_slide": 131,
+  "answer_slide": 132,
+  "end_slide": 132
+ },
+ {
+  "id": "66",
+  "key": "q66",
+  "label": "Question 66",
+  "topic": "Expected distinct coupons (coupon collector)",
+  "question_slide": 133,
+  "answer_slide": 134,
+  "end_slide": 134
+ },
+ {
+  "id": "67",
+  "key": "q67",
+  "label": "Question 67",
+  "topic": "Permutation parity on a 3x3 grid",
+  "question_slide": 135,
+  "answer_slide": 136,
+  "end_slide": 136
+ },
+ {
+  "id": "68",
+  "key": "q68",
+  "label": "Question 68",
+  "topic": "Spherical geometry puzzle",
+  "question_slide": 137,
+  "answer_slide": 138,
+  "end_slide": 138
+ },
+ {
+  "id": "69",
+  "key": "q69",
+  "label": "Question 69",
+  "topic": "Backward induction / parity logic puzzle",
+  "question_slide": 139,
+  "answer_slide": 140,
+  "end_slide": 140
+ },
+ {
+  "id": "70",
+  "key": "q70",
+  "label": "Question 70",
+  "topic": "Coupon collector (expected value)",
+  "question_slide": 141,
+  "answer_slide": 142,
+  "end_slide": 142
+ },
+ {
+  "id": "71",
+  "key": "q71",
+  "label": "Question 71",
+  "topic": "Combinatorics: prime digits, fixed product",
+  "question_slide": 143,
+  "answer_slide": 144,
+  "end_slide": 144
+ },
+ {
+  "id": "72",
+  "key": "q72",
+  "label": "Question 72",
+  "topic": "Two-egg drop puzzle / worst-case search",
+  "question_slide": 145,
+  "answer_slide": 146,
+  "end_slide": 146
+ },
+ {
+  "id": "73",
+  "key": "q73",
+  "label": "Question 73",
+  "topic": "Coupon collector on complete graph random walk",
+  "question_slide": 147,
+  "answer_slide": 148,
+  "end_slide": 148
+ },
+ {
+  "id": "74",
+  "key": "q74",
+  "label": "Question 74",
+  "topic": "Digit-sum counting / combinatorics",
+  "question_slide": 149,
+  "answer_slide": 150,
+  "end_slide": 150
+ },
+ {
+  "id": "75",
+  "key": "q75",
+  "label": "Question 75",
+  "topic": "SQL aggregation, UNION ALL, ties, ranking",
+  "question_slide": 151,
+  "answer_slide": 152,
+  "end_slide": 152
+ },
+ {
+  "id": "76",
+  "key": "q76",
+  "label": "Question 76",
+  "topic": "SQL window functions: month-over-month percent change",
+  "question_slide": 153,
+  "answer_slide": 154,
+  "end_slide": 154
+ },
+ {
+  "id": "77",
+  "key": "q77",
+  "label": "Question 77",
+  "topic": "SQL group-by aggregation with tie-break",
+  "question_slide": 155,
+  "answer_slide": 156,
+  "end_slide": 156
+ }
+]

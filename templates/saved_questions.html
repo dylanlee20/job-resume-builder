@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block title %}My Saved Questions{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="mb-0"><i class="bi bi-star-fill text-warning"></i> My Saved Questions</h4>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('slides.technical') }}">
+        <i class="bi bi-collection"></i> Browse curriculum
+    </a>
+</div>
+
+{% if not groups %}
+<div class="card">
+    <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-star" style="font-size: 2rem;"></i>
+        <p class="mt-3 mb-1">No saved questions yet.</p>
+        <p class="mb-0">Open a question bank deck and click the <i class="bi bi-star"></i> star on any question to save it here.</p>
+    </div>
+</div>
+{% endif %}
+
+{% for group in groups %}
+<div class="card mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <strong>{{ group.deck.title }}</strong>
+        <span class="badge bg-secondary">{{ group.questions|length }}</span>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for item in group.questions %}
+        <div class="list-group-item d-flex align-items-center gap-3 flex-wrap" id="saved-{{ group.deck.slug }}-{{ item.question_key }}">
+            <div class="flex-grow-1" style="min-width: 220px;">
+                <div class="fw-semibold">{{ item.label }}</div>
+                {% if item.topic %}<div class="small text-muted">{{ item.topic }}</div>{% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <a class="btn btn-sm btn-outline-primary"
+                   href="{{ url_for('slides.view_slide', slug=item.deck_slug, slide_number=item.question_slide) }}">
+                    Question
+                </a>
+                {% if item.answer_slide %}
+                <a class="btn btn-sm btn-outline-success"
+                   href="{{ url_for('slides.view_slide', slug=item.deck_slug, slide_number=item.answer_slide) }}">
+                    Solution
+                </a>
+                {% endif %}
+                <button class="btn btn-sm btn-outline-danger unsave-btn"
+                        data-deck="{{ item.deck_slug }}" data-key="{{ item.question_key }}"
+                        title="Remove from saved">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll(".unsave-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        btn.disabled = true;
+        fetch("{{ url_for('slides.toggle_save_question') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({ deck_slug: btn.dataset.deck, question_key: btn.dataset.key })
+        })
+        .then(r => { if (!r.ok) throw new Error("failed"); return r.json(); })
+        .then(() => {
+            const row = document.getElementById(`saved-${btn.dataset.deck}-${btn.dataset.key}`);
+            if (row) {
+                const card = row.closest(".card");
+                row.remove();
+                if (card && !card.querySelector(".list-group-item")) card.remove();
+                if (!document.querySelector(".list-group-item")) window.location.reload();
+            }
+        })
+        .catch(() => { btn.disabled = false; alert("Could not remove. Please try again."); });
+    });
+});
+</script>
+{% endblock %}

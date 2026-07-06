@@ -1,0 +1,38 @@
+[
+ {
+  "id": "1",
+  "key": "q1",
+  "label": "Question 1",
+  "topic": "Birth-death Markov chain stationary distribution",
+  "question_slide": 3,
+  "answer_slide": 4,
+  "end_slide": 4
+ },
+ {
+  "id": "2",
+  "key": "q2",
+  "label": "Question 2",
+  "topic": "Conditional expectation, geometric RVs",
+  "question_slide": 5,
+  "answer_slide": 6,
+  "end_slide": 6
+ },
+ {
+  "id": "3",
+  "key": "q3",
+  "label": "Question 3",
+  "topic": "order statistics, expected minimum",
+  "question_slide": 7,
+  "answer_slide": 8,
+  "end_slide": 8
+ },
+ {
+  "id": "4",
+  "key": "q4",
+  "label": "Question 4",
+  "topic": "Linear regression MLE closed-form (normal equations)",
+  "question_slide": 9,
+  "answer_slide": 10,
+  "end_slide": 10
+ }
+]

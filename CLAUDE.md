@@ -225,6 +225,12 @@ Companion files in `slides_data/files/<section_slug>/` are now auto-surfaced in 
 ### Watermarking
 PNGs are watermarked per-request with the viewer's email and client IP via `render_watermarked_png()`. Companion files are not watermarked (they are meant to be carryable references). Treat PDFs as low-IP-risk material; do not put answer keys or model solutions in the companion file path.
 
+### Question-bank contents sidebar (toc.json)
+A deck folder may ship a `toc.json` next to its PNGs: a list of question units `[{key, label, topic, question_slide, answer_slide, end_slide}, ...]`. When present, the slide viewer renders a left-hand contents sidebar (目录) with per-question links and the current unit highlighted. Decks without toc.json render exactly as before. Generated in the slides repo by `scripts/build_qbank_toc.py` (parses the deck spec); regenerate and recopy whenever a question-bank deck is re-rendered with different slide numbering. Loader: `slides_service.deck_toc()` / `toc_unit_for_slide()`.
+
+### Saved questions (student bookmarks)
+Students can star any question unit (viewer toolbar Save button or the star in the sidebar). Rows live in `saved_questions` (`models/saved_question.py`, unique per user+deck+key; created automatically by boot-time `db.create_all()`). Toggle endpoint: `POST /curriculum/api/questions/toggle-save` (JSON `{deck_slug, question_key}`, CSRF header required; unit metadata is resolved server-side from toc.json, never trusted from the client). Listing page: `/curriculum/saved` ("My Saved Questions", grouped by deck with Question/Solution deep links), linked from the user dropdown in `layout.html`. Access follows the same gate as the curriculum itself (login + active account).
+
 ## Current Status
 ✅ Phase 1: Foundation complete
 ✅ Phase 2: AI-Proof filtering complete (core logic)

@@ -13,16 +13,20 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, render_template, request, redirect, send_from_directory, url_for
+from flask import Blueprint, Response, abort, jsonify, render_template, request, redirect, send_from_directory, url_for
 from flask_login import current_user, login_required
 
+from models.database import db
+from models.saved_question import SavedQuestion
 from services.slides_service import (
     Deck,
+    deck_toc,
     deck_track,
     get_deck,
     list_sections,
     render_watermarked_png,
     slide_path,
+    toc_unit_for_slide,
 )
 
 
@@ -92,6 +96,16 @@ def view_slide(slug: str, slide_number: int):
         abort(404)
     track = deck_track(deck)
     back_endpoint = "slides.behavioral" if track == "behavioral" else "slides.technical"
+    toc = deck_toc(slug)
+    current_unit = toc_unit_for_slide(toc, slide_number) if toc else None
+    saved_keys = set()
+    if toc:
+        saved_keys = {
+            row.question_key
+            for row in SavedQuestion.query.filter_by(
+                user_id=current_user.id, deck_slug=slug
+            ).with_entities(SavedQuestion.question_key)
+        }
     return render_template(
         "slide_viewer.html",
         deck=deck,
@@ -100,7 +114,70 @@ def view_slide(slug: str, slide_number: int):
         viewer_email=_viewer_label(),
         back_url=url_for(back_endpoint),
         back_label="Behavioral Curriculum" if track == "behavioral" else "Technical Curriculums",
+        toc=toc,
+        current_unit=current_unit,
+        saved_keys=saved_keys,
     )
+
+
+@slides_bp.route("/api/questions/toggle-save", methods=["POST"])
+@login_required
+def toggle_save_question():
+    """Save or unsave a question unit for the current user.
+
+    Body: {"deck_slug": ..., "question_key": ...}. The unit metadata is taken
+    from the deck's toc.json server-side (never trusted from the client).
+    Returns {"saved": true|false}.
+    """
+    data = request.get_json(silent=True) or {}
+    slug = str(data.get("deck_slug", ""))
+    key = str(data.get("question_key", ""))
+    toc = deck_toc(slug)
+    if not toc:
+        abort(404)
+    unit = next((u for u in toc if u["key"] == key), None)
+    if unit is None:
+        abort(404)
+    existing = SavedQuestion.query.filter_by(
+        user_id=current_user.id, deck_slug=slug, question_key=key
+    ).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({"saved": False})
+    db.session.add(SavedQuestion(
+        user_id=current_user.id,
+        deck_slug=slug,
+        question_key=key,
+        label=unit["label"],
+        topic=unit.get("topic") or None,
+        question_slide=unit["question_slide"],
+        answer_slide=unit.get("answer_slide"),
+        end_slide=unit["end_slide"],
+    ))
+    db.session.commit()
+    return jsonify({"saved": True})
+
+
+@slides_bp.route("/saved")
+@login_required
+def saved_questions():
+    """The student's saved questions, grouped by deck, newest first."""
+    rows = (SavedQuestion.query
+            .filter_by(user_id=current_user.id)
+            .order_by(SavedQuestion.created_at.desc())
+            .all())
+    groups = []
+    by_deck = {}
+    for row in rows:
+        deck = get_deck(row.deck_slug)
+        if deck is None:
+            continue  # deck was renamed/removed; hide silently
+        if row.deck_slug not in by_deck:
+            by_deck[row.deck_slug] = {"deck": deck, "questions": []}
+            groups.append(by_deck[row.deck_slug])
+        by_deck[row.deck_slug]["questions"].append(row)
+    return render_template("saved_questions.html", groups=groups, total=len(rows))
 
 
 @slides_bp.route("/files/<section_slug>/<path:filename>")
