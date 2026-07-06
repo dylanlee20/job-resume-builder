@@ -8,6 +8,8 @@ from models.database import db
 from models.job import Job
 from models.scraper_run import ScraperRun
 from utils.job_utils import normalize_location, parse_country_city
+from utils.ai_proof_filter import classify_ai_proof_role
+from utils.seniority_classifier import classify_job_type
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,16 @@ FRESHNESS_WINDOWS = {
     "7d": timedelta(days=7),
 }
 
+# Curated program rows are always front office regardless of their title text.
+CURATED_SOURCE = "curated-program"
+
+
+def _is_truthy(value):
+    """Interpret a filter flag that may arrive as a bool or a string."""
+    if isinstance(value, str):
+        return value.strip().lower() not in ("", "0", "false", "no", "off")
+    return bool(value)
+
 
 class JobService:
     """Service layer for job operations"""
@@ -27,6 +39,14 @@ class JobService:
         """Split any location string into (country, city) using robust parser."""
         country, city = parse_country_city(location)
         return (country or "", city or "")
+
+    @staticmethod
+    def _front_office_query(include_excluded=False):
+        """Base query for active jobs, restricted to front-office roles by default."""
+        query = Job.query.filter_by(status='active')
+        if not include_excluded:
+            query = query.filter(Job.is_ai_proof.is_(True))
+        return query
     
     @staticmethod
     def get_jobs(filters=None, page=1, per_page=20):
@@ -42,7 +62,13 @@ class JobService:
             Dict with jobs list and pagination info
         """
         filters = filters or {}
-        query = Job.query.filter_by(status='active')
+
+        # Front-office roles only, unless a caller explicitly opts out. Accept
+        # both `ai_proof_only=False` and `include_excluded=True` as the escape.
+        include_excluded = _is_truthy(filters.get('include_excluded'))
+        if 'ai_proof_only' in filters and not _is_truthy(filters.get('ai_proof_only')):
+            include_excluded = True
+        query = JobService._front_office_query(include_excluded=include_excluded)
 
         search_text = (filters.get('q') or filters.get('search') or '').strip()
         if search_text:
@@ -108,8 +134,9 @@ class JobService:
         if filters.get('job_type'):
             query = query.filter_by(seniority=filters['job_type'])
         
+        # "Division" facet maps to the front-office category (ai_proof_category).
         if filters.get('category'):
-            query = query.filter_by(category=filters['category'])
+            query = query.filter(Job.ai_proof_category == filters['category'])
 
         program = (filters.get('program') or '').strip()
         if program in ('early', 'diversity'):
@@ -152,12 +179,30 @@ class JobService:
         }
     
     @staticmethod
+    def classify_job(title, description="", seniority_hint=""):
+        """Classify a posting into (is_front_office, division, job_type).
+
+        Shared by the CSV import path and the backfill migration so both stay
+        consistent.
+        """
+        is_front_office, division = classify_ai_proof_role(title, description or "")
+        job_type = classify_job_type(title, description or "", seniority_hint or "")
+        return is_front_office, division, job_type
+
+    @staticmethod
     def process_scraped_job(job_data):
         """Insert a job from the WhaleStreet CSV (idempotent on (company, title, location) hash)."""
         job_hash = Job.generate_job_hash(
             job_data['company'],
             job_data['title'],
             job_data.get('location', 'Unknown'),
+        )
+
+        title = job_data['title']
+        description = job_data.get('description') or ''
+        seniority_hint = job_data.get('seniority_hint') or ''
+        is_front_office, division, job_type = JobService.classify_job(
+            title, description, seniority_hint
         )
 
         existing_job = Job.query.filter_by(job_hash=job_hash).first()
@@ -168,16 +213,27 @@ class JobService:
                 existing_job.status = 'active'
             if job_data.get('program_type') and not existing_job.program_type:
                 existing_job.program_type = job_data.get('program_type')
+            # Backfill classification for rows ingested before it existed.
+            if existing_job.ai_proof_category is None:
+                existing_job.is_ai_proof = is_front_office
+                existing_job.ai_proof_category = division
+                existing_job.category = division if is_front_office else None
+            if not existing_job.seniority:
+                existing_job.seniority = job_type
             db.session.commit()
             return existing_job
 
         new_job = Job(
             job_hash=job_hash,
             company=job_data['company'],
-            title=job_data['title'],
+            title=title,
             location=normalize_location(job_data.get('location', 'Unknown')),
+            category=division if is_front_office else None,
             description=job_data.get('description'),
             description_hash=Job.generate_description_hash(job_data.get('description')),
+            is_ai_proof=is_front_office,
+            ai_proof_category=division,
+            seniority=job_type,
             post_date=job_data.get('post_date'),
             deadline=job_data.get('deadline'),
             source_website=job_data['source_website'],
@@ -187,13 +243,17 @@ class JobService:
         )
         db.session.add(new_job)
         db.session.commit()
-        logger.info(f"Created new job: {new_job.title} @ {new_job.company}")
+        logger.info(
+            f"Created new job: {new_job.title} @ {new_job.company} "
+            f"[{division} / {job_type}]"
+        )
         return new_job
     
     @staticmethod
-    def get_statistics():
-        """Get job statistics (immutable pattern)"""
-        total_active = Job.query.filter_by(status='active').count()
+    def get_statistics(include_excluded=False):
+        """Get job statistics (front-office roles only by default)."""
+        base = JobService._front_office_query(include_excluded=include_excluded)
+        total_active = base.count()
 
         company_stats = db.session.query(
             Job.company,
@@ -204,7 +264,13 @@ class JobService:
                     else_=0,
                 )
             ).label('internship_count'),
-        ).filter_by(status='active').group_by(Job.company).order_by(func.count(Job.id).desc()).all()
+        )
+        company_stats = company_stats.filter(Job.status == 'active')
+        if not include_excluded:
+            company_stats = company_stats.filter(Job.is_ai_proof.is_(True))
+        company_stats = company_stats.group_by(Job.company).order_by(
+            func.count(Job.id).desc()
+        ).all()
 
         company_list = [
             {
@@ -222,18 +288,32 @@ class JobService:
         }
 
     @staticmethod
-    def get_all_companies():
-        rows = db.session.query(Job.company).filter_by(status='active').distinct().all()
+    def get_all_companies(include_excluded=False):
+        rows = JobService._front_office_query(include_excluded).with_entities(
+            Job.company).distinct().all()
         return sorted([c[0] for c in rows if c[0]])
 
     @staticmethod
-    def get_all_locations():
-        rows = db.session.query(Job.location).filter_by(status='active').distinct().all()
+    def get_all_locations(include_excluded=False):
+        rows = JobService._front_office_query(include_excluded).with_entities(
+            Job.location).distinct().all()
         return sorted([l[0] for l in rows if l[0]])
 
     @staticmethod
-    def get_all_countries():
-        rows = db.session.query(Job.location).filter_by(status='active').distinct().all()
+    def get_all_categories(include_excluded=False):
+        """Distinct front-office divisions present in the active listings."""
+        rows = JobService._front_office_query(include_excluded).with_entities(
+            Job.ai_proof_category).distinct().all()
+        from utils.ai_proof_filter import FRONT_OFFICE_CATEGORIES
+        present = {r[0] for r in rows if r[0] and r[0] != 'EXCLUDED'}
+        ordered = [c for c in FRONT_OFFICE_CATEGORIES if c in present]
+        remaining = sorted(present - set(ordered))
+        return ordered + remaining
+
+    @staticmethod
+    def get_all_countries(include_excluded=False):
+        rows = JobService._front_office_query(include_excluded).with_entities(
+            Job.location).distinct().all()
         locations = [l[0] for l in rows if l[0]]
         countries = set()
         for loc in locations:
@@ -243,8 +323,9 @@ class JobService:
         return sorted(countries)
 
     @staticmethod
-    def get_all_cities(country=None):
-        rows = db.session.query(Job.location).filter_by(status='active').distinct().all()
+    def get_all_cities(country=None, include_excluded=False):
+        rows = JobService._front_office_query(include_excluded).with_entities(
+            Job.location).distinct().all()
         locations = [l[0] for l in rows if l[0]]
         cities = set()
         country_filter = str(country).strip() if country else ''
@@ -258,21 +339,21 @@ class JobService:
         return sorted(cities)
 
     @staticmethod
-    def get_all_job_types():
-        rows = db.session.query(Job.seniority).filter_by(status='active').distinct().all()
+    def get_all_job_types(include_excluded=False):
+        rows = JobService._front_office_query(include_excluded).with_entities(
+            Job.seniority).distinct().all()
         values = {row[0] for row in rows if row[0]}
         ordered_defaults = [v for v in ('Internship', 'Full Time') if v in values]
         remaining = sorted(values - set(ordered_defaults))
         return ordered_defaults + remaining
 
     @staticmethod
-    def get_freshness_counts():
-        """Active-job counts in each freshness window, plus total. Single query per window."""
+    def get_freshness_counts(include_excluded=False):
+        """Front-office active-job counts in each freshness window, plus total."""
         now = datetime.utcnow()
-        counts = {'all': Job.query.filter_by(status='active').count()}
+        counts = {'all': JobService._front_office_query(include_excluded).count()}
         for key, delta in FRESHNESS_WINDOWS.items():
-            counts[key] = Job.query.filter(
-                Job.status == 'active',
+            counts[key] = JobService._front_office_query(include_excluded).filter(
                 Job.first_seen >= now - delta,
             ).count()
         return counts

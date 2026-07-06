@@ -75,9 +75,15 @@ def internal_jobs_export():
     status = (request.args.get('status') or 'active').strip()
     limit = min(max(request.args.get('limit', default=500, type=int), 1), 2000)
 
+    # Front-office roles only by default; pass ai_proof_only=0 for the full feed.
+    ai_proof_raw = (request.args.get('ai_proof_only') or '1').strip().lower()
+    ai_proof_only = ai_proof_raw not in ('0', 'false', 'no', 'off')
+
     query = Job.query
     if status:
         query = query.filter_by(status=status)
+    if ai_proof_only:
+        query = query.filter(Job.is_ai_proof.is_(True))
 
     jobs = query.order_by(Job.last_updated.desc(), Job.first_seen.desc()).limit(limit).all()
     latest_run = ScraperRun.query.order_by(ScraperRun.started_at.desc()).first()
@@ -87,6 +93,7 @@ def internal_jobs_export():
         'exported_at': datetime.utcnow().isoformat(),
         'count': len(jobs),
         'status': status,
+        'ai_proof_only': ai_proof_only,
         'latest_run': latest_run.to_dict() if latest_run else None,
         'stats': {
             'total_active_jobs': stats.get('total_active_jobs', 0),

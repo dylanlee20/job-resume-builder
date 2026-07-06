@@ -17,6 +17,7 @@ from migrations import (
     add_job_link_kind,
     seed_programs,
     seed_question_bank,
+    backfill_front_office,
 )
 from migrations._dbapp import masked_target
 
@@ -35,6 +36,9 @@ def main():
     add_job_program_type.migrate()
     print("== migrations: seed_programs ==")
     seed_programs.seed()
+    # Runs after seeds so curated rows are present and get their type inferred.
+    print("== migrations: backfill_front_office ==")
+    backfill_front_office.migrate()
     print("== migrations: seed_student_roster ==")
     seed_student_roster.seed()
     print("== migrations: backfill_member_numbers ==")

@@ -42,6 +42,7 @@ def _render_jobs_page(program=None, endpoint='web.dashboard', heading=None):
     filters = {
         'q': request.args.get('q', '').strip(),
         'company': request.args.get('company', ''),
+        'category': request.args.get('category', '').strip(),
         'country': country,
         'city': request.args.get('city', '').strip(),
         'location': location,
@@ -58,6 +59,7 @@ def _render_jobs_page(program=None, endpoint='web.dashboard', heading=None):
     result = JobService.get_jobs(filters=filters, page=page, per_page=per_page)
 
     companies = JobService.get_all_companies()
+    categories = JobService.get_all_categories()
     countries = JobService.get_all_countries()
     cities = JobService.get_all_cities(country=country or None)
     job_types = JobService.get_all_job_types()
@@ -107,6 +109,7 @@ def _render_jobs_page(program=None, endpoint='web.dashboard', heading=None):
         has_next=result['has_next'],
         has_prev=result['has_prev'],
         companies=companies,
+        categories=categories,
         countries=countries,
         cities=cities,
         job_types=job_types,

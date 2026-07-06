@@ -105,6 +105,15 @@
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-6">
+                        <label class="form-label small mb-0">Division</label>
+                        <select name="category" class="form-select form-select-sm">
+                            <option value="">All Divisions</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
                         <label class="form-label small mb-0">Country</label>
                         <select name="country" class="form-select form-select-sm">
                             <option value="">All Countries</option>
@@ -190,6 +199,9 @@
                                 </td>
                                 <td style="white-space: nowrap;">
                                     <strong style="color: var(--nw-navy);">{{ job.company }}</strong>
+                                    {% if job.ai_proof_category and job.ai_proof_category != 'EXCLUDED' %}
+                                    <div class="text-muted" style="font-size: 0.68rem;">{{ job.ai_proof_category }}</div>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <a href="{{ job.job_url }}" target="_blank" style="color: var(--nw-text) !important;" title="{{ job.description[:200] if job.description else '' }}">

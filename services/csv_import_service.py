@@ -63,16 +63,28 @@ def _row_to_job_dict(row: Dict[str, str]) -> Optional[Dict]:
         return None
     if (row.get("scrape_status") or "").strip().lower() not in ("", "success"):
         return None
+    # The scraper carries the department plus its own coarse seniority/job-type
+    # read; fold both into the signals the classifiers consume.
+    department = (row.get("department") or "").strip()
+    seniority_hint = " ".join(
+        s for s in (
+            (row.get("seniority_level") or "").strip(),
+            (row.get("job_type") or "").strip(),
+        ) if s
+    )
     return {
         "company": company,
         "title": title,
         "location": (row.get("location") or "").strip() or "Unknown",
-        "description": "",
+        # Department is the only role-context the CSV carries; use it to sharpen
+        # front-office classification (the full JD is not in the feed).
+        "description": department,
+        "seniority_hint": seniority_hint,
         "post_date": _parse_post_date(row.get("date_posted", "")),
         "deadline": None,
         "source_website": (row.get("source_url") or "").strip() or "whalestreet.ai",
         "job_url": job_url,
-        "program_type": classify_program(title),
+        "program_type": classify_program(title, department),
     }
 
 
