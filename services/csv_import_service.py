@@ -61,7 +61,11 @@ def _row_to_job_dict(row: Dict[str, str]) -> Optional[Dict]:
     job_url = (row.get("job_url") or "").strip()
     if not company or not title or not job_url:
         return None
-    if (row.get("scrape_status") or "").strip().lower() not in ("", "success"):
+    # A row only exists in the feed when a real posting was found, so gate on the
+    # row's own fields (above), not the firm-level scrape status. Only skip rows
+    # from a hard-failed firm scrape; 'partial' (e.g. anchor titles-only) are
+    # genuine postings and must be imported.
+    if (row.get("scrape_status") or "").strip().lower() == "failed":
         return None
     # The scraper carries the department plus its own coarse seniority/job-type
     # read; fold both into the signals the classifiers consume.
