@@ -170,6 +170,50 @@
     </div>
 </div>
 
+<!-- Apply-direct: firms whose live listings we can't scrape (bot-walls / JS-only feeds) -->
+{% if uncovered_count and not program_view %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card" style="border-radius: 10px;">
+            <div class="card-body py-2 px-3">
+                <div class="form-check mb-0 d-flex align-items-center flex-wrap gap-2">
+                    <input class="form-check-input" type="checkbox" id="toggleUncovered" style="cursor: pointer;">
+                    <label class="form-check-label small" for="toggleUncovered" style="cursor: pointer;">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        Show <strong>{{ uncovered_count }}</strong> firms to apply to directly
+                        <span class="text-muted">— we can't pull their live listings (bot-blocked or JavaScript-only), so apply on their careers site</span>
+                    </label>
+                </div>
+
+                <div id="uncoveredPanel" class="d-none mt-3">
+                    <div class="mb-2">
+                        <input type="text" id="uncoveredSearch" class="form-control form-control-sm"
+                               placeholder="Filter these firms by name…" style="max-width: 320px;">
+                    </div>
+                    <div style="max-height: 340px; overflow-y: auto; border: 1px solid var(--nw-border); border-radius: 8px;">
+                        <div class="row g-0" id="uncoveredList">
+                            {% for firm in uncovered_firms %}
+                            <div class="col-lg-4 col-md-6 uncovered-item" data-name="{{ firm.company|lower }}">
+                                <a href="{{ firm.careers_url }}" target="_blank" rel="noopener"
+                                   class="d-block p-2 text-decoration-none uncovered-link"
+                                   style="border-bottom: 1px solid var(--nw-border); color: var(--nw-text);"
+                                   title="{{ firm.reason }}">
+                                    <span style="color: var(--nw-navy); font-weight: 600;">{{ firm.company }}</span>
+                                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.7rem; color: var(--nw-navy);"></i>
+                                    <div class="text-muted" style="font-size: 0.68rem;">{{ firm.reason }}</div>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div id="uncoveredEmpty" class="text-muted small text-center p-3 d-none">No firms match that name.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Job Table -->
 <div class="row">
     <div class="col-md-12">
@@ -334,6 +378,21 @@ $(document).on('click', '.star-toggle', function(e) {
             }
         }
     });
+});
+
+// Apply-direct panel: checkbox reveals the firms; search box filters them.
+$('#toggleUncovered').on('change', function() {
+    $('#uncoveredPanel').toggleClass('d-none', !this.checked);
+});
+$('#uncoveredSearch').on('input', function() {
+    const q = (this.value || '').trim().toLowerCase();
+    let visible = 0;
+    $('.uncovered-item').each(function() {
+        const match = !q || ($(this).data('name') + '').indexOf(q) !== -1;
+        $(this).toggleClass('d-none', !match);
+        if (match) visible++;
+    });
+    $('#uncoveredEmpty').toggleClass('d-none', visible !== 0);
 });
 
 (function renderLocalUpdatedAt() {

@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from services.job_service import JobService
+from services.uncovered_firms import load_uncovered_firms
 
 web_bp = Blueprint('web', __name__)
 
@@ -67,6 +68,7 @@ def _render_jobs_page(program=None, endpoint='web.dashboard', heading=None):
     freshness_counts = JobService.get_freshness_counts()
     program_counts = JobService.get_program_counts()
     last_updated_at = JobService.get_last_updated_at()
+    uncovered_firms = load_uncovered_firms()
 
     # 'program' is encoded by the route, not the query string, so drop it here.
     pagination_params = {
@@ -123,6 +125,8 @@ def _render_jobs_page(program=None, endpoint='web.dashboard', heading=None):
         program_heading=heading,
         canonical_url=url_for(endpoint, _external=True),
         last_updated_at=last_updated_at,
+        uncovered_firms=uncovered_firms,
+        uncovered_count=len(uncovered_firms),
     )
 
 
