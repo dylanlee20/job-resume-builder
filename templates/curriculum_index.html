@@ -16,7 +16,6 @@
     .deck-section .section-head .caret { transition: transform 0.15s; font-size: 0.85rem; opacity: 0.85; }
     .deck-section.collapsed .section-head .caret { transform: rotate(-90deg); }
     .deck-section .section-head .section-name { font-weight: 600; font-size: 0.95rem; flex: 1; }
-    .deck-section .section-head .section-meta { color: rgba(255,255,255,0.75); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 
     .deck-list {
         background: #fff; border: 1px solid var(--nw-border); border-top: 0;
@@ -34,7 +33,6 @@
     .deck-row.focused { background: #e2ecfa; }
     .deck-row .deck-icon { color: var(--nw-blue); flex-shrink: 0; opacity: 0.7; }
     .deck-row .deck-title { flex: 1; color: var(--nw-text); }
-    .deck-row .deck-count { color: var(--nw-text-light); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
     .deck-row .deck-hint { color: var(--nw-text-light); font-size: 0.72rem; opacity: 0; transition: opacity 0.15s; }
     .deck-row:hover .deck-hint { opacity: 1; }
 
@@ -70,7 +68,6 @@
         <div class="section-head" onclick="this.parentElement.classList.toggle('collapsed')">
             <span class="caret"><i class="bi bi-chevron-down"></i></span>
             <span class="section-name">{{ section.section_title }}</span>
-            <span class="section-meta">{{ section.deck_count }} decks &middot; {{ section.slide_count }} slides</span>
         </div>
         <div class="deck-list">
             {% for deck in section.decks %}
@@ -79,7 +76,6 @@
                  tabindex="0">
                 <i class="bi bi-easel deck-icon"></i>
                 <span class="deck-title">{{ deck.title }}</span>
-                <span class="deck-count">{{ deck.slide_count }} slides</span>
                 <span class="deck-hint">double click to open</span>
             </div>
             {% endfor %}
