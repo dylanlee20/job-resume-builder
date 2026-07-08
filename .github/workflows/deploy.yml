@@ -50,5 +50,18 @@ jobs:
               chmod 600 .env
               echo "scraper-feed env upserted into /opt/app/.env"
             fi
+            # --- Recover from a prior timed-out deploy ---------------------
+            # A deploy whose SSH client hit command_timeout can leave run.py /
+            # deploy.sh still running on the box, holding the flock and (worse)
+            # a SQLite write lock, which wedges every later deploy. Surface what
+            # is holding things, then clear any stale migration/deploy process.
+            # All migrations are idempotent, so killing a half-run one is safe.
+            echo "=== stale deploy procs (pid etime cmd) ==="
+            ps -eo pid,etimes,cmd | grep -E 'migrations/run\.py|scripts/deploy\.sh' | grep -v grep || echo "  none"
+            echo "=== holders of jobs.db ==="
+            fuser -v /opt/app/data/jobs.db 2>&1 || echo "  (fuser found nothing / unavailable)"
+            pkill -f 'migrations/run\.py' 2>/dev/null && echo "killed stale run.py" || echo "no stale run.py"
+            pkill -f 'scripts/deploy\.sh' 2>/dev/null && echo "killed stale deploy.sh" || echo "no stale deploy.sh"
+            sleep 3
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh

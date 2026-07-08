@@ -25,7 +25,8 @@ from migrations._dbapp import masked_target
 
 def main():
     # All steps below are idempotent, so a re-run after an interrupted deploy
-    # (e.g. an SSH command-timeout) safely re-applies without duplicating work.
+    # (e.g. an SSH command-timeout, or a stale run.py killed by the deploy
+    # workflow's recovery step) safely re-applies without duplicating work.
     print(f"== migrations: target DB = {masked_target()} ==")
     print("== migrations: add_student_columns ==")
     add_student_columns.migrate()
