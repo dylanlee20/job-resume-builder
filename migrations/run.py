@@ -53,7 +53,7 @@ def main():
     remove_offboarded_accounts.migrate()
     print("== migrations: seed_question_bank ==")
     seed_question_bank.migrate()
-    print("== migrations: done ==")
+    print("== migrations: done (all steps idempotent) ==")
 
 
 if __name__ == "__main__":

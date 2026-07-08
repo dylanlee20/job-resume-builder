@@ -57,11 +57,15 @@ jobs:
             # is holding things, then clear any stale migration/deploy process.
             # All migrations are idempotent, so killing a half-run one is safe.
             echo "=== stale deploy procs (pid etime cmd) ==="
-            ps -eo pid,etimes,cmd | grep -E 'migrations/run\.py|scripts/deploy\.sh' | grep -v grep || echo "  none"
+            ps -eo pid,etimes,cmd | grep -E 'venv/bin/python .*run\.py' | grep -v grep || echo "  none"
             echo "=== holders of jobs.db ==="
             fuser -v /opt/app/data/jobs.db 2>&1 || echo "  (fuser found nothing / unavailable)"
-            pkill -f 'migrations/run\.py' 2>/dev/null && echo "killed stale run.py" || echo "no stale run.py"
-            pkill -f 'scripts/deploy\.sh' 2>/dev/null && echo "killed stale deploy.sh" || echo "no stale deploy.sh"
+            # Kill a stale migration by its interpreter path. This pattern does NOT
+            # appear in this SSH script's own argv (appleboy runs it via bash -c
+            # '<script text>', and a bare 'scripts/deploy.sh' pattern matched that
+            # text and SIGTERM'd the deploy itself last attempt). Killing run.py is
+            # enough: its parent deploy.sh then exits (set -e) and frees the flock.
+            pkill -f '/opt/app/venv/bin/python .*run\.py' 2>/dev/null && echo "killed stale run.py" || echo "no stale run.py"
             sleep 3
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
