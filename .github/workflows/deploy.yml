@@ -50,5 +50,21 @@ jobs:
               chmod 600 .env
               echo "scraper-feed env upserted into /opt/app/.env"
             fi
+            # --- Clear a wedged prior deploy + stuck DB lock -----------------
+            # A timed-out migration can stay alive holding the flock while blocked
+            # on the SQLite write lock the live app's in-process scheduler holds.
+            # (1) Kill any stale migration, matched by argv but comm-checked to
+            #     'python' so this never SIGTERMs the deploy's own bash shell
+            #     (whose inline argv also contains the pattern text).
+            for pid in $(pgrep -f '/opt/app/migrations/run.py' 2>/dev/null || true); do
+              case "$(cat /proc/$pid/comm 2>/dev/null || true)" in
+                python*) kill -9 "$pid" 2>/dev/null && echo "cleared stale migration pid $pid" || true ;;
+              esac
+            done
+            # (2) Restart the app so its in-process DB write lock is released and
+            #     the migration below can actually acquire the database.
+            systemctl restart newwhale || true
+            echo "restarted app to release DB write lock"
+            sleep 5
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh

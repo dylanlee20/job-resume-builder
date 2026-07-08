@@ -40,12 +40,13 @@ if git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -q "^requirements"; the
   run /opt/app/venv/bin/pip install -q -r requirements.txt
 fi
 
-# Apply migrations if any new migration files
-if git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -q "^migrations/"; then
-  log "migrations changed — running them"
-  if [ -f /opt/app/migrations/run.py ]; then
-    run /opt/app/venv/bin/python /opt/app/migrations/run.py
-  fi
+# Apply migrations on every deploy. They are idempotent and — now that the
+# one-time front-office backfill is marker-gated — cheap, so we no longer gate
+# on a fragile `git diff HEAD@{1}` that silently skipped them after an
+# interrupted deploy (and left half-applied state).
+if [ -f /opt/app/migrations/run.py ]; then
+  log "running migrations"
+  run /opt/app/venv/bin/python /opt/app/migrations/run.py
 fi
 
 # Restart service
