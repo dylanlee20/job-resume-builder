@@ -25,7 +25,10 @@ jobs:
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          command_timeout: 10m
+          # 20m (was 10m): the full migration chain re-runs backfill_front_office
+          # over the ~28k-row jobs table whenever migrations/ changes, which can
+          # brush against the old 10m SSH cap. Give it headroom.
+          command_timeout: 20m
           # Forward the scraper-feed secrets into the remote shell so the step
           # below can upsert them into /opt/app/.env (the file load_dotenv reads).
           envs: JOBS_CSV_URL,JOBS_CSV_TOKEN
