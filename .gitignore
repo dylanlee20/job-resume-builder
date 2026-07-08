@@ -101,3 +101,6 @@ uploads/question_bank/*
 # Test fixtures (keep these)
 !tests/fixtures/*.pdf
 !tests/fixtures/*.docx
+
+# Runtime completion marker for the one-time front-office backfill
+.backfill_front_office.done

@@ -12,6 +12,9 @@ front-office; only their job type is inferred if missing.
 
 Idempotent: classification is deterministic, so re-runs converge.
 """
+import os
+from datetime import datetime
+
 from migrations._dbapp import create_db_app
 from models.database import db
 from models.job import Job
@@ -22,8 +25,22 @@ from utils.job_utils import normalize_location
 CURATED_SOURCE = "curated-program"
 _BATCH = 500
 
+# One-time completion marker. This pass is a legacy backfill — new rows are
+# already classified on insert (JobService.process_scraped_job) — but it scans
+# the full ~28k-row jobs table, which on every deploy is slow enough to brush
+# the SSH command_timeout and contend for the SQLite write lock. Gate it so it
+# runs to completion once, then is skipped on subsequent deploys. Delete the
+# marker file (or pass force=True) to re-run intentionally.
+_MARKER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    ".backfill_front_office.done",
+)
 
-def migrate():
+
+def migrate(force: bool = False):
+    if not force and os.path.exists(_MARKER):
+        print("backfill_front_office: marker present — legacy backfill already applied, skipping")
+        return
     app = create_db_app()
     with app.app_context():
         jobs = Job.query.all()
@@ -65,6 +82,14 @@ def migrate():
             f"backfill_front_office: {len(jobs)} rows | "
             f"reclassified={reclassified} retyped={typed} relocated={relocated}"
         )
+    # Only stamped after a full, committed pass, so a run interrupted mid-scan
+    # (e.g. a killed deploy) re-runs next time instead of being skipped.
+    try:
+        with open(_MARKER, "w") as fh:
+            fh.write(datetime.utcnow().isoformat() + "Z\n")
+        print(f"backfill_front_office: wrote completion marker {_MARKER}")
+    except OSError as exc:
+        print(f"backfill_front_office: WARN could not write marker: {exc}")
 
 
 if __name__ == "__main__":
