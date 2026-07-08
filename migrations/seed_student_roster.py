@@ -9,8 +9,8 @@ Idempotent:
   * matched by username (slug of the student's name)
   * new students are created
   * existing rows only have EMPTY profile fields filled (manual admin edits
-    are preserved), except Mia and Siyuan whose College/Major/Grad-Year are
-    force-set per explicit instruction.
+    are preserved), except FORCE_FIELDS students whose profile is force-synced
+    from the spreadsheet to correct stale data.
   * last_login is randomised within the last 3 days, set once on creation.
 """
 import os
@@ -55,12 +55,12 @@ ROSTER = [
     ("James Li", "Duke", "Econ & Stats", 2028, "33/50", "Barclays NYC"),
     ("Alyssa Pan", "Cornell", "Math", 2028, "14/15", None),
     ("Megan Zhu", "NYU Stern", "Finance", 2028, "14/15", "ING"),
-    ("Vivian Tang", "IC", "Math", 2028, "30/35", "Greenhill"),
-    ("Aaron Gao", "Cambridge", "Data Science", 2028, "24/35", "TD"),
+    ("Vivian Tang", "IC", "Math", 2028, "30/35", "Barclays London"),
+    ("Aaron Gao", "UCL", "Data Science", 2028, "24/35", "TD"),
     ("Jessica Wei", "NYU Stern", "Finance", 2028, "11/15", None),
     ("Angela Jiang", "UCLA", "Data Theory", 2028, "40/50", "JPM IBD"),
     ("Brandon Kim", "Villanova U", "Data Science", 2028, "11/15", None),
-    ("Ray Chu", "CMU", "Stats & ML", 2028, "28/50", "MS IM"),
+    ("Ray Chu", "CMU", "Stats & ML", 2028, "28/50", "MS Investment Management"),
     ("Mariko Mita", "Cornell", "Hotel Administration", 2028, "37/50", "GS S&T"),
     ("Justin Lee", "UCSB", "Econ", 2028, "16/35", "HK GS WM"),
     ("Jenna Song", "Villanova U", "Math", 2028, "29/35", None),
@@ -70,19 +70,20 @@ ROSTER = [
     ("Jason Ma", "MIT Master", "Math", 2028, "17/35", "BMO NYC"),
     ("David Luo", "UCSD", "Econ", 2028, "13/35", None),
     ("Ethan Wang", "IC", "Business Analytics", 2028, "14/15", "TD"),
-    ("Angela Zhang", "Umich", "Econ & Fin Math", 2028, "43/50", "DB NYC S&T"),
+    ("Angela Zhang", "Umich", "Econ & Fin Math", 2028, "43/50", "Citi Macro Strategy"),
     ("Emily Tan", "NYU", "Math", 2028, "11/15", None),
     ("Sophia Chen", "Warwick", "Data Science", 2028, "27/35", "Citi"),
     ("Cindy Guo", "Cornell", "Econ", 2028, "28/35", None),
     ("Lily Wu", "Cambridge", "Business Analytics", 2028, "13/35", "UK SocGen"),
-    ("Leon Wang", "UChicago", None, 2024, None, None),
-    # Not in the spreadsheet — added per explicit instruction.
-    ("Mia", "CMC", "Political Economy", 2028, None, None),
-    ("Siyuan", "CMU", "MSCF", 2027, None, None),
+    ("Leon Wang", "UChicago", "Econ & Math", 2024, "50/50", "GS ER -> Citadel L/S"),
+    ("Yifei Zhang", "Yale", "Math", 2028, "48/50", "Quant Edge"),
+    ("Eric Shen", "UNSW", "Advanced Math", 2029, "8/50", None),
 ]
 
-# Usernames whose College/Major/Grad-Year should be force-overwritten on update.
-FORCE_FIELDS = {"mia", "siyuan"}
+# Usernames whose profile fields should be force-synced from this spreadsheet
+# even when already populated in prod — these rows carried stale data (wrong
+# school or a superseded offer) that the current roster corrects.
+FORCE_FIELDS = {"aaron.gao", "vivian.tang", "ray.chu", "angela.zhang", "leon.wang"}
 
 EMAIL_DOMAIN = "students.newwhaletech.com"
 
@@ -145,16 +146,17 @@ def seed():
                 created += 1
             else:
                 force = username in FORCE_FIELDS
-                # Fill-empty by default; force-set the 3 identity fields for Mia/Siyuan.
-                if force or not user.college:
+                # Fill-empty by default (manual admin edits preserved); FORCE_FIELDS
+                # students overwrite even populated fields to correct stale data.
+                if college and (force or not user.college):
                     user.college = college
-                if force or not user.major:
+                if major and (force or not user.major):
                     user.major = major
-                if force or not user.graduation_year:
+                if grad and (force or not user.graduation_year):
                     user.graduation_year = grad
-                if not user.sessions and sessions:
+                if sessions and (force or not user.sessions):
                     user.sessions = sessions
-                if not user.offers and offers_val:
+                if offers_val and (force or not user.offers):
                     user.offers = offers_val
                     user.is_done = is_done
                 if not user.full_name:

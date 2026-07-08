@@ -133,7 +133,7 @@
         <div class="col-md-3">
             <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6>Active</h6>
+                    <h6>Online</h6>
                     <div class="stat-number" style="color: #27ae60;">
                         {{ users|selectattr('is_active_account')|list|length }}
                     </div>
@@ -153,9 +153,9 @@
         <div class="col-md-3">
             <div class="card admin-stat-card">
                 <div class="card-body">
-                    <h6>Disabled</h6>
-                    <div class="stat-number" style="color: #c0392b;">
-                        {{ users|selectattr('is_disabled')|list|length }}
+                    <h6>Done</h6>
+                    <div class="stat-number" style="color: #d4af37;">
+                        {{ users|selectattr('is_done')|list|length }}
                     </div>
                 </div>
             </div>

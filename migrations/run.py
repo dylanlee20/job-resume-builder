@@ -18,6 +18,7 @@ from migrations import (
     seed_programs,
     seed_question_bank,
     backfill_front_office,
+    remove_offboarded_accounts,
 )
 from migrations._dbapp import masked_target
 
@@ -43,6 +44,10 @@ def main():
     seed_student_roster.seed()
     print("== migrations: backfill_member_numbers ==")
     seed_student_roster.backfill_member_numbers()
+    # Runs after the roster seed so the two rows are gone for good (the seed no
+    # longer lists Mia/Siyuan, so nothing recreates them).
+    print("== migrations: remove_offboarded_accounts ==")
+    remove_offboarded_accounts.migrate()
     print("== migrations: seed_question_bank ==")
     seed_question_bank.migrate()
     print("== migrations: done ==")
