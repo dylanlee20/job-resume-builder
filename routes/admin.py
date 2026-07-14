@@ -605,6 +605,22 @@ def update_profile(user_id):
 
 # ---- Mentor curriculum & rate -------------------------------------------
 
+@admin_bp.route('/users/<int:user_id>/role', methods=['POST'])
+@admin_required
+def set_role(user_id):
+    """Convert an existing account between student and mentor."""
+    user = User.query.get_or_404(user_id)
+    if user.is_admin:
+        flash('Admin accounts cannot be converted to mentor/student.', 'info')
+        return redirect(url_for('admin.users'))
+    user.is_mentor = (request.form.get('is_mentor') == 'on')
+    db.session.commit()
+    role = 'mentor' if user.is_mentor else 'student'
+    extra = ' Grant curriculum access and set an hourly rate below.' if user.is_mentor else ''
+    flash(f"'{user.username}' is now a {role}.{extra}", 'success')
+    return redirect(url_for('admin.users'))
+
+
 @admin_bp.route('/users/<int:user_id>/curriculums', methods=['POST'])
 @admin_required
 def set_curriculums(user_id):
