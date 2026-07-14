@@ -1,4 +1,5 @@
 """API routes for job data"""
+import hmac
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
@@ -22,7 +23,11 @@ def _has_valid_job_export_token():
     bearer_token = auth_header[len(bearer_prefix):].strip() if auth_header.startswith(bearer_prefix) else ''
     query_token = (request.args.get('token') or '').strip()
 
-    return bearer_token == configured or query_token == configured
+    # Constant-time comparison to avoid leaking the token via timing.
+    return (
+        (bool(bearer_token) and hmac.compare_digest(bearer_token, configured))
+        or (bool(query_token) and hmac.compare_digest(query_token, configured))
+    )
 
 
 @api_bp.route('/jobs/<int:job_id>/star', methods=['POST'])
@@ -46,8 +51,10 @@ def star_job(job_id):
 def update_notes(job_id):
     """Update notes for a job"""
     job = Job.query.get_or_404(job_id)
-    
-    notes = request.json.get('notes', '')
+
+    # Tolerate a missing/invalid JSON body instead of raising a 500.
+    payload = request.get_json(silent=True) or {}
+    notes = payload.get('notes', '')
     job.user_notes = notes
     db.session.commit()
     

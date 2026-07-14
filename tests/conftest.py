@@ -28,6 +28,10 @@ def app():
         'TESTING': True,
         'WTF_CSRF_ENABLED': False,
         'SERVER_NAME': 'localhost',
+        # The test client talks plain http, so Secure cookies would never be
+        # stored and login-based tests would lose their session.
+        'SESSION_COOKIE_SECURE': False,
+        'REMEMBER_COOKIE_SECURE': False,
     })
     yield flask_app
 

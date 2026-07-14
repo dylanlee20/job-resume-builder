@@ -26,6 +26,23 @@ def _client_ip() -> str:
     return request.remote_addr or ''
 
 
+def _is_safe_next(target: str) -> bool:
+    """Whether a login ``next`` target is a safe same-site redirect.
+
+    Only same-site relative paths are allowed. A bare ``startswith('/')`` check
+    is not enough: browsers treat ``//evil.com`` and ``/\\evil.com`` as
+    protocol-relative URLs and navigate off-site, so those must be rejected to
+    prevent an open redirect.
+    """
+    if not target or not target.startswith('/'):
+        return False
+    if target.startswith('//') or target.startswith('/\\'):
+        return False
+    if '\\' in target or '\x00' in target:
+        return False
+    return True
+
+
 def _login_keys(identifier: str) -> list:
     """Rate-limit keys for a login attempt.
 
@@ -84,7 +101,7 @@ def login():
         db.session.commit()
 
         next_page = request.args.get('next')
-        if next_page and next_page.startswith('/'):
+        if _is_safe_next(next_page):
             return redirect(next_page)
         return _post_login_redirect()
 

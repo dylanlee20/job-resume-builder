@@ -64,6 +64,12 @@ def create_app():
     # Initialize CSRF protection
     csrf = CSRFProtect(app)
     logger.info("CSRF protection enabled")
+
+    # Stamp security headers (CSP, HSTS, X-Frame-Options, nosniff, ...) on
+    # every response.
+    from utils.security_headers import register_security_headers
+    register_security_headers(app)
+    logger.info("Security response headers enabled")
     
     # Initialize Flask-Login
     login_manager = LoginManager()

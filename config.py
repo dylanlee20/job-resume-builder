@@ -88,6 +88,17 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # No time limit for CSRF tokens
 
+    # Session / cookie hardening.
+    # Secure cookies require HTTPS. On by default (production runs behind
+    # Cloudflare + nginx over HTTPS); export SESSION_COOKIE_SECURE=false for
+    # local http:// development or the login cookie will not be stored.
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() == 'true'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+
     # Scraper Configuration
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
