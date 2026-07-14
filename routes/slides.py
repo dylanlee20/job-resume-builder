@@ -49,6 +49,23 @@ def _viewer_label() -> str:
     return getattr(current_user, "email", None) or current_user.username
 
 
+def _allowed_sections():
+    """Section slugs the current user may see, or None for no restriction.
+
+    Only mentors are gated (to their granted curriculums); admins and students
+    see everything.
+    """
+    if getattr(current_user, "is_mentor", False):
+        return current_user.curriculum_set
+    return None
+
+
+def _guard_deck(deck: Deck) -> None:
+    """403 if the current user (a gated mentor) may not view this deck's section."""
+    if not current_user.has_curriculum(deck.section_slug):
+        abort(403)
+
+
 @slides_bp.route("/")
 @login_required
 def index():
@@ -60,7 +77,7 @@ def index():
 def behavioral():
     return render_template(
         "curriculum_index.html",
-        sections=list_sections(track="behavioral"),
+        sections=list_sections(track="behavioral", allowed=_allowed_sections()),
         track="behavioral",
         track_label="Behavioral Curriculum",
     )
@@ -71,7 +88,7 @@ def behavioral():
 def technical():
     return render_template(
         "curriculum_index.html",
-        sections=list_sections(track="technical"),
+        sections=list_sections(track="technical", allowed=_allowed_sections()),
         track="technical",
         track_label="Technical Curriculums",
     )
@@ -83,6 +100,7 @@ def deck_redirect(slug: str):
     deck = get_deck(slug)
     if deck is None:
         abort(404)
+    _guard_deck(deck)
     return view_slide(slug, 1)
 
 
@@ -92,6 +110,7 @@ def view_slide(slug: str, slide_number: int):
     deck = get_deck(slug)
     if deck is None:
         abort(404)
+    _guard_deck(deck)
     if not 1 <= slide_number <= deck.slide_count:
         abort(404)
     track = deck_track(deck)
@@ -191,6 +210,9 @@ def companion_file(section_slug: str, filename: str):
     """
     if not _SAFE_NAME.fullmatch(section_slug):
         abort(404)
+    # Mentors may only download companion files for curriculums they were granted.
+    if not current_user.has_curriculum(section_slug):
+        abort(403)
     # filename may contain a single subdirectory (e.g. qm02-xs-momentum/notebook.ipynb)
     parts = filename.split("/")
     if not (1 <= len(parts) <= 2):
@@ -215,6 +237,10 @@ def companion_file(section_slug: str, filename: str):
 @slides_bp.route("/<slug>/<int:slide_number>/image.png")
 @login_required
 def slide_image(slug: str, slide_number: int):
+    deck = get_deck(slug)
+    if deck is None:
+        abort(404)
+    _guard_deck(deck)
     path = slide_path(slug, slide_number)
     if path is None:
         abort(404)

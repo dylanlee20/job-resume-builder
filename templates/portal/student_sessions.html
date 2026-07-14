@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block title %}My Session History - NewWhale{% endblock %}
+{% block content %}
+<style>
+  .star-rate input{display:none}
+  .star-rate label{font-size:1.2rem;color:#ccc;cursor:pointer}
+  .star-rate input:checked ~ label{color:#ccc}
+  /* highlight the selected star and all to its left (row is reversed) */
+  .star-rate{display:inline-flex;flex-direction:row-reverse}
+  .star-rate label:hover,.star-rate label:hover ~ label,
+  .star-rate input:checked + label,.star-rate input:checked + label ~ label{color:#d4af37}
+</style>
+
+<h4 class="mb-3"><i class="bi bi-mortarboard"></i> My Session History</h4>
+
+<div class="row mb-4">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="fw-bold">Progress</span>
+          <span class="badge sess-plan plan-{{ current_user.plan }}">{{ current_user.plan }}</span>
+        </div>
+        <div class="progress" style="height:22px">
+          <div class="progress-bar bg-dark" role="progressbar"
+               style="width: {{ current_user.sessions_pct }}%">
+            {{ current_user.progress_display }}
+          </div>
+        </div>
+        <div class="small text-muted mt-1">Approved sessions out of your package total.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .sess-plan{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:4px}
+  .plan-Obsidian{background:#0b1f3a;color:#fff}.plan-Gold{background:#d4af37;color:#1a1a1a}.plan-Platinum{background:#cfd2d6;color:#1a1a1a}
+</style>
+
+{% if pending %}
+<h5 class="mb-2">Awaiting your approval</h5>
+{% for s in pending %}
+<div class="card mb-2">
+  <div class="card-body">
+    <div class="d-flex justify-content-between flex-wrap">
+      <div>
+        <span class="badge bg-secondary">{{ s.session_type }}</span>
+        <strong class="ms-1">{{ s.hours if s.hours is not none else '—' }} h</strong>
+        with {{ s.mentor_name }}
+        {% if s.topic %}<span class="text-muted">— {{ s.topic }}</span>{% endif %}
+        <div class="small text-muted">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('portal.approve_session', session_id=s.id) }}" class="mt-2 d-flex align-items-center flex-wrap gap-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <span class="small">Rating:</span>
+      <span class="star-rate">
+        {% for n in [5,4,3,2,1] %}
+        <input type="radio" name="rating" id="r{{ s.id }}_{{ n }}" value="{{ n }}" {% if n==5 %}required{% endif %}>
+        <label for="r{{ s.id }}_{{ n }}">★</label>
+        {% endfor %}
+      </span>
+      <input type="text" name="feedback" class="form-control form-control-sm" style="max-width:340px"
+             placeholder="Short feedback (optional)" maxlength="500">
+      <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-check2"></i> Approve</button>
+    </form>
+    <form method="POST" action="{{ url_for('portal.reject_session', session_id=s.id) }}" class="mt-1">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button class="btn btn-sm btn-outline-danger" type="submit"
+              onclick="return confirm('Mark this session as not attended?');">Didn’t happen</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">No sessions are waiting for your approval.</p>
+{% endif %}
+
+<h5 class="mt-4 mb-2">History</h5>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 align-middle">
+        <thead><tr><th>Date</th><th>Mentor</th><th>Type</th><th>Hours</th><th>Status</th><th>Your rating</th><th>Feedback</th></tr></thead>
+        <tbody>
+          {% for s in history %}
+          <tr>
+            <td class="small text-muted">{{ (s.approved_at or s.created_at).strftime('%Y-%m-%d') }}</td>
+            <td>{{ s.mentor_name }}</td>
+            <td><span class="badge bg-secondary">{{ s.session_type }}</span></td>
+            <td>{{ s.hours if s.hours is not none else '—' }}</td>
+            <td>{% if s.status == 'approved' %}<span class="badge bg-success">Approved</span>{% else %}<span class="badge bg-danger">Not attended</span>{% endif %}</td>
+            <td style="color:#d4af37">{% if s.rating %}{{ s.stars }}{% endif %}</td>
+            <td class="small text-muted">{{ s.feedback or '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-3">Nothing yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

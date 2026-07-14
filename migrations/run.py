@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from migrations import (
     add_student_columns,
+    add_mentor_session_payroll,
     seed_student_roster,
     create_session_records,
     add_job_program_type,
@@ -43,6 +44,7 @@ def main():
     # ORM-queries `jobs` (a Job query selects every mapped column).
     _run("add_student_columns", add_student_columns.migrate)
     _run("create_session_records", create_session_records.migrate)
+    _run("add_mentor_session_payroll", add_mentor_session_payroll.migrate)
     _run("add_job_link_kind", add_job_link_kind.migrate)
     _run("add_job_program_type", add_job_program_type.migrate)
 

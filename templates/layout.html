@@ -48,9 +48,16 @@
                 <div class="d-flex align-items-center">
                     <div class="dropdown me-2">
                         <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                            <i class="bi bi-person-circle"></i>
+                            {% if current_user.portal_code %}<span class="badge bg-light text-dark me-1">#{{ current_user.portal_code }}</span>{% endif %}
+                            {{ current_user.full_name or current_user.username }}
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
+                            {% if current_user.is_mentor or not current_user.is_admin %}
+                            <li><a class="dropdown-item" href="{{ url_for('portal.home') }}">
+                                <i class="bi bi-columns-gap"></i> My Portal
+                            </a></li>
+                            {% endif %}
                             <li><a class="dropdown-item" href="{{ url_for('slides.saved_questions') }}">
                                 <i class="bi bi-star"></i> My Saved Questions
                             </a></li>
@@ -77,6 +84,13 @@
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.question_bank') }}">
                                 <i class="bi bi-journal-richtext"></i> Question Bank
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.reconciliation') }}">
+                                <i class="bi bi-cash-coin"></i> Reconciliation & Payroll
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.payments') }}">
+                                <i class="bi bi-receipt"></i> Student Payments
                             </a></li>
                         </ul>
                     </div>

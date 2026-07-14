@@ -11,10 +11,30 @@ from flask_login import login_user, logout_user, login_required, current_user
 
 from models.database import db
 from models.user import User
+from utils.rate_limiter import login_limiter
 
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+
+def _client_ip() -> str:
+    """Real client IP behind Cloudflare/nginx (falls back to the socket peer)."""
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or ''
+
+
+def _login_keys(identifier: str) -> list:
+    """Rate-limit keys for a login attempt.
+
+    Throttle by source IP only. Keying on the username as well would let an
+    attacker lock a victim out of their own account from any IP (a targeted
+    denial-of-service); per-IP keying still limits password guessing without
+    that side effect.
+    """
+    return [f'ip:{_client_ip()}']
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -27,12 +47,23 @@ def login():
         password = request.form.get('password', '')
         remember = request.form.get('remember_me') == 'on'
 
+        # Throttle password guessing. Block if either the source IP or the
+        # targeted username has already burned through its failed-attempt budget.
+        keys = _login_keys(identifier)
+        if any(login_limiter.is_blocked(k) for k in keys):
+            logger.warning('Login rate-limited for %s (ip=%s)', identifier, _client_ip())
+            flash('Too many failed login attempts. Please wait a few minutes and try again.',
+                  'danger')
+            return render_template('auth/login.html', username=identifier), 429
+
         user = (
             User.query.filter(db.func.lower(User.username) == identifier.lower()).first()
             or User.query.filter(db.func.lower(User.email) == identifier.lower()).first()
         )
 
         if not user or not user.check_password(password):
+            for k in keys:
+                login_limiter.record(k)
             flash('Invalid username/email or password.', 'danger')
             return render_template('auth/login.html', username=identifier)
 
@@ -43,6 +74,10 @@ def login():
                    else 'Your account has been disabled.')
             flash(msg, 'warning')
             return render_template('auth/login.html', username=identifier)
+
+        # Successful login: clear any accumulated failed-attempt counters.
+        for k in keys:
+            login_limiter.reset(k)
 
         login_user(user, remember=remember)
         user.record_login()
@@ -92,12 +127,18 @@ def change_password():
 
 def _post_login_redirect():
     """Send the user to a section they actually have access to."""
+    # Mentors live in their portal; send them straight there.
+    if current_user.is_mentor:
+        return redirect(url_for('portal.home'))
     if current_user.is_admin or current_user.has_app('main'):
         return redirect(url_for('web.index'))
     if current_user.has_app('macro'):
         return redirect('/macro')
     if current_user.has_app('competitions'):
         return redirect('/competitions')
+    # A student with no app access still has their session portal.
+    if not current_user.is_admin:
+        return redirect(url_for('portal.home'))
     return redirect(url_for('auth.no_access'))
 
 

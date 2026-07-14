@@ -184,7 +184,39 @@
                             <input type="text" name="password" class="form-control form-control-sm" minlength="8" autocomplete="off">
                         </div>
                         <div class="col-12">
-                            <label class="form-label small mb-1">Access</label>
+                            <label class="form-label small mb-1">Account type</label>
+                            <div class="d-flex gap-3 align-items-center flex-wrap">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="account_type" value="student" id="typeStudent" checked>
+                                    <label class="form-check-label small" for="typeStudent">Student</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="account_type" value="mentor" id="typeMentor">
+                                    <label class="form-check-label small" for="typeMentor">Mentor</label>
+                                </div>
+                                <div class="ms-3" style="max-width: 190px;">
+                                    <label class="form-label small mb-0" for="newTotalSessions">Student package size (y)</label>
+                                    <input type="number" min="1" name="total_sessions" id="newTotalSessions" class="form-control form-control-sm" placeholder="e.g. 50">
+                                </div>
+                                <div style="max-width: 130px;">
+                                    <label class="form-label small mb-0" for="newPayoutCcy">Mentor payout ccy</label>
+                                    <input type="text" name="payout_currency" id="newPayoutCcy" class="form-control form-control-sm" value="USD" maxlength="3">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small mb-1">Mentor curriculum access <span class="text-muted">(applies to mentors only)</span></label>
+                            <div class="d-flex gap-3 align-items-center flex-wrap">
+                                {% for slug, title in curriculum_choices %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="allowed_curriculums" value="{{ slug }}" id="newCur{{ loop.index }}">
+                                    <label class="form-check-label small" for="newCur{{ loop.index }}">{{ title }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small mb-1">Site access</label>
                             <div class="d-flex gap-3 align-items-center flex-wrap">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" name="allowed_apps" value="main" id="newAppMain">
@@ -255,9 +287,10 @@
                         <tbody>
                             {% for user in users %}
                             <tr class="user-row" data-menu="ctxmenu-{{ user.id }}">
-                                <td>{{ user.member_no or user.id }}</td>
+                                <td>{{ user.portal_code or user.member_no or user.id }}</td>
                                 <td>
                                     <strong>{{ user.full_name or user.username }}</strong>
+                                    {% if user.is_mentor %}<span class="badge bg-info text-dark">mentor</span>{% endif %}
                                     <i class="bi bi-three-dots-vertical text-muted"></i>
                                     <div class="user-ctx-menu" id="ctxmenu-{{ user.id }}">
                                         <div class="pb-2 mb-2 border-bottom small fw-bold text-truncate">
@@ -279,6 +312,29 @@
                                             <div class="form-check"><input class="form-check-input" type="checkbox" name="allowed_apps" value="competitions" id="acc{{ user.id }}comp" {% if 'competitions' in apps %}checked{% endif %}><label class="form-check-label small" for="acc{{ user.id }}comp">Competitions (/competitions)</label></div>
                                             <button class="btn btn-outline-secondary btn-sm w-100 mt-1" type="submit">Save access</button>
                                         </form>
+                                        {% if user.is_mentor %}
+                                        <hr class="my-2">
+                                        <form method="POST" action="{{ url_for('admin.set_curriculums', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            {% set cur = user.curriculum_set %}
+                                            <div class="small text-muted mb-1">Curriculum access (mentor)</div>
+                                            {% for slug, title in curriculum_choices %}
+                                            <div class="form-check"><input class="form-check-input" type="checkbox" name="allowed_curriculums" value="{{ slug }}" id="cur{{ user.id }}{{ loop.index }}" {% if slug in cur %}checked{% endif %}><label class="form-check-label small" for="cur{{ user.id }}{{ loop.index }}">{{ title }}</label></div>
+                                            {% endfor %}
+                                            <button class="btn btn-outline-secondary btn-sm w-100 mt-1" type="submit">Save curriculums</button>
+                                        </form>
+                                        <hr class="my-2">
+                                        <form method="POST" action="{{ url_for('admin.set_rate', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            {% set rate = user.current_rate %}
+                                            <div class="small text-muted mb-1">Hourly rate{% if rate %} (current: {{ rate.hourly_rate }} {{ rate.currency }}){% endif %}</div>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" min="0" name="hourly_rate" class="form-control" placeholder="rate" required>
+                                                <input type="text" name="currency" class="form-control" style="max-width:60px" value="{{ user.payout_currency or 'USD' }}" maxlength="3">
+                                            </div>
+                                            <button class="btn btn-outline-secondary btn-sm w-100 mt-1" type="submit">Set new rate</button>
+                                        </form>
+                                        {% endif %}
                                         <hr class="my-2">
                                         <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-1 js-edit-profile"
                                             data-id="{{ user.id }}" data-username="{{ user.username }}"
@@ -330,9 +386,9 @@
                                 <td>
                                     <div class="sess-cell">
                                         <span class="sess-plan plan-{{ user.plan }}">{{ user.plan }}</span>
-                                        <div class="sess-bar" title="{{ user.sessions or ('0/' ~ user.sessions_total) }}">
+                                        <div class="sess-bar" title="Approved sessions: {{ user.progress_display }}">
                                             <div class="sess-fill" style="width: {{ user.sessions_pct }}%;"></div>
-                                            <span class="sess-num">{{ user.sessions or ('0/' ~ user.sessions_total) }}</span>
+                                            <span class="sess-num">{{ user.progress_display }}</span>
                                         </div>
                                     </div>
                                 </td>
