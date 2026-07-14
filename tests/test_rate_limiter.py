@@ -47,3 +47,30 @@ class TestRateLimiter:
         limiter.cleanup()
         # After cleanup, store should be empty
         assert limiter._store == {}
+
+    def test_is_blocked_does_not_record(self):
+        limiter = RateLimiter(max_requests=2, window_seconds=60)
+        # Peeking many times must never itself trip the limit.
+        for _ in range(10):
+            assert limiter.is_blocked('key1') is False
+
+    def test_record_then_is_blocked(self):
+        limiter = RateLimiter(max_requests=2, window_seconds=60)
+        limiter.record('key1')
+        assert limiter.is_blocked('key1') is False
+        limiter.record('key1')
+        assert limiter.is_blocked('key1') is True
+
+    def test_is_blocked_respects_window_expiry(self):
+        limiter = RateLimiter(max_requests=1, window_seconds=1)
+        limiter.record('key1')
+        assert limiter.is_blocked('key1') is True
+        time.sleep(1.1)
+        assert limiter.is_blocked('key1') is False
+
+    def test_reset_clears_recorded_failures(self):
+        limiter = RateLimiter(max_requests=1, window_seconds=60)
+        limiter.record('key1')
+        assert limiter.is_blocked('key1') is True
+        limiter.reset('key1')
+        assert limiter.is_blocked('key1') is False
