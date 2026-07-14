@@ -53,11 +53,12 @@
                     {% endif %}
                 </ul>
                 <div class="d-flex align-items-center">
+                    {% if current_user.portal_code %}
+                    <span class="navbar-text text-white me-3" style="font-weight:600; letter-spacing:0.5px;">ID: {{ current_user.portal_code }}</span>
+                    {% endif %}
                     <div class="dropdown me-2">
                         <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i>
-                            {% if current_user.portal_code %}<span class="badge bg-light text-dark me-1">#{{ current_user.portal_code }}</span>{% endif %}
-                            {{ current_user.full_name or current_user.username }}
+                            <i class="bi bi-person-circle"></i> {{ current_user.full_name or current_user.username }}
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             {% if current_user.is_mentor or not current_user.is_admin %}
