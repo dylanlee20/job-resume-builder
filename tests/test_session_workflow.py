@@ -35,7 +35,7 @@ def test_mentor_first_log_requires_correct_id_and_name(app, db, client, actors):
     # Correct ID + name: logs the session AND links the student.
     r = client.post("/portal/log", data={
         "new_student_code": actors["student_code"], "new_student_name": actors["student_name"],
-        "session_type": "Behavioral", "hours": "1.0"}, follow_redirects=True)
+        "session_type": "Behavioral", "hours": "1.0", "topic": "notes"}, follow_redirects=True)
     assert r.status_code == 200
     with app.app_context():
         sr = SessionRecord.query.filter_by(mentor_id=actors["mentor"]).first()
@@ -49,7 +49,7 @@ def test_wrong_name_logs_nothing_and_no_link(app, db, client, actors):
     _login(client, "mentorx")
     r = client.post("/portal/log", data={
         "new_student_code": actors["student_code"], "new_student_name": "Wrong Person",
-        "session_type": "Behavioral", "hours": "1.0"}, follow_redirects=True)
+        "session_type": "Behavioral", "hours": "1.0", "topic": "notes"}, follow_redirects=True)
     assert r.status_code == 200
     with app.app_context():
         assert SessionRecord.query.filter_by(mentor_id=actors["mentor"]).count() == 0
@@ -60,7 +60,7 @@ def test_unlinked_student_not_selectable_by_id(app, db, client, actors):
     # Posting a raw student_id for a student the mentor never linked must fail.
     _login(client, "mentorx")
     client.post("/portal/log", data={"student_id": actors["student"],
-                "session_type": "Behavioral", "hours": "1.0"}, follow_redirects=True)
+                "session_type": "Behavioral", "hours": "1.0", "topic": "notes"}, follow_redirects=True)
     with app.app_context():
         assert SessionRecord.query.filter_by(mentor_id=actors["mentor"]).count() == 0
 
@@ -72,7 +72,7 @@ def test_linked_student_then_logs_by_dropdown(app, db, client, actors):
         db.session.commit()
     _login(client, "mentorx")
     r = client.post("/portal/log", data={"student_id": actors["student"],
-                    "session_type": "Technical", "hours": "2"}, follow_redirects=True)
+                    "session_type": "Technical", "hours": "2", "topic": "notes"}, follow_redirects=True)
     assert r.status_code == 200
     with app.app_context():
         assert SessionRecord.query.filter_by(mentor_id=actors["mentor"]).count() == 1

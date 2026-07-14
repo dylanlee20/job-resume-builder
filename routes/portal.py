@@ -72,7 +72,7 @@ def log_session():
     students = _linked_students(current_user)
     if request.method == "POST":
         session_type = (request.form.get("session_type", "") or "").strip()
-        topic = (request.form.get("topic", "") or "").strip() or None
+        topic = (request.form.get("topic", "") or "").strip()
         hours_raw = (request.form.get("hours", "") or "").strip()
         new_code = (request.form.get("new_student_code", "") or "").strip()
         new_name = (request.form.get("new_student_name", "") or "").strip()
@@ -95,6 +95,8 @@ def log_session():
 
         if session_type not in SESSION_TYPES:
             errors.append("Pick a valid session type.")
+        if not topic:
+            errors.append("Enter what the session covered (topic / notes).")
         hours = None
         try:
             hours = Decimal(hours_raw)

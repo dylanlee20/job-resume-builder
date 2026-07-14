@@ -27,7 +27,7 @@ class SessionRecord(db.Model):
     mentor_name = db.Column(db.String(120), nullable=False)
 
     session_type = db.Column(db.String(40), nullable=False)
-    topic = db.Column(db.String(255), nullable=True)
+    topic = db.Column(db.Text, nullable=True)
     # Mentor-entered duration in hours (drives payroll).
     hours = db.Column(db.Numeric(5, 2), nullable=True)
 
