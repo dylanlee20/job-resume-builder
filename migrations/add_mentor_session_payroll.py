@@ -28,6 +28,7 @@ USERS_COLUMNS = {
     "allowed_curriculums": "VARCHAR(160) NOT NULL DEFAULT ''",
     "payout_currency": "VARCHAR(3) NOT NULL DEFAULT 'USD'",
     "total_sessions": "INTEGER",
+    "exchange_rate": "DECIMAL(12,6)",
 }
 
 SESSION_COLUMNS = {

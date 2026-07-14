@@ -242,6 +242,9 @@ def create_user():
     total_sessions = None
     total_raw = (request.form.get('total_sessions', '') or '').strip()
 
+    exchange_rate = None
+    fx_raw = (request.form.get('exchange_rate', '') or '').strip()
+
     errors = []
     if grad_raw:
         try:
@@ -250,6 +253,13 @@ def create_user():
                 raise ValueError
         except ValueError:
             errors.append('Graduation year must be a valid year.')
+    if fx_raw:
+        try:
+            exchange_rate = Decimal(fx_raw)
+            if exchange_rate <= 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError):
+            errors.append('Exchange rate must be a positive number.')
     if len(username) < 3:
         errors.append('Username must be at least 3 characters.')
     if email and ('@' not in email or len(email) < 5):
@@ -290,6 +300,7 @@ def create_user():
         portal_code=generate_portal_code(),
         payout_currency=payout_currency,
         total_sessions=total_sessions,
+        exchange_rate=exchange_rate,
         full_name=full_name,
         college=college,
         graduation_year=graduation_year,
