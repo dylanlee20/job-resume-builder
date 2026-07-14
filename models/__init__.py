@@ -11,6 +11,7 @@ from .saved_question import SavedQuestion
 from .mentor_rate import MentorRate
 from .student_payment import StudentPayment
 from .mentor_payout import MentorPayout
+from .mentor_student import MentorStudent
 
 __all__ = [
     'db',
@@ -28,4 +29,5 @@ __all__ = [
     'MentorRate',
     'StudentPayment',
     'MentorPayout',
+    'MentorStudent',
 ]

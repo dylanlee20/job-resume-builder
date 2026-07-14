@@ -13,9 +13,42 @@ from flask_login import current_user, login_required
 from models.database import db
 from models.user import User
 from models.session_record import SessionRecord, SESSION_TYPES
+from models.mentor_student import MentorStudent
 from utils.auth_decorators import mentor_required, student_required
 
 portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
+
+
+def _linked_students(mentor):
+    """Students this mentor has been linked to, sorted by name."""
+    students = [ln.student for ln in
+                MentorStudent.query.filter_by(mentor_id=mentor.id).all() if ln.student]
+    return sorted(students, key=lambda u: (u.full_name or u.username).lower())
+
+
+def _match_and_link(mentor, code, name):
+    """Verify a student by User ID + name and link them to the mentor.
+
+    Returns the student on success (creating the link if new), else None.
+    A wrong ID and a wrong name are indistinguishable to the caller, so a
+    mentor cannot enumerate students they don't already know.
+    """
+    code = (code or "").strip()
+    provided = (name or "").strip().lower()
+    if not code or not provided:
+        return None
+    student = User.query.filter_by(
+        portal_code=code, is_admin=False, is_mentor=False).first()
+    if student is None:
+        return None
+    candidates = {(student.full_name or "").strip().lower(),
+                  (student.username or "").strip().lower()}
+    candidates.discard("")
+    if provided not in candidates:
+        return None
+    if not MentorStudent.query.filter_by(mentor_id=mentor.id, student_id=student.id).first():
+        db.session.add(MentorStudent(mentor_id=mentor.id, student_id=student.id))
+    return student
 
 
 @portal_bp.route("/")
@@ -35,19 +68,30 @@ def home():
 @portal_bp.route("/log", methods=["GET", "POST"])
 @mentor_required
 def log_session():
-    students = sorted(
-        User.query.filter_by(is_admin=False, is_mentor=False).all(),
-        key=lambda u: (u.full_name or u.username).lower(),
-    )
+    students = _linked_students(current_user)
     if request.method == "POST":
-        student = User.query.get(request.form.get("student_id", type=int))
         session_type = (request.form.get("session_type", "") or "").strip()
         topic = (request.form.get("topic", "") or "").strip() or None
         hours_raw = (request.form.get("hours", "") or "").strip()
+        new_code = (request.form.get("new_student_code", "") or "").strip()
+        new_name = (request.form.get("new_student_name", "") or "").strip()
 
         errors = []
-        if not student or student.is_admin or student.is_mentor:
-            errors.append("Pick a valid student.")
+        # Resolve the student. Adding a new one requires the correct ID + name;
+        # otherwise it must be one already linked to this mentor.
+        student = None
+        if new_code or new_name:
+            student = _match_and_link(current_user, new_code, new_name)
+            if student is None:
+                errors.append("No student matches that User ID and name. "
+                              "Ask the student to confirm both, exactly.")
+        else:
+            sid = request.form.get("student_id", type=int)
+            student = next((s for s in students if s.id == sid), None)
+            if student is None:
+                errors.append("Choose one of your students, or add a new one "
+                              "by their User ID and name.")
+
         if session_type not in SESSION_TYPES:
             errors.append("Pick a valid session type.")
         hours = None
@@ -59,6 +103,7 @@ def log_session():
             errors.append("Enter the session length in hours (e.g. 1.5).")
 
         if errors:
+            db.session.rollback()  # drop any half-made link if validation failed
             for e in errors:
                 flash(e, "danger")
             return render_template("portal/log_session.html",
@@ -73,7 +118,7 @@ def log_session():
             hours=hours,
             status="pending",
         ))
-        db.session.commit()
+        db.session.commit()  # commits the session AND any new mentor-student link
         flash(f"Session logged for {student.full_name or student.username} "
               f"— awaiting their approval.", "success")
         return redirect(url_for("portal.mentor_sessions"))
