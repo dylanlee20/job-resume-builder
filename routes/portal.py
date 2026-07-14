@@ -41,10 +41,11 @@ def _match_and_link(mentor, code, name):
         portal_code=code, is_admin=False, is_mentor=False).first()
     if student is None:
         return None
-    candidates = {(student.full_name or "").strip().lower(),
-                  (student.username or "").strip().lower()}
-    candidates.discard("")
-    if provided not in candidates:
+    # Require BOTH the User ID (above) and the student's actual name to match.
+    # Name is matched case-insensitively; fall back to username only when no
+    # real name is on file.
+    name_on_file = (student.full_name or student.username or "").strip().lower()
+    if provided != name_on_file:
         return None
     if not MentorStudent.query.filter_by(mentor_id=mentor.id, student_id=student.id).first():
         db.session.add(MentorStudent(mentor_id=mentor.id, student_id=student.id))

@@ -234,10 +234,22 @@ def create_user():
     explicit_password = (request.form.get('password', '') or '').strip()
     payout_currency = (request.form.get('payout_currency', 'USD') or 'USD').strip().upper()[:3] or 'USD'
 
+    full_name = (request.form.get('full_name', '') or '').strip() or None
+    college = (request.form.get('college', '') or '').strip() or None
+    graduation_year = None
+    grad_raw = (request.form.get('graduation_year', '') or '').strip()
+
     total_sessions = None
     total_raw = (request.form.get('total_sessions', '') or '').strip()
 
     errors = []
+    if grad_raw:
+        try:
+            graduation_year = int(grad_raw)
+            if not 1950 <= graduation_year <= 2100:
+                raise ValueError
+        except ValueError:
+            errors.append('Graduation year must be a valid year.')
     if len(username) < 3:
         errors.append('Username must be at least 3 characters.')
     if email and ('@' not in email or len(email) < 5):
@@ -278,6 +290,9 @@ def create_user():
         portal_code=generate_portal_code(),
         payout_currency=payout_currency,
         total_sessions=total_sessions,
+        full_name=full_name,
+        college=college,
+        graduation_year=graduation_year,
     )
     user.set_password(password)
     user.set_allowed_apps(request.form.getlist('allowed_apps'))
