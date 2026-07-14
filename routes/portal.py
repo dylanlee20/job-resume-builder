@@ -14,7 +14,7 @@ from models.database import db
 from models.user import User
 from models.session_record import SessionRecord, SESSION_TYPES
 from models.mentor_student import MentorStudent
-from utils.auth_decorators import mentor_required, student_required
+from utils.auth_decorators import mentor_required, student_required, mentor_or_admin
 
 portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
 
@@ -67,31 +67,57 @@ def home():
 # ---- Mentor ---------------------------------------------------------------
 
 @portal_bp.route("/log", methods=["GET", "POST"])
-@mentor_required
+@mentor_or_admin
 def log_session():
-    students = _linked_students(current_user)
+    is_admin = current_user.is_admin
+    mentors = (sorted(User.query.filter_by(is_mentor=True).all(),
+                      key=lambda u: (u.full_name or u.username).lower())
+               if is_admin else [])
+    # Admins pick any student; mentors see only their linked students.
+    if is_admin:
+        students = sorted(User.query.filter_by(is_admin=False, is_mentor=False).all(),
+                          key=lambda u: (u.full_name or u.username).lower())
+    else:
+        students = _linked_students(current_user)
+
     if request.method == "POST":
         session_type = (request.form.get("session_type", "") or "").strip()
         topic = (request.form.get("topic", "") or "").strip()
         hours_raw = (request.form.get("hours", "") or "").strip()
-        new_code = (request.form.get("new_student_code", "") or "").strip()
-        new_name = (request.form.get("new_student_name", "") or "").strip()
 
         errors = []
-        # Resolve the student. Adding a new one requires the correct ID + name;
-        # otherwise it must be one already linked to this mentor.
-        student = None
-        if new_code or new_name:
-            student = _match_and_link(current_user, new_code, new_name)
-            if student is None:
-                errors.append("No student matches that User ID and name. "
-                              "Ask the student to confirm both, exactly.")
+
+        # Who the session is attributed to.
+        if is_admin:
+            acting = User.query.get(request.form.get("mentor_id", type=int))
+            if acting is None or not acting.is_mentor:
+                errors.append("Choose which mentor this session is for.")
         else:
-            sid = request.form.get("student_id", type=int)
-            student = next((s for s in students if s.id == sid), None)
-            if student is None:
-                errors.append("Choose one of your students, or add a new one "
-                              "by their User ID and name.")
+            acting = current_user
+
+        # Resolve the student.
+        student = None
+        if is_admin:
+            student = User.query.get(request.form.get("student_id", type=int))
+            if not student or student.is_admin or student.is_mentor:
+                errors.append("Choose a student.")
+            elif acting is not None and acting.is_mentor and not MentorStudent.query.filter_by(
+                    mentor_id=acting.id, student_id=student.id).first():
+                db.session.add(MentorStudent(mentor_id=acting.id, student_id=student.id))
+        else:
+            new_code = (request.form.get("new_student_code", "") or "").strip()
+            new_name = (request.form.get("new_student_name", "") or "").strip()
+            if new_code or new_name:
+                student = _match_and_link(current_user, new_code, new_name)
+                if student is None:
+                    errors.append("No student matches that User ID and name. "
+                                  "Ask the student to confirm both, exactly.")
+            else:
+                sid = request.form.get("student_id", type=int)
+                student = next((s for s in students if s.id == sid), None)
+                if student is None:
+                    errors.append("Choose one of your students, or add a new one "
+                                  "by their User ID and name.")
 
         if session_type not in SESSION_TYPES:
             errors.append("Pick a valid session type.")
@@ -109,13 +135,14 @@ def log_session():
             db.session.rollback()  # drop any half-made link if validation failed
             for e in errors:
                 flash(e, "danger")
-            return render_template("portal/log_session.html",
-                                   students=students, session_types=SESSION_TYPES)
+            return render_template("portal/log_session.html", students=students,
+                                   mentors=mentors, is_admin=is_admin,
+                                   session_types=SESSION_TYPES)
 
         db.session.add(SessionRecord(
             student_id=student.id,
-            mentor_id=current_user.id,
-            mentor_name=current_user.full_name or current_user.username,
+            mentor_id=acting.id,
+            mentor_name=acting.full_name or acting.username,
             session_type=session_type,
             topic=topic,
             hours=hours,
@@ -124,10 +151,12 @@ def log_session():
         db.session.commit()  # commits the session AND any new mentor-student link
         flash(f"Session logged for {student.full_name or student.username} "
               f"— awaiting their approval.", "success")
-        return redirect(url_for("portal.mentor_sessions"))
+        return redirect(url_for("portal.log_session") if is_admin
+                        else url_for("portal.mentor_sessions"))
 
-    return render_template("portal/log_session.html",
-                           students=students, session_types=SESSION_TYPES)
+    return render_template("portal/log_session.html", students=students,
+                           mentors=mentors, is_admin=is_admin,
+                           session_types=SESSION_TYPES)
 
 
 @portal_bp.route("/sessions")

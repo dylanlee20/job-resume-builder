@@ -18,6 +18,20 @@ def mentor_required(f):
     return decorated_function
 
 
+def mentor_or_admin(f):
+    """Allow a mentor or an admin (admin logs on behalf of a mentor)."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('auth.login'))
+        if not (current_user.is_mentor or current_user.is_admin):
+            flash('This area is for mentor accounts.', 'danger')
+            return redirect(url_for('portal.home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def student_required(f):
     """Require a logged-in student account (not mentor, not admin)."""
     @wraps(f)

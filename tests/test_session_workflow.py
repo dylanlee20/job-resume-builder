@@ -78,6 +78,36 @@ def test_linked_student_then_logs_by_dropdown(app, db, client, actors):
         assert SessionRecord.query.filter_by(mentor_id=actors["mentor"]).count() == 1
 
 
+def test_admin_logs_as_mentor(app, db, client, actors):
+    from models.mentor_student import MentorStudent
+    with app.app_context():
+        _mk("adminx", is_admin=True)
+    _login(client, "adminx")
+    r = client.post("/portal/log", data={
+        "mentor_id": actors["mentor"], "student_id": actors["student"],
+        "session_type": "Behavioral", "hours": "3", "topic": "coached resume"},
+        follow_redirects=True)
+    assert r.status_code == 200
+    with app.app_context():
+        sr = SessionRecord.query.filter_by(mentor_id=actors["mentor"]).first()
+        assert sr is not None and sr.status == "pending"
+        assert sr.student_id == actors["student"]
+        # the student is auto-linked to the mentor the admin acted as
+        assert MentorStudent.query.filter_by(
+            mentor_id=actors["mentor"], student_id=actors["student"]).count() == 1
+
+
+def test_admin_must_pick_a_mentor(app, db, client, actors):
+    with app.app_context():
+        _mk("adminy", is_admin=True)
+    _login(client, "adminy")
+    client.post("/portal/log", data={
+        "student_id": actors["student"], "session_type": "Behavioral",
+        "hours": "3", "topic": "x"}, follow_redirects=True)  # no mentor_id
+    with app.app_context():
+        assert SessionRecord.query.count() == 0
+
+
 def test_student_approves_increments_progress(app, db, client, actors):
     with app.app_context():
         sr = SessionRecord(student_id=actors["student"], mentor_id=actors["mentor"],
