@@ -37,6 +37,28 @@ class RateLimiter:
             self._store[key] = timestamps
             return True
 
+    def is_blocked(self, key: str) -> bool:
+        """Return True if the key is already at/over the limit.
+
+        Unlike is_allowed, this does NOT record a hit. Use it to check a
+        limit that should only be consumed on failure (e.g. login), so a
+        legitimate request is never counted against the limit.
+        """
+        now = time.monotonic()
+        cutoff = now - self._window
+        with self._lock:
+            timestamps = [t for t in self._store.get(key, []) if t > cutoff]
+            self._store[key] = timestamps
+            return len(timestamps) >= self._max
+
+    def record(self, key: str) -> None:
+        """Record a single hit against a key (e.g. one failed attempt)."""
+        now = time.monotonic()
+        with self._lock:
+            timestamps = self._store.get(key, [])
+            timestamps.append(now)
+            self._store[key] = timestamps
+
     def reset(self, key: str) -> None:
         """Clear rate limit state for a key (useful in tests)."""
         with self._lock:
@@ -61,3 +83,8 @@ register_limiter = RateLimiter(max_requests=5, window_seconds=900)
 
 # Resend verification: 3 attempts per 5 minutes per email
 resend_limiter = RateLimiter(max_requests=3, window_seconds=300)
+
+# Login: 8 FAILED attempts per 15 minutes, tracked per IP and per username.
+# Only failures are recorded (see is_blocked/record), and a successful login
+# clears the counters, so ordinary users with the odd typo are never blocked.
+login_limiter = RateLimiter(max_requests=8, window_seconds=900)

@@ -17,7 +17,7 @@ from app import create_app
 from models.database import db as _db
 from models.user import User
 from models.email_verification_token import EmailVerificationToken
-from utils.rate_limiter import register_limiter, resend_limiter
+from utils.rate_limiter import register_limiter, resend_limiter, login_limiter
 
 
 @pytest.fixture(scope='session')
@@ -54,9 +54,11 @@ def _reset_rate_limiters():
     """Reset shared rate limiters between tests to avoid interference."""
     register_limiter._store.clear()
     resend_limiter._store.clear()
+    login_limiter._store.clear()
     yield
     register_limiter._store.clear()
     resend_limiter._store.clear()
+    login_limiter._store.clear()
 
 
 @pytest.fixture()

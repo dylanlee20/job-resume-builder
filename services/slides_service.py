@@ -161,14 +161,21 @@ def list_section_files(section_slug: str) -> List[Dict]:
     return out
 
 
-def list_sections(track: Optional[str] = None) -> List[Dict]:
-    """Return decks grouped by section. ``track`` filters: 'behavioral' or 'technical'."""
+def list_sections(track: Optional[str] = None, allowed: Optional[set] = None) -> List[Dict]:
+    """Return decks grouped by section.
+
+    ``track`` filters: 'behavioral' or 'technical'.
+    ``allowed`` (a set of section slugs) restricts the result — used to gate
+    mentors to the curriculums they were granted. None means no restriction.
+    """
     _ensure_catalog()
     grouped: Dict[str, List[Deck]] = {}
     for deck in _cache.catalog.values():
         grouped.setdefault(deck.section_slug, []).append(deck)
     out = []
     for section_slug in _cache.sections:
+        if allowed is not None and section_slug not in allowed:
+            continue
         if track == "behavioral" and section_slug != BEHAVIORAL_SECTION_SLUG:
             continue
         if track == "technical" and section_slug == BEHAVIORAL_SECTION_SLUG:

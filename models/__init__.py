@@ -8,6 +8,9 @@ from .email_verification_token import EmailVerificationToken
 from .session_record import SessionRecord
 from .question_bank import QuestionBankEntry
 from .saved_question import SavedQuestion
+from .mentor_rate import MentorRate
+from .student_payment import StudentPayment
+from .mentor_payout import MentorPayout
 
 __all__ = [
     'db',
@@ -22,4 +25,7 @@ __all__ = [
     'SessionRecord',
     'QuestionBankEntry',
     'SavedQuestion',
+    'MentorRate',
+    'StudentPayment',
+    'MentorPayout',
 ]

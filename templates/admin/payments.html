@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block title %}Student Payments - NewWhale Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-receipt"></i> Student Payments</h4>
+  <a href="{{ url_for('admin.reconciliation') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-cash-coin"></i> Reconciliation & Payroll
+  </a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">Record a payment</div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin.create_payment') }}" class="row g-2 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="col-md-3">
+        <label class="form-label small mb-0">Student</label>
+        <select name="student_id" class="form-select form-select-sm" required>
+          <option value="" selected disabled>Select…</option>
+          {% for s in students %}
+          <option value="{{ s.id }}">#{{ s.portal_code or s.id }} — {{ s.full_name or s.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Amount</label>
+        <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" required>
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-0">Ccy</label>
+        <input type="text" name="currency" class="form-control form-control-sm" value="USD" maxlength="3">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">FX &rarr; USD</label>
+        <input type="number" step="0.000001" min="0" name="fx_to_usd" class="form-control form-control-sm" value="1" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Paid on</label>
+        <input type="date" name="paid_at" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i> Record</button>
+      </div>
+      <div class="col-12">
+        <input type="text" name="note" class="form-control form-control-sm" placeholder="Note (optional)" maxlength="255">
+      </div>
+    </form>
+    <div class="small text-muted mt-2">FX &rarr; USD multiplies the amount to get USD (e.g. RMB &rarr; USD &asymp; 0.14). Total recorded (last 200): <strong>${{ '%.2f'|format(total_usd) }}</strong></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Recent payments</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead><tr><th>Paid</th><th>Student</th><th>Amount</th><th>FX&rarr;USD</th><th>USD</th><th>Note</th></tr></thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td class="small text-muted">{{ p.paid_at.strftime('%Y-%m-%d') }}</td>
+            <td>{% if p.student %}#{{ p.student.portal_code or p.student.id }} {{ p.student.full_name or p.student.username }}{% else %}—{% endif %}</td>
+            <td>{{ p.amount }} {{ p.currency }}</td>
+            <td>{{ p.fx_to_usd }}</td>
+            <td>${{ '%.2f'|format(p.amount_usd or 0) }}</td>
+            <td class="small text-muted">{{ p.note or '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-3">No payments recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

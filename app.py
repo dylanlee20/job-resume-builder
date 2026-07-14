@@ -90,12 +90,14 @@ def create_app():
     from routes.api import api_bp
     from routes.admin import admin_bp
     from routes.slides import slides_bp
+    from routes.portal import portal_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(slides_bp)
+    app.register_blueprint(portal_bp)
 
     # Old /slides/* URLs (from prior deploys / cached pages) -> new /curriculum/*
     @app.route('/slides/', defaults={'rest': ''})

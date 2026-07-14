@@ -7,14 +7,23 @@ from flask_login import login_required, current_user
 from functools import wraps
 from werkzeug.utils import secure_filename
 from models.database import db
-from models.user import User
+from models.user import User, generate_portal_code
 from models.scraper_run import ScraperRun
 from models.session_record import SessionRecord, SESSION_TYPES
 from models.question_bank import QuestionBankEntry
+from models.mentor_rate import MentorRate
+from models.student_payment import StudentPayment
+from models.mentor_payout import MentorPayout
 from models.job import Job
 from services.job_service import JobService
-from services.slides_service import render_watermarked_png
+from services.slides_service import render_watermarked_png, SECTION_TITLE_OVERRIDES
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import datetime, timedelta
+
+
+def _curriculum_choices():
+    """[(slug, display_title)] for the seven curriculum sections, in order."""
+    return [(slug, SECTION_TITLE_OVERRIDES.get(slug, slug)) for slug in User.CURRICULUM_CODES]
 from pathlib import Path
 import os
 import re
@@ -77,6 +86,7 @@ def users():
         recent_sessions=recent_sessions,
         student_choices=student_choices,
         session_types=SESSION_TYPES,
+        curriculum_choices=_curriculum_choices(),
     )
 
 
@@ -203,6 +213,8 @@ def create_session():
         topic=topic or None,
         rating=rating,
         feedback=feedback or None,
+        status='approved',  # admin-logged sessions are trusted / count immediately
+        approved_at=datetime.utcnow(),
     )
     db.session.add(record)
     db.session.commit()
@@ -217,7 +229,13 @@ def create_user():
     username = _normalize_username(request.form.get('username', ''))
     email = (request.form.get('email', '') or '').strip().lower()
     make_admin = request.form.get('is_admin') == 'on'
+    account_type = (request.form.get('account_type', 'student') or 'student').strip()
+    is_mentor = account_type == 'mentor' and not make_admin
     explicit_password = (request.form.get('password', '') or '').strip()
+    payout_currency = (request.form.get('payout_currency', 'USD') or 'USD').strip().upper()[:3] or 'USD'
+
+    total_sessions = None
+    total_raw = (request.form.get('total_sessions', '') or '').strip()
 
     errors = []
     if len(username) < 3:
@@ -226,6 +244,13 @@ def create_user():
         errors.append('A valid email is required.')
     if explicit_password and len(explicit_password) < 8:
         errors.append('Custom password must be at least 8 characters.')
+    if total_raw:
+        try:
+            total_sessions = int(total_raw)
+            if total_sessions < 1:
+                raise ValueError
+        except ValueError:
+            errors.append('Student package size must be a positive number.')
     if User.query.filter(db.func.lower(User.username) == username.lower()).first():
         errors.append(f"Username '{username}' is already taken.")
     if User.query.filter(db.func.lower(User.email) == email).first():
@@ -241,14 +266,32 @@ def create_user():
         username=username,
         email=email,
         is_admin=make_admin,
+        is_mentor=is_mentor,
         status='active',
         email_verified=True,
         email_verified_at=datetime.utcnow(),
+        portal_code=generate_portal_code(),
+        payout_currency=payout_currency,
+        total_sessions=total_sessions,
     )
     user.set_password(password)
     user.set_allowed_apps(request.form.getlist('allowed_apps'))
+    if is_mentor:
+        user.set_allowed_curriculums(request.form.getlist('allowed_curriculums'))
     db.session.add(user)
-    db.session.commit()
+    # Retry once on the (very unlikely) portal_code unique-collision race.
+    from sqlalchemy.exc import IntegrityError
+    for _ in range(3):
+        try:
+            db.session.commit()
+            break
+        except IntegrityError:
+            db.session.rollback()
+            user.portal_code = generate_portal_code()
+            db.session.add(user)
+    else:
+        flash('Could not issue the account (ID collision). Please try again.', 'danger')
+        return redirect(url_for('admin.users'))
 
     # Pass the one-shot password back via the URL so the admin can copy it
     # out of the page and share it with the user. After they navigate away
@@ -527,4 +570,249 @@ def update_profile(user_id):
     db.session.commit()
     flash(f"Profile updated for '{user.username}'.", 'success')
     return redirect(url_for('admin.users'))
+
+
+# ---- Mentor curriculum & rate -------------------------------------------
+
+@admin_bp.route('/users/<int:user_id>/curriculums', methods=['POST'])
+@admin_required
+def set_curriculums(user_id):
+    """Update which curriculums a mentor may view."""
+    user = User.query.get_or_404(user_id)
+    if not user.is_mentor:
+        flash('Curriculum access applies to mentor accounts only.', 'info')
+        return redirect(url_for('admin.users'))
+    user.set_allowed_curriculums(request.form.getlist('allowed_curriculums'))
+    db.session.commit()
+    flash(f"Curriculum access for '{user.username}' updated.", 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/mentors/<int:user_id>/rate', methods=['POST'])
+@admin_required
+def set_rate(user_id):
+    """Set a new effective-dated hourly rate; closes the previous open rate."""
+    user = User.query.get_or_404(user_id)
+    if not user.is_mentor:
+        flash('Hourly rates apply to mentor accounts only.', 'danger')
+        return redirect(url_for('admin.users'))
+    raw = (request.form.get('hourly_rate', '') or '').strip()
+    currency = (request.form.get('currency', '') or user.payout_currency or 'USD').strip().upper()[:3] or 'USD'
+    try:
+        rate = Decimal(raw)
+        if rate < 0:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash('Enter a valid hourly rate.', 'danger')
+        return redirect(url_for('admin.users'))
+    now = datetime.utcnow()
+    has_prior = MentorRate.query.filter_by(mentor_id=user.id).count() > 0
+    # The first rate applies retroactively (covers sessions logged before it was
+    # set); later changes take effect from now.
+    effective_from = now if has_prior else datetime(1970, 1, 1)
+    for open_rate in MentorRate.query.filter_by(mentor_id=user.id, effective_to=None).all():
+        open_rate.effective_to = now
+    db.session.add(MentorRate(
+        mentor_id=user.id, hourly_rate=rate, currency=currency, effective_from=effective_from,
+    ))
+    db.session.commit()
+    flash(f"New rate for '{user.username}': {rate} {currency} / hour.", 'success')
+    return redirect(url_for('admin.users'))
+
+
+# ---- Student payments ----------------------------------------------------
+
+@admin_bp.route('/payments')
+@admin_required
+def payments():
+    pays = StudentPayment.query.order_by(StudentPayment.paid_at.desc()).limit(200).all()
+    students = sorted(
+        User.query.filter_by(is_admin=False, is_mentor=False).all(),
+        key=lambda u: (u.full_name or u.username).lower(),
+    )
+    total_usd = sum((p.amount_usd or 0) for p in pays)
+    return render_template('admin/payments.html', payments=pays, students=students, total_usd=total_usd)
+
+
+@admin_bp.route('/payments/create', methods=['POST'])
+@admin_required
+def create_payment():
+    student = User.query.get(request.form.get('student_id', type=int))
+    amount_raw = (request.form.get('amount', '') or '').strip()
+    currency = (request.form.get('currency', 'USD') or 'USD').strip().upper()[:3] or 'USD'
+    fx_raw = (request.form.get('fx_to_usd', '1') or '1').strip()
+    paid_raw = (request.form.get('paid_at', '') or '').strip()
+    note = (request.form.get('note', '') or '').strip() or None
+
+    errors = []
+    if not student or student.is_admin or student.is_mentor:
+        errors.append('Pick a valid student.')
+    try:
+        amount = Decimal(amount_raw)
+        if amount <= 0:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        errors.append('Enter a valid payment amount.')
+        amount = None
+    try:
+        fx = Decimal(fx_raw)
+        if fx <= 0:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        errors.append('Enter a valid exchange rate to USD.')
+        fx = None
+    paid_at = datetime.utcnow()
+    if paid_raw:
+        try:
+            paid_at = datetime.strptime(paid_raw, '%Y-%m-%d')
+        except ValueError:
+            errors.append('Payment date must be YYYY-MM-DD.')
+
+    if errors:
+        for e in errors:
+            flash(e, 'danger')
+        return redirect(url_for('admin.payments'))
+
+    payment = StudentPayment(
+        student_id=student.id, amount=amount, currency=currency,
+        fx_to_usd=fx, paid_at=paid_at, note=note,
+    )
+    payment.recompute_usd()
+    db.session.add(payment)
+    db.session.commit()
+    flash(f"Recorded {amount} {currency} from {student.full_name or student.username}.", 'success')
+    return redirect(url_for('admin.payments'))
+
+
+# ---- Weekly reconciliation & payroll ------------------------------------
+
+def _week_bounds(anchor: datetime):
+    """(Monday 00:00, next Monday 00:00) UTC for the week containing `anchor`."""
+    start = (anchor - timedelta(days=anchor.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    return start, start + timedelta(days=7)
+
+
+def _reconcile_week(start: datetime, end: datetime):
+    """Compute per-mentor cost and total revenue for the [start, end) week."""
+    sessions = SessionRecord.query.filter(
+        SessionRecord.status == 'approved',
+        SessionRecord.mentor_id.isnot(None),
+        SessionRecord.created_at >= start,
+        SessionRecord.created_at < end,
+    ).all()
+
+    per_mentor = {}
+    for s in sessions:
+        if s.mentor is None:
+            continue  # mentor account was deleted; cannot attribute cost
+        rate = MentorRate.effective_at(s.mentor_id, s.created_at)
+        hours = Decimal(s.hours or 0)
+        line_amt = hours * (rate.hourly_rate if rate else Decimal(0))
+        row = per_mentor.setdefault(s.mentor_id, {
+            'mentor': s.mentor, 'hours': Decimal(0), 'count': 0,
+            'amount': Decimal(0), 'currency': (rate.currency if rate else
+                                               (s.mentor.payout_currency if s.mentor else 'USD')),
+            'missing_rate': False,
+        })
+        row['hours'] += hours
+        row['count'] += 1
+        row['amount'] += line_amt
+        if rate is None:
+            row['missing_rate'] = True
+
+    # Existing payouts for this week (issued) keyed by mentor.
+    issued = {p.mentor_id: p for p in MentorPayout.query.filter_by(week_start=start).all()}
+    for mid, row in per_mentor.items():
+        payout = issued.get(mid)
+        row['issued'] = payout is not None
+        row['fx_to_usd'] = payout.fx_to_usd if payout else (Decimal(1) if row['currency'] == 'USD' else None)
+        row['amount_usd'] = (payout.amount_usd if payout else
+                             (row['amount'] if row['currency'] == 'USD' else None))
+
+    payments = StudentPayment.query.filter(
+        StudentPayment.paid_at >= start, StudentPayment.paid_at < end,
+    ).all()
+    revenue_usd = sum((p.amount_usd or Decimal(0)) for p in payments)
+    cost_usd = sum((r['amount_usd'] or Decimal(0)) for r in per_mentor.values())
+    # Cost is understated if any un-issued mentor's USD amount is unknown
+    # (a non-USD mentor with no FX yet); surface that rather than hide it.
+    cost_incomplete = any(r['amount_usd'] is None for r in per_mentor.values())
+    return {
+        'rows': sorted(per_mentor.values(),
+                       key=lambda r: (r['mentor'].full_name or r['mentor'].username).lower()),
+        'payments': payments,
+        'revenue_usd': revenue_usd,
+        'cost_usd': cost_usd,
+        'margin_usd': revenue_usd - cost_usd,
+        'cost_incomplete': cost_incomplete,
+    }
+
+
+@admin_bp.route('/reconciliation')
+@admin_required
+def reconciliation():
+    week_param = (request.args.get('week', '') or '').strip()
+    anchor = datetime.utcnow()
+    if week_param:
+        try:
+            anchor = datetime.strptime(week_param, '%Y-%m-%d')
+        except ValueError:
+            flash('Week must be a YYYY-MM-DD date.', 'warning')
+    start, end = _week_bounds(anchor)
+    report = _reconcile_week(start, end)
+    return render_template(
+        'admin/reconciliation.html',
+        report=report,
+        week_start=start,
+        week_end=end,
+        prev_week=(start - timedelta(days=7)).strftime('%Y-%m-%d'),
+        next_week=(start + timedelta(days=7)).strftime('%Y-%m-%d'),
+    )
+
+
+@admin_bp.route('/reconciliation/issue', methods=['POST'])
+@admin_required
+def issue_payroll():
+    """Snapshot each mentor's weekly total into MentorPayout (idempotent)."""
+    try:
+        start = datetime.strptime(request.form.get('week_start', ''), '%Y-%m-%d')
+    except ValueError:
+        flash('Missing or invalid week.', 'danger')
+        return redirect(url_for('admin.reconciliation'))
+    start, end = _week_bounds(start)
+    report = _reconcile_week(start, end)
+    now = datetime.utcnow()
+    issued_count = 0
+    skipped = []
+    for row in report['rows']:
+        mentor = row['mentor']
+        if mentor is None or row['issued']:
+            continue  # already paid for this week (idempotent)
+        fx_raw = (request.form.get(f'fx_{mentor.id}', '') or '').strip()
+        if fx_raw:
+            try:
+                fx = Decimal(fx_raw)
+            except InvalidOperation:
+                fx = None
+        else:
+            # Decimal(1) for USD mentors; None for non-USD (must be supplied).
+            fx = row['fx_to_usd']
+        if fx is None or fx <= 0:
+            skipped.append(mentor.full_name or mentor.username)
+            continue  # never lock in a wrong USD figure for a foreign currency
+        amount_usd = (Decimal(row['amount']) * fx).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        db.session.add(MentorPayout(
+            mentor_id=mentor.id, week_start=start, week_end=end,
+            total_hours=row['hours'], session_count=row['count'],
+            amount=row['amount'], currency=row['currency'],
+            fx_to_usd=fx, amount_usd=amount_usd,
+            status='issued', issued_at=now,
+        ))
+        issued_count += 1
+    db.session.commit()
+    flash(f"Issued salary for {issued_count} mentor(s) for week of {start:%Y-%m-%d}.", 'success')
+    if skipped:
+        flash("Skipped (enter an FX-to-USD rate first): " + ", ".join(skipped), 'warning')
+    return redirect(url_for('admin.reconciliation', week=start.strftime('%Y-%m-%d')))
 
