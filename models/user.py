@@ -72,8 +72,8 @@ class User(UserMixin, db.Model):
     payout_currency = db.Column(db.String(3), default='USD', nullable=False)
     # Student package size — the denominator (y) in the Progress x/y bar.
     total_sessions = db.Column(db.Integer, nullable=True)
-    # Student's exchange rate to USD captured at issuance (what they paid at).
-    # Multiply their local-currency amount by this to get USD.
+    # Student's USD/CNY exchange rate (CNY per USD) captured at issuance —
+    # the rate they paid at. Divide a CNY amount by this to get USD.
     exchange_rate = db.Column(db.Numeric(12, 6), nullable=True)
 
     def __repr__(self):
