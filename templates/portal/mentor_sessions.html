@@ -23,7 +23,7 @@
             <td class="small text-muted">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>{% if s.student %}#{{ s.student.portal_code or s.student.id }} {{ s.student.full_name or s.student.username }}{% else %}—{% endif %}</td>
             <td><span class="badge bg-secondary">{{ s.session_type }}</span></td>
-            <td>{{ s.hours if s.hours is not none else '—' }}</td>
+            <td>{{ s.hours_display }}</td>
             <td>
               {% if s.status == 'approved' %}<span class="badge bg-success">Approved</span>
               {% elif s.status == 'rejected' %}<span class="badge bg-danger">Rejected</span>

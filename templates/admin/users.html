@@ -106,7 +106,7 @@
                         <tr>
                             <td class="small text-muted">{{ sr.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td class="small">{{ (sr.student.full_name or sr.student.username) if sr.student else '—' }}</td>
-                            <td class="small">{{ sr.mentor_name }}</td>
+                            <td class="small">{{ sr.mentor_display }}</td>
                             <td><span class="badge bg-secondary">{{ sr.session_type }}</span></td>
                             <td class="small">{{ sr.topic or '' }}</td>
                             <td style="color: #d4af37; letter-spacing: 1px; white-space: nowrap;">{{ sr.stars if sr.rating else '' }}</td>

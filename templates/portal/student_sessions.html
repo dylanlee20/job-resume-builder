@@ -46,8 +46,8 @@
     <div class="d-flex justify-content-between flex-wrap">
       <div>
         <span class="badge bg-secondary">{{ s.session_type }}</span>
-        <strong class="ms-1">{{ s.hours if s.hours is not none else '—' }} h</strong>
-        with {{ s.mentor_name }}
+        <strong class="ms-1">{{ s.hours_display }} h</strong>
+        with {{ s.mentor_display }}
         {% if s.topic %}<span class="text-muted">— {{ s.topic }}</span>{% endif %}
         <div class="small text-muted">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
       </div>
@@ -87,9 +87,9 @@
           {% for s in history %}
           <tr>
             <td class="small text-muted">{{ (s.approved_at or s.created_at).strftime('%Y-%m-%d') }}</td>
-            <td>{{ s.mentor_name }}</td>
+            <td>{{ s.mentor_display }}</td>
             <td><span class="badge bg-secondary">{{ s.session_type }}</span></td>
-            <td>{{ s.hours if s.hours is not none else '—' }}</td>
+            <td>{{ s.hours_display }}</td>
             <td>{% if s.status == 'approved' %}<span class="badge bg-success">Approved</span>{% else %}<span class="badge bg-danger">Not attended</span>{% endif %}</td>
             <td style="color:#d4af37">{% if s.rating %}{{ s.stars }}{% endif %}</td>
             <td class="small text-muted">{{ s.feedback or '' }}</td>

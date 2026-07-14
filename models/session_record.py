@@ -58,3 +58,18 @@ class SessionRecord(db.Model):
         """Filled/empty star glyphs for display."""
         r = self.rating or 0
         return "★" * r + "☆" * (5 - r)
+
+    @property
+    def mentor_display(self) -> str:
+        """The mentor's current name if known, else the logged name snapshot."""
+        if self.mentor is not None and self.mentor.full_name:
+            return self.mentor.full_name
+        return self.mentor_name
+
+    @property
+    def hours_display(self) -> str:
+        """Hours without trailing zeros: 4.00 -> '4', 1.50 -> '1.5'."""
+        if self.hours is None:
+            return "—"
+        from models.user import _fmt_hours
+        return _fmt_hours(self.hours)
