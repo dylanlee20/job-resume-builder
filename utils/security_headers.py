@@ -36,13 +36,18 @@ STATIC_HEADERS = {
 HSTS_VALUE = 'max-age=31536000; includeSubDomains'
 
 
-def _is_https() -> bool:
-    """True when the visitor's connection is HTTPS.
+def _is_https(app) -> bool:
+    """True when the visitor's connection is (or should be treated as) HTTPS.
 
-    gunicorn sits behind nginx over plain HTTP, so request.is_secure is False in
-    production; trust the proxy's X-Forwarded-Proto instead. Gating HSTS on this
-    avoids pinning a local http:// dev host to HTTPS.
+    In production the app is fronted by Cloudflare and nginx; depending on the
+    Cloudflare SSL mode the origin may receive plain HTTP, so request.is_secure
+    and X-Forwarded-Proto can both read http even though the browser leg is
+    HTTPS. We therefore also trust SESSION_COOKIE_SECURE, which is the same
+    true-in-prod / false-in-local-http switch used for cookies — this keeps HSTS
+    off for local http:// dev while guaranteeing it in production.
     """
+    if app.config.get('SESSION_COOKIE_SECURE'):
+        return True
     if request.is_secure:
         return True
     forwarded = request.headers.get('X-Forwarded-Proto', '')
@@ -56,7 +61,7 @@ def register_security_headers(app):
     def _apply_security_headers(response):
         for header, value in STATIC_HEADERS.items():
             response.headers.setdefault(header, value)
-        if _is_https():
+        if _is_https(app):
             response.headers.setdefault('Strict-Transport-Security', HSTS_VALUE)
         return response
 
