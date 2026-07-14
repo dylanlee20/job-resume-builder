@@ -46,7 +46,8 @@ def _client_ip() -> str:
 
 
 def _viewer_label() -> str:
-    return getattr(current_user, "email", None) or current_user.username
+    # Watermark slides with the username (not the email) to identify the viewer.
+    return current_user.username
 
 
 def _allowed_sections():
