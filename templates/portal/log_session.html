@@ -14,7 +14,7 @@
         <form method="POST" action="{{ url_for('portal.log_session') }}" class="row g-3">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-          {% if is_admin %}
+          {% if pick_mentor %}
           <div class="col-12">
             <label class="form-label small mb-1">Log as mentor</label>
             <select name="mentor_id" class="form-select form-select-sm" required>

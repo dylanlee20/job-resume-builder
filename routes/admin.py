@@ -608,16 +608,25 @@ def update_profile(user_id):
 @admin_bp.route('/users/<int:user_id>/role', methods=['POST'])
 @admin_required
 def set_role(user_id):
-    """Convert an existing account between student and mentor."""
+    """Convert an account's role, or toggle an admin's mentor mode.
+
+    An admin can also be a mentor (mentor mode) so they log sessions as
+    themselves under a chosen mentor name.
+    """
     user = User.query.get_or_404(user_id)
-    if user.is_admin:
-        flash('Admin accounts cannot be converted to mentor/student.', 'info')
-        return redirect(url_for('admin.users'))
     user.is_mentor = (request.form.get('is_mentor') == 'on')
+    mentor_name = (request.form.get('mentor_name', '') or '').strip()
+    if mentor_name:
+        user.full_name = mentor_name
     db.session.commit()
-    role = 'mentor' if user.is_mentor else 'student'
-    extra = ' Grant curriculum access and set an hourly rate below.' if user.is_mentor else ''
-    flash(f"'{user.username}' is now a {role}.{extra}", 'success')
+    if user.is_admin:
+        msg = (f"Mentor mode on — you log sessions as '{user.full_name or user.username}'."
+               if user.is_mentor else 'Mentor mode off.')
+    else:
+        role = 'mentor' if user.is_mentor else 'student'
+        extra = ' Grant curriculum access and set an hourly rate below.' if user.is_mentor else ''
+        msg = f"'{user.username}' is now a {role}.{extra}"
+    flash(msg, 'success')
     return redirect(url_for('admin.users'))
 
 

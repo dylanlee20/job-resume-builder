@@ -69,12 +69,13 @@ def home():
 @portal_bp.route("/log", methods=["GET", "POST"])
 @mentor_or_admin
 def log_session():
-    is_admin = current_user.is_admin
+    # A pure admin (not also a mentor) picks which mentor to log for. An account
+    # that is a mentor — even if it is also an admin — logs as itself.
+    pick_mentor = current_user.is_admin and not current_user.is_mentor
     mentors = (sorted(User.query.filter_by(is_mentor=True).all(),
                       key=lambda u: (u.full_name or u.username).lower())
-               if is_admin else [])
-    # Admins pick any student; mentors see only their linked students.
-    if is_admin:
+               if pick_mentor else [])
+    if pick_mentor:
         students = sorted(User.query.filter_by(is_admin=False, is_mentor=False).all(),
                           key=lambda u: (u.full_name or u.username).lower())
     else:
@@ -88,7 +89,7 @@ def log_session():
         errors = []
 
         # Who the session is attributed to.
-        if is_admin:
+        if pick_mentor:
             acting = User.query.get(request.form.get("mentor_id", type=int))
             if acting is None or not acting.is_mentor:
                 errors.append("Choose which mentor this session is for.")
@@ -97,7 +98,7 @@ def log_session():
 
         # Resolve the student.
         student = None
-        if is_admin:
+        if pick_mentor:
             student = User.query.get(request.form.get("student_id", type=int))
             if not student or student.is_admin or student.is_mentor:
                 errors.append("Choose a student.")
@@ -136,7 +137,7 @@ def log_session():
             for e in errors:
                 flash(e, "danger")
             return render_template("portal/log_session.html", students=students,
-                                   mentors=mentors, is_admin=is_admin,
+                                   mentors=mentors, pick_mentor=pick_mentor,
                                    session_types=SESSION_TYPES)
 
         db.session.add(SessionRecord(
@@ -151,11 +152,11 @@ def log_session():
         db.session.commit()  # commits the session AND any new mentor-student link
         flash(f"Session logged for {student.full_name or student.username} "
               f"— awaiting their approval.", "success")
-        return redirect(url_for("portal.log_session") if is_admin
+        return redirect(url_for("portal.log_session") if pick_mentor
                         else url_for("portal.mentor_sessions"))
 
     return render_template("portal/log_session.html", students=students,
-                           mentors=mentors, is_admin=is_admin,
+                           mentors=mentors, pick_mentor=pick_mentor,
                            session_types=SESSION_TYPES)
 
 

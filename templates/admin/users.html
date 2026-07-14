@@ -317,7 +317,20 @@
                                             {% else %}<span class="badge bg-secondary ms-1">disabled</span>{% endif %}
                                         </div>
                                         {% if user.is_admin %}
-                                        <div class="text-muted small">Admin &mdash; full access. Protected account.</div>
+                                        <div class="text-muted small mb-2">Admin &mdash; full access. Protected account.</div>
+                                        <form method="POST" action="{{ url_for('admin.set_role', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <div class="small text-muted mb-1">Mentor mode {% if user.is_mentor %}<span class="badge bg-info text-dark">on</span>{% endif %}</div>
+                                            <input type="text" name="mentor_name" class="form-control form-control-sm mb-1" placeholder="Your mentor name" value="{{ user.full_name or '' }}">
+                                            <input type="hidden" name="is_mentor" value="on">
+                                            <button class="btn btn-outline-info btn-sm w-100" type="submit">{% if user.is_mentor %}Save mentor name{% else %}Enable mentor mode{% endif %}</button>
+                                        </form>
+                                        {% if user.is_mentor %}
+                                        <form method="POST" action="{{ url_for('admin.set_role', user_id=user.id) }}" class="mt-1">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Disable mentor mode</button>
+                                        </form>
+                                        {% endif %}
                                         {% else %}
                                         <form method="POST" action="{{ url_for('admin.set_access', user_id=user.id) }}">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
