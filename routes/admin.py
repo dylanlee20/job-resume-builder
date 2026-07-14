@@ -240,8 +240,8 @@ def create_user():
     errors = []
     if len(username) < 3:
         errors.append('Username must be at least 3 characters.')
-    if '@' not in email or len(email) < 5:
-        errors.append('A valid email is required.')
+    if email and ('@' not in email or len(email) < 5):
+        errors.append('If you enter an email, it must be a valid one.')
     if explicit_password and len(explicit_password) < 8:
         errors.append('Custom password must be at least 8 characters.')
     if total_raw:
@@ -253,13 +253,18 @@ def create_user():
             errors.append('Student package size must be a positive number.')
     if User.query.filter(db.func.lower(User.username) == username.lower()).first():
         errors.append(f"Username '{username}' is already taken.")
-    if User.query.filter(db.func.lower(User.email) == email).first():
+    if email and User.query.filter(db.func.lower(User.email) == email).first():
         errors.append(f"Email '{email}' is already in use.")
 
     if errors:
         for e in errors:
             flash(e, 'danger')
         return redirect(url_for('admin.users'))
+
+    # Email is optional. When blank, store a unique placeholder (never emailed);
+    # username uniqueness guarantees the placeholder is unique too.
+    if not email:
+        email = f"{username.lower()}@placeholder.local"
 
     password = explicit_password or _generate_password()
     user = User(
