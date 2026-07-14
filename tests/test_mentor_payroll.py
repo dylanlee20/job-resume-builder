@@ -59,19 +59,27 @@ class TestCurriculumAccess:
 
 
 class TestProgress:
-    def test_progress_counts_only_approved(self, app, db):
+    def test_progress_sums_approved_hours(self, app, db):
         with app.app_context():
-            s = _mk("stud", total_sessions=10)
+            s = _mk("stud", total_sessions=20)  # package = 20 hours
             db.session.add_all([
-                SessionRecord(student_id=s.id, mentor_name="M", session_type="Technical", status="approved"),
-                SessionRecord(student_id=s.id, mentor_name="M", session_type="Technical", status="approved"),
-                SessionRecord(student_id=s.id, mentor_name="M", session_type="Technical", status="pending"),
-                SessionRecord(student_id=s.id, mentor_name="M", session_type="Technical", status="rejected"),
+                SessionRecord(student_id=s.id, mentor_name="M", session_type="Behavioral", status="approved", hours=Decimal("2")),
+                SessionRecord(student_id=s.id, mentor_name="M", session_type="Behavioral", status="approved", hours=Decimal("1")),
+                SessionRecord(student_id=s.id, mentor_name="M", session_type="Technical", status="pending", hours=Decimal("5")),
+                SessionRecord(student_id=s.id, mentor_name="M", session_type="Technical", status="rejected", hours=Decimal("5")),
             ])
             db.session.commit()
-            assert s.sessions_completed == 2
-            assert s.progress_display == "2/10"
-            assert s.sessions_pct == 20
+            assert s.hours_completed == Decimal("3")   # only approved hours
+            assert s.progress_display == "3/20"
+            assert s.sessions_pct == 15
+
+    def test_progress_formats_fractional_hours(self, app, db):
+        with app.app_context():
+            s = _mk("stud2", total_sessions=10)
+            db.session.add(SessionRecord(student_id=s.id, mentor_name="M",
+                           session_type="Behavioral", status="approved", hours=Decimal("1.5")))
+            db.session.commit()
+            assert s.progress_display == "1.5/10"
 
 
 class TestEffectiveRate:

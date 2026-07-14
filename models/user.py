@@ -1,11 +1,17 @@
 """User model with authentication and email verification support."""
 import random
 from datetime import datetime
+from decimal import Decimal
 
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from models.database import db
+
+
+def _fmt_hours(x) -> str:
+    """Format an hours value without trailing zeros: 3.00 -> '3', 1.50 -> '1.5'."""
+    return format(Decimal(x or 0).normalize(), 'f')
 
 
 class User(UserMixin, db.Model):
@@ -128,16 +134,31 @@ class User(UserMixin, db.Model):
         return cached
 
     @property
+    def hours_completed(self):
+        """Sum of the student's APPROVED session hours — the numerator (x) of the
+        Progress x/y bar. The package size (y) is measured in hours. Memoized."""
+        cached = self.__dict__.get('_hours_completed_cache')
+        if cached is None:
+            from sqlalchemy import func
+            from models.session_record import SessionRecord
+            val = db.session.query(
+                func.coalesce(func.sum(SessionRecord.hours), 0)
+            ).filter_by(student_id=self.id, status='approved').scalar()
+            cached = Decimal(str(val or 0))
+            self.__dict__['_hours_completed_cache'] = cached
+        return cached
+
+    @property
     def sessions_pct(self) -> int:
         total = self.sessions_total
         if not total:
             return 0
-        return max(0, min(100, round(100 * self.sessions_completed / total)))
+        return max(0, min(100, round(100 * float(self.hours_completed) / total)))
 
     @property
     def progress_display(self) -> str:
-        """The 'x/y' label: approved sessions over package total."""
-        return f"{self.sessions_completed}/{self.sessions_total}"
+        """The 'x/y' label: approved HOURS over the package size (hours)."""
+        return f"{_fmt_hours(self.hours_completed)}/{self.sessions_total}"
 
     @property
     def plan(self) -> str:

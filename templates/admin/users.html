@@ -207,8 +207,8 @@
                                     <label class="form-check-label small" for="typeMentor">Mentor</label>
                                 </div>
                                 <div class="ms-3" style="max-width: 190px;">
-                                    <label class="form-label small mb-0" for="newTotalSessions">Student package size (y)</label>
-                                    <input type="number" min="1" name="total_sessions" id="newTotalSessions" class="form-control form-control-sm" placeholder="e.g. 50">
+                                    <label class="form-label small mb-0" for="newTotalSessions">Package size (hours)</label>
+                                    <input type="number" min="1" name="total_sessions" id="newTotalSessions" class="form-control form-control-sm" placeholder="e.g. 20">
                                 </div>
                                 <div style="max-width: 150px;">
                                     <label class="form-label small mb-0" for="newExchangeRate">Exchange rate <span class="text-muted">(USD/CNY)</span></label>
@@ -402,7 +402,7 @@
                                 <td>
                                     <div class="sess-cell">
                                         <span class="sess-plan plan-{{ user.plan }}">{{ user.plan }}</span>
-                                        <div class="sess-bar" title="Approved sessions: {{ user.progress_display }}">
+                                        <div class="sess-bar" title="Approved hours: {{ user.progress_display }}">
                                             <div class="sess-fill" style="width: {{ user.sessions_pct }}%;"></div>
                                             <span class="sess-num">{{ user.progress_display }}</span>
                                         </div>
