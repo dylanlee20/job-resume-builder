@@ -17,8 +17,9 @@ class StudentPayment(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
 
     amount = db.Column(db.Numeric(10, 2), nullable=False)         # in `currency`
-    currency = db.Column(db.String(3), nullable=False, default="USD")
-    # Multiply amount by this to get USD (e.g. RMB->USD ~ 0.14).
+    currency = db.Column(db.String(3), nullable=False, default="CNY")
+    # USD/CNY exchange rate: CNY per USD, e.g. 7.20. USD = amount / this rate.
+    # (Column name is historical; it holds the USD/CNY per-USD rate. Use 1 for USD.)
     fx_to_usd = db.Column(db.Numeric(12, 6), nullable=False, default=1)
     amount_usd = db.Column(db.Numeric(10, 2), nullable=False, default=0)
 
@@ -32,5 +33,7 @@ class StudentPayment(db.Model):
         return f"<StudentPayment student={self.student_id} {self.amount} {self.currency}>"
 
     def recompute_usd(self) -> None:
-        amt = Decimal(self.amount or 0) * Decimal(self.fx_to_usd or 0)
+        # USD = local amount / (USD/CNY rate). USD payments use rate 1.
+        rate = Decimal(self.fx_to_usd or 0)
+        amt = (Decimal(self.amount or 0) / rate) if rate else Decimal(0)
         self.amount_usd = amt.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

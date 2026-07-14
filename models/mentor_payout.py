@@ -28,6 +28,7 @@ class MentorPayout(db.Model):
 
     amount = db.Column(db.Numeric(10, 2), nullable=False, default=0)   # mentor currency
     currency = db.Column(db.String(3), nullable=False, default="USD")
+    # USD/CNY rate (local currency per USD). amount_usd = amount / fx_to_usd; USD uses 1.
     fx_to_usd = db.Column(db.Numeric(12, 6), nullable=False, default=1)
     amount_usd = db.Column(db.Numeric(10, 2), nullable=False, default=0)
 

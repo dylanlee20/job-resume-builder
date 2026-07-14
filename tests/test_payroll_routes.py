@@ -63,15 +63,15 @@ def test_issue_with_fx_then_idempotent(app, db, client, week_setup):
     _login_admin(client)
     monday = _this_monday()
     client.post("/admin/reconciliation/issue",
-                data={"week_start": monday, f"fx_{week_setup}": "0.14"}, follow_redirects=True)
+                data={"week_start": monday, f"fx_{week_setup}": "8"}, follow_redirects=True)
     with app.app_context():
         payouts = MentorPayout.query.filter_by(mentor_id=week_setup).all()
         assert len(payouts) == 1
-        # 2h * 100 CNY = 200 CNY; * 0.14 = 28.00 USD
+        # 2h * 100 CNY = 200 CNY; / 8 (USD/CNY) = 25.00 USD
         assert payouts[0].amount == Decimal("200.00")
-        assert payouts[0].amount_usd == Decimal("28.00")
+        assert payouts[0].amount_usd == Decimal("25.00")
     # Re-issue the same week must not create a second payout.
     client.post("/admin/reconciliation/issue",
-                data={"week_start": monday, f"fx_{week_setup}": "0.14"}, follow_redirects=True)
+                data={"week_start": monday, f"fx_{week_setup}": "8"}, follow_redirects=True)
     with app.app_context():
         assert MentorPayout.query.filter_by(mentor_id=week_setup).count() == 1

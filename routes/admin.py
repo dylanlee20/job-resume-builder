@@ -670,8 +670,11 @@ def payments():
 def create_payment():
     student = User.query.get(request.form.get('student_id', type=int))
     amount_raw = (request.form.get('amount', '') or '').strip()
-    currency = (request.form.get('currency', 'USD') or 'USD').strip().upper()[:3] or 'USD'
-    fx_raw = (request.form.get('fx_to_usd', '1') or '1').strip()
+    currency = (request.form.get('currency', 'CNY') or 'CNY').strip().upper()[:3] or 'CNY'
+    fx_raw = (request.form.get('fx_to_usd', '') or '').strip()
+    # Default the USD/CNY rate from the student's account when left blank.
+    if not fx_raw and student and student.exchange_rate:
+        fx_raw = str(student.exchange_rate)
     paid_raw = (request.form.get('paid_at', '') or '').strip()
     note = (request.form.get('note', '') or '').strip() or None
 
@@ -686,11 +689,11 @@ def create_payment():
         errors.append('Enter a valid payment amount.')
         amount = None
     try:
-        fx = Decimal(fx_raw)
-        if fx <= 0:
+        fx = Decimal(fx_raw) if fx_raw else None
+        if fx is None or fx <= 0:
             raise InvalidOperation
     except (InvalidOperation, ValueError):
-        errors.append('Enter a valid exchange rate to USD.')
+        errors.append('Enter a valid USD/CNY rate (or set one on the student account).')
         fx = None
     paid_at = datetime.utcnow()
     if paid_raw:
@@ -832,7 +835,8 @@ def issue_payroll():
         if fx is None or fx <= 0:
             skipped.append(mentor.full_name or mentor.username)
             continue  # never lock in a wrong USD figure for a foreign currency
-        amount_usd = (Decimal(row['amount']) * fx).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # USD = amount / (USD/CNY rate); USD-currency mentors use rate 1.
+        amount_usd = (Decimal(row['amount']) / fx).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         db.session.add(MentorPayout(
             mentor_id=mentor.id, week_start=start, week_end=end,
             total_hours=row['hours'], session_count=row['count'],
@@ -844,6 +848,6 @@ def issue_payroll():
     db.session.commit()
     flash(f"Issued salary for {issued_count} mentor(s) for week of {start:%Y-%m-%d}.", 'success')
     if skipped:
-        flash("Skipped (enter an FX-to-USD rate first): " + ", ".join(skipped), 'warning')
+        flash("Skipped (enter a USD/CNY rate first): " + ", ".join(skipped), 'warning')
     return redirect(url_for('admin.reconciliation', week=start.strftime('%Y-%m-%d')))
 

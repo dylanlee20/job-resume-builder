@@ -96,7 +96,8 @@ class TestPaymentUsd:
     def test_recompute_usd(self, app, db):
         with app.app_context():
             s = _mk("sp")
+            # USD/CNY = CNY per USD; USD = amount / rate. 1000 CNY / 8 = 125.
             p = StudentPayment(student_id=s.id, amount=Decimal("1000"),
-                               currency="CNY", fx_to_usd=Decimal("0.14"))
+                               currency="CNY", fx_to_usd=Decimal("8"))
             p.recompute_usd()
-            assert p.amount_usd == Decimal("140.00")
+            assert p.amount_usd == Decimal("125.00")

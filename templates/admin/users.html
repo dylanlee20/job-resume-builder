@@ -17,12 +17,12 @@
         Copy these now &mdash; they will not be shown again after you leave this page.
         <div class="mt-2">
             <span class="me-3"><strong>Username:</strong> <code>{{ issued_username }}</code></span>
-            <span><strong>Password:</strong> <code id="issuedPassword">{{ issued_credentials }}</code>
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
-                        onclick="navigator.clipboard.writeText(document.getElementById('issuedPassword').textContent)">
-                    <i class="bi bi-clipboard"></i> Copy
-                </button>
-            </span>
+            <span><strong>Password:</strong> <code id="issuedPassword">{{ issued_credentials }}</code></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                    data-username="{{ issued_username }}" data-password="{{ issued_credentials }}"
+                    onclick="navigator.clipboard.writeText(this.dataset.username + '\n' + this.dataset.password)">
+                <i class="bi bi-clipboard"></i> Copy login
+            </button>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
