@@ -14,6 +14,8 @@ from models.question_bank import QuestionBankEntry
 from models.mentor_rate import MentorRate
 from models.student_payment import StudentPayment
 from models.mentor_payout import MentorPayout
+from models.mentor_student import MentorStudent
+from models.saved_question import SavedQuestion
 from models.job import Job
 from services.job_service import JobService
 from services.slides_service import render_watermarked_png, SECTION_TITLE_OVERRIDES
@@ -372,14 +374,44 @@ def reset_password(user_id):
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @admin_required
 def delete_user(user_id):
-    """Delete a user account (admin cannot delete themselves)."""
+    """Delete a user account (admin cannot delete themselves).
+
+    The users row is referenced by several child tables with NOT NULL foreign
+    keys (mentor_rates, mentor_payouts, mentor_students, student_payments,
+    saved_questions) under `PRAGMA foreign_keys=ON`. A bare `db.session.delete`
+    on a mentor/student who has any of those rows raises IntegrityError, which
+    the global 500 handler swallows with a rollback + redirect — so the delete
+    appeared to "do nothing." Detach/remove every dependent row first, in one
+    transaction, and surface any real failure instead of hiding it.
+    """
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
         flash('You cannot delete your own admin account.', 'danger')
         return redirect(url_for('admin.users'))
     username = user.username
-    db.session.delete(user)
-    db.session.commit()
+    try:
+        # Preserve session history: keep the rows (mentor_name snapshot and any
+        # counterpart's approved-hours count stay intact) but null the link to
+        # the account being removed.
+        SessionRecord.query.filter_by(mentor_id=user.id).update(
+            {'mentor_id': None}, synchronize_session=False)
+        SessionRecord.query.filter_by(student_id=user.id).update(
+            {'student_id': None}, synchronize_session=False)
+        # Bookkeeping/personalisation rows are meaningless without the account.
+        MentorRate.query.filter_by(mentor_id=user.id).delete(synchronize_session=False)
+        MentorPayout.query.filter_by(mentor_id=user.id).delete(synchronize_session=False)
+        MentorStudent.query.filter(
+            (MentorStudent.mentor_id == user.id)
+            | (MentorStudent.student_id == user.id)
+        ).delete(synchronize_session=False)
+        StudentPayment.query.filter_by(student_id=user.id).delete(synchronize_session=False)
+        SavedQuestion.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+        db.session.delete(user)
+        db.session.commit()
+    except Exception as exc:  # noqa: BLE001 - report the real reason, don't swallow it
+        db.session.rollback()
+        flash(f'Could not delete "{username}": {exc}', 'danger')
+        return redirect(url_for('admin.users'))
     flash(f'User "{username}" has been deleted.', 'success')
     return redirect(url_for('admin.users'))
 
