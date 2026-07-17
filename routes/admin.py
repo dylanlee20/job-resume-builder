@@ -662,6 +662,33 @@ def set_role(user_id):
     return redirect(url_for('admin.users'))
 
 
+@admin_bp.route('/users/<int:user_id>/admin', methods=['POST'])
+@admin_required
+def set_admin(user_id):
+    """Grant or revoke full admin access for an account.
+
+    Guards: an admin can never demote themselves, and the last remaining admin
+    cannot be revoked (otherwise no one could reach this panel).
+    """
+    user = User.query.get_or_404(user_id)
+    grant = request.form.get('is_admin') == 'on'
+    if not grant:
+        if user.id == current_user.id:
+            flash('You cannot revoke your own admin access.', 'danger')
+            return redirect(url_for('admin.users'))
+        if User.query.filter_by(is_admin=True).count() <= 1:
+            flash('Cannot revoke the last remaining admin.', 'danger')
+            return redirect(url_for('admin.users'))
+    user.is_admin = grant
+    db.session.commit()
+    flash(
+        f"'{user.username}' is now an admin with full access."
+        if grant else f"Admin access revoked for '{user.username}'.",
+        'success',
+    )
+    return redirect(url_for('admin.users'))
+
+
 @admin_bp.route('/users/<int:user_id>/curriculums', methods=['POST'])
 @admin_required
 def set_curriculums(user_id):

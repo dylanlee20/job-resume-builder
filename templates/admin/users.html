@@ -318,6 +318,13 @@
                                         </div>
                                         {% if user.is_admin %}
                                         <div class="text-muted small mb-2">Admin &mdash; full access. Protected account.</div>
+                                        {% if user.id != current_user.id %}
+                                        <form method="POST" action="{{ url_for('admin.set_admin', user_id=user.id) }}" class="mb-2">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button class="btn btn-outline-danger btn-sm w-100" type="submit"
+                                                    onclick="return confirm('Revoke admin access from {{ user.username }}?');"><i class="bi bi-shield-slash"></i> Revoke admin</button>
+                                        </form>
+                                        {% endif %}
                                         <form method="POST" action="{{ url_for('admin.set_role', user_id=user.id) }}">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <div class="small text-muted mb-1">Mentor mode {% if user.is_mentor %}<span class="badge bg-info text-dark">on</span>{% endif %}</div>
@@ -350,6 +357,13 @@
                                             <input type="hidden" name="is_mentor" value="on">
                                             <button class="btn btn-outline-info btn-sm w-100" type="submit"><i class="bi bi-arrow-left-right"></i> Convert to mentor</button>
                                             {% endif %}
+                                        </form>
+                                        <hr class="my-2">
+                                        <form method="POST" action="{{ url_for('admin.set_admin', user_id=user.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <input type="hidden" name="is_admin" value="on">
+                                            <button class="btn btn-outline-danger btn-sm w-100" type="submit"
+                                                    onclick="return confirm('Grant FULL admin access to {{ user.username }}? They will be able to manage all users.');"><i class="bi bi-shield-lock"></i> Make admin</button>
                                         </form>
                                         {% if user.is_mentor %}
                                         <hr class="my-2">
