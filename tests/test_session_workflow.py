@@ -65,6 +65,19 @@ def test_unlinked_student_not_selectable_by_id(app, db, client, actors):
         assert SessionRecord.query.filter_by(mentor_id=actors["mentor"]).count() == 0
 
 
+def test_logged_student_persists_in_dropdown_with_name_and_id(app, db, client, actors):
+    """After a first log, the student is remembered and shown as '#code — name'
+    in the Choose-a-student dropdown on the next visit."""
+    _login(client, "mentorx")
+    client.post("/portal/log", data={
+        "new_student_code": actors["student_code"], "new_student_name": actors["student_name"],
+        "session_type": "Behavioral", "hours": "1.0", "topic": "notes"}, follow_redirects=True)
+    # Re-open the log page: the student now appears in the saved dropdown.
+    html = client.get("/portal/log").get_data(as_text=True)
+    assert f"#{actors['student_code']}" in html
+    assert "Student X" in html
+
+
 def test_linked_student_then_logs_by_dropdown(app, db, client, actors):
     from models.mentor_student import MentorStudent
     with app.app_context():
