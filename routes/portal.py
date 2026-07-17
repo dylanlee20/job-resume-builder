@@ -12,7 +12,7 @@ from flask_login import current_user, login_required
 
 from models.database import db
 from models.user import User
-from models.session_record import SessionRecord, SESSION_TYPES
+from models.session_record import SessionRecord, SESSION_TYPES, NO_SHOW_TYPE, NO_SHOW_HOURS
 from models.mentor_student import MentorStudent
 from utils.auth_decorators import mentor_required, student_required, mentor_or_admin
 from utils.session_dates import parse_session_date
@@ -126,12 +126,16 @@ def log_session():
         if not topic:
             errors.append("Enter what the session covered (topic / notes).")
         hours = None
-        try:
-            hours = Decimal(hours_raw)
-            if hours <= 0:
-                raise InvalidOperation
-        except (InvalidOperation, ValueError):
-            errors.append("Enter the session length in hours (e.g. 1.5).")
+        if session_type == NO_SHOW_TYPE:
+            # A no-show is always a fixed half hour; ignore any entered length.
+            hours = NO_SHOW_HOURS
+        else:
+            try:
+                hours = Decimal(hours_raw)
+                if hours <= 0:
+                    raise InvalidOperation
+            except (InvalidOperation, ValueError):
+                errors.append("Enter the session length in hours (e.g. 1.5).")
 
         logged_at, date_err = parse_session_date(request.form.get("session_date"), datetime.utcnow())
         if date_err:

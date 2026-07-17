@@ -3,10 +3,17 @@
 Submitted from the admin User Management page's Session History panel.
 """
 from datetime import datetime
+from decimal import Decimal
 
 from models.database import db
 
-SESSION_TYPES = ("Technical", "Behavioral", "Competition", "Interview Prep", "Referral")
+# A no-show (student didn't attend) is logged as a session type and always
+# counts as a fixed half hour of mentor time, regardless of what's entered.
+NO_SHOW_TYPE = "No Show"
+NO_SHOW_HOURS = Decimal("0.5")
+
+SESSION_TYPES = ("Technical", "Behavioral", "Competition", "Interview Prep",
+                 "Referral", NO_SHOW_TYPE)
 
 # Session lifecycle: a mentor logs a 'pending' session; the student approves
 # (-> 'approved', which counts toward their progress) or rejects it.

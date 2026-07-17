@@ -65,9 +65,10 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small mb-0">Type</label>
-                    <select name="session_type" class="form-select form-select-sm" required>
+                    <select name="session_type" id="adminSessionType" class="form-select form-select-sm" required>
                         {% for t in session_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                     </select>
+                    <div id="adminNoShowHint" class="form-text text-warning small d-none">No show = 0.5 hrs.</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small mb-0">Topic</label>
@@ -562,6 +563,17 @@ document.querySelectorAll('.js-edit-profile').forEach(function (btn) {
     document.getElementById('epOffers').value = d.offers || '';
     document.getElementById('epDone').checked = (d.done === '1');
   });
+
+  // Note that a No Show session is logged as a fixed 0.5 hrs.
+  var adminType = document.getElementById('adminSessionType');
+  var adminHint = document.getElementById('adminNoShowHint');
+  if (adminType && adminHint) {
+    var syncNoShow = function () {
+      adminHint.classList.toggle('d-none', adminType.value !== 'No Show');
+    };
+    adminType.addEventListener('change', syncNoShow);
+    syncNoShow();
+  }
 });
 </script>
 {% endblock %}

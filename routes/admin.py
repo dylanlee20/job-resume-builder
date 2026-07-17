@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from models.database import db
 from models.user import User, generate_portal_code
 from models.scraper_run import ScraperRun
-from models.session_record import SessionRecord, SESSION_TYPES
+from models.session_record import SessionRecord, SESSION_TYPES, NO_SHOW_TYPE, NO_SHOW_HOURS
 from models.question_bank import QuestionBankEntry
 from models.mentor_rate import MentorRate
 from models.student_payment import StudentPayment
@@ -221,6 +221,7 @@ def create_session():
         topic=topic or None,
         rating=rating,
         feedback=feedback or None,
+        hours=NO_SHOW_HOURS if session_type == NO_SHOW_TYPE else None,
         status='approved',  # admin-logged sessions are trusted / count immediately
         approved_at=datetime.utcnow(),
         created_at=logged_at,
