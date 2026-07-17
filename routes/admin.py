@@ -19,6 +19,7 @@ from models.saved_question import SavedQuestion
 from models.job import Job
 from services.job_service import JobService
 from services.slides_service import render_watermarked_png, SECTION_TITLE_OVERRIDES
+from utils.session_dates import parse_session_date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import datetime, timedelta
 
@@ -89,6 +90,7 @@ def users():
         student_choices=student_choices,
         session_types=SESSION_TYPES,
         curriculum_choices=_curriculum_choices(),
+        today=datetime.utcnow().strftime('%Y-%m-%d'),
     )
 
 
@@ -203,6 +205,10 @@ def create_session():
         except ValueError:
             errors.append('Invalid student.')
 
+    logged_at, date_err = parse_session_date(request.form.get('session_date'), datetime.utcnow())
+    if date_err:
+        errors.append(date_err)
+
     if errors:
         for e in errors:
             flash(e, 'danger')
@@ -217,6 +223,7 @@ def create_session():
         feedback=feedback or None,
         status='approved',  # admin-logged sessions are trusted / count immediately
         approved_at=datetime.utcnow(),
+        created_at=logged_at,
     )
     db.session.add(record)
     db.session.commit()

@@ -15,6 +15,7 @@ from models.user import User
 from models.session_record import SessionRecord, SESSION_TYPES
 from models.mentor_student import MentorStudent
 from utils.auth_decorators import mentor_required, student_required, mentor_or_admin
+from utils.session_dates import parse_session_date
 
 portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
 
@@ -132,13 +133,18 @@ def log_session():
         except (InvalidOperation, ValueError):
             errors.append("Enter the session length in hours (e.g. 1.5).")
 
+        logged_at, date_err = parse_session_date(request.form.get("session_date"), datetime.utcnow())
+        if date_err:
+            errors.append(date_err)
+
         if errors:
             db.session.rollback()  # drop any half-made link if validation failed
             for e in errors:
                 flash(e, "danger")
             return render_template("portal/log_session.html", students=students,
                                    mentors=mentors, pick_mentor=pick_mentor,
-                                   session_types=SESSION_TYPES)
+                                   session_types=SESSION_TYPES,
+                                   today=datetime.utcnow().strftime("%Y-%m-%d"))
 
         db.session.add(SessionRecord(
             student_id=student.id,
@@ -148,6 +154,7 @@ def log_session():
             topic=topic,
             hours=hours,
             status="pending",
+            created_at=logged_at,
         ))
         db.session.commit()  # commits the session AND any new mentor-student link
         flash(f"Session logged for {student.full_name or student.username} "
@@ -157,7 +164,8 @@ def log_session():
 
     return render_template("portal/log_session.html", students=students,
                            mentors=mentors, pick_mentor=pick_mentor,
-                           session_types=SESSION_TYPES)
+                           session_types=SESSION_TYPES,
+                           today=datetime.utcnow().strftime("%Y-%m-%d"))
 
 
 @portal_bp.route("/sessions")

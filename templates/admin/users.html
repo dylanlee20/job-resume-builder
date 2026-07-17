@@ -59,6 +59,11 @@
                     <input type="text" name="mentor_name" class="form-control form-control-sm" required autocomplete="off">
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label small mb-0">Date</label>
+                    <input type="date" name="session_date" class="form-control form-control-sm"
+                           value="{{ today }}" max="{{ today }}">
+                </div>
+                <div class="col-md-2">
                     <label class="form-label small mb-0">Type</label>
                     <select name="session_type" class="form-select form-select-sm" required>
                         {% for t in session_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
